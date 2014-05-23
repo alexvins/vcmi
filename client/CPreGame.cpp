@@ -1889,7 +1889,7 @@ CChatBox::CChatBox(const Rect &rect)
 {
 	OBJ_CONSTRUCTION;
 	pos += rect;
-	addUsedEvents(KEYBOARD);
+	addUsedEvents(KEYBOARD | TEXTINPUT);
 	captureAllKeys = true;
 
 	const int height = graphics->fonts[FONT_SMALL]->getLineHeight();
