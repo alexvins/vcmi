@@ -196,6 +196,17 @@
 		<Unit filename="gui/SDL_Pixels.h" />
 		<Unit filename="mapHandler.cpp" />
 		<Unit filename="mapHandler.h" />
+		<Unit filename="renderer/CAcceleratedRenderer.cpp" />
+		<Unit filename="renderer/CAcceleratedRenderer.h" />
+		<Unit filename="renderer/CBaseRenderer.cpp" />
+		<Unit filename="renderer/CBaseRenderer.h" />
+		<Unit filename="renderer/COpenGLESRenderer.cpp" />
+		<Unit filename="renderer/COpenGLESRenderer.h" />
+		<Unit filename="renderer/COpenGLRenderer.cpp" />
+		<Unit filename="renderer/COpenGLRenderer.h" />
+		<Unit filename="renderer/CSoftRenderer.cpp" />
+		<Unit filename="renderer/CSoftRenderer.h" />
+		<Unit filename="renderer/IRenderer.h" />
 		<Unit filename="resource.h" />
 		<Extensions>
 			<code_completion />
