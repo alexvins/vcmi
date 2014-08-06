@@ -7,6 +7,8 @@
  * Full text of license available in license.txt file, in main folder
  *
  */
+#include "StdInc.h"
+
 #include "CBaseRenderer.h"
 
 CBaseRenderer::CBaseRenderer()

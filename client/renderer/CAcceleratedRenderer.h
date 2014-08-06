@@ -18,9 +18,9 @@
 
 class CAcceleratedRenderer : public CBaseRenderer
 {
-	public:
-		CAcceleratedRenderer();
-		virtual ~CAcceleratedRenderer();
-	protected:
-	private:
+public:
+	CAcceleratedRenderer();
+	virtual ~CAcceleratedRenderer();
+protected:
+private:
 };

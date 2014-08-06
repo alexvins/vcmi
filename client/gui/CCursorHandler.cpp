@@ -7,6 +7,8 @@
 #include "CGuiHandler.h"
 #include "../CMT.h"
 
+#include "../renderer/IRenderer.h"
+
 /*
  * CCursorHandler.cpp, part of VCMI engine
  *
@@ -223,7 +225,9 @@ void CCursorHandler::centerCursor()
 	this->xpos = (screen->w / 2.) - (currentCursor->pos.w / 2.);
 	this->ypos = (screen->h / 2.) - (currentCursor->pos.h / 2.);
 	SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
-	SDL_WarpMouse(this->xpos, this->ypos);
+	
+	mainScreen->warpMouse(this->xpos, this->ypos);
+	
 	SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
 }
 

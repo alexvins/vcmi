@@ -40,6 +40,8 @@
 #include "gui/CGuiHandler.h"
 #include "../lib/logging/CBasicLogConfigurator.h"
 
+#include "renderer/CSoftRenderer.h"
+
 #ifdef _WIN32
 #include "SDL_syswm.h"
 #endif
@@ -67,8 +69,12 @@ std::string NAME = GameConstants::VCMI_VERSION + std::string(" (") + NAME_AFFIX 
 CGuiHandler GH;
 static CClient *client=nullptr;
 
+IWindow * mainScreen = nullptr;
+IRenderTarget * bufferScreen = nullptr;
+IRenderer * renderEngine = nullptr;
+
 #ifndef VCMI_SDL1
-int preferredDriverIndex = -1;
+
 SDL_Window * mainWindow = nullptr;
 SDL_Renderer * mainRenderer = nullptr;
 SDL_Texture * screenTexture = nullptr;
@@ -91,7 +97,7 @@ static po::variables_map vm;
 
 static bool ermInteractiveMode = false; //structurize when time is right
 void processCommand(const std::string &message);
-static void setScreenRes(int w, int h, int bpp, bool fullscreen, bool resetVideo=true);
+
 void dispose();
 void playIntro();
 static void mainLoop();
@@ -298,14 +304,14 @@ int main(int argc, char** argv)
 		if (CResourceHandler::get()->existsResource(ResourceID(filename)))
 			return true;
 
-        logGlobal->errorStream() << "Error: " << message << " was not found!";
+        logGlobal->errorStream() << "[FATAL] " << message << " was not found!";
 		return false;
 	};
 
 	if (!testFile("DATA/HELP.TXT", "Heroes III data") ||
 	    !testFile("MODS/VCMI/MOD.JSON", "VCMI mod") ||
 	    !testFile("DATA/StackQueueBgBig.PCX", "VCMI data"))
-		exit(1); // These are unrecoverable errors
+		exit(EXIT_FAILURE); // These are unrecoverable errors
 
 	// these two are optional + some installs have them on CD and not in data directory
 	testFile("VIDEO/GOOD1A.SMK", "campaign movies");
@@ -321,10 +327,11 @@ int main(int argc, char** argv)
 	const JsonNode& video = settings["video"];
 	const JsonNode& res = video["screenRes"];
 
-	//something is really wrong...
-	if (res["width"].Float() < 100 || res["height"].Float() < 100)
+	
+	if (res["width"].Float() < 100 || res["height"].Float() < 100)	
 	{
-        logGlobal->errorStream() << "Fatal error: failed to load settings!";
+		//something is really wrong...
+        logGlobal->errorStream() << "[FATAL] Settings load failed!";
         logGlobal->errorStream() << "Possible reasons:";
         logGlobal->errorStream() << "\tCorrupted local configuration file at " << VCMIDirs::get().userConfigPath() << "/settings.json";
         logGlobal->errorStream() << "\tMissing or corrupted global configuration file at " << VCMIDirs::get().userConfigPath() << "/schemas/settings.json";
@@ -334,43 +341,20 @@ int main(int argc, char** argv)
 
 	if(!gNoGUI)
 	{
-		#ifdef VCMI_SDL1
 		if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_AUDIO))
-		#else
-		if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_AUDIO|SDL_INIT_NOPARACHUTE))
-		#endif
 		{
-			logGlobal->errorStream()<<"Something was wrong: "<< SDL_GetError();
-			exit(-1);
+			logGlobal->errorStream() << "[FATAL] SDL_Init failed: " << SDL_GetError();
+			exit(EXIT_FAILURE);
 		}
 		GH.mainFPSmng->init(); //(!)init here AFTER SDL_Init() while using SDL for FPS management
 		atexit(SDL_Quit);
 		
-		#ifndef VCMI_SDL1
-		int driversCount = SDL_GetNumRenderDrivers();
-		std::string preferredDriverName = video["driver"].String();
+		//todo: put Renderer selection and initialization here
+		renderEngine = new SoftRenderer::Renderer();//todo: use other backends
+		renderEngine->init();
 		
-		logGlobal->infoStream() << "Found " << driversCount << " render drivers";
-		
-		for(int it = 0; it < driversCount; it++)
-		{
-			SDL_RendererInfo info;
-			SDL_GetRenderDriverInfo(it,&info);
-			
-			std::string driverName(info.name);
-			
-						
-			logGlobal->infoStream() << "\t" << driverName;
-			
-			if(!preferredDriverName.empty() && driverName == preferredDriverName)
-			{
-				preferredDriverIndex = it;
-				logGlobal->infoStream() << "\t\twill select this";
-			}					
-		}			
-		#endif // VCMI_SDL1	
-		
-		setScreenRes(res["width"].Float(), res["height"].Float(), video["bitsPerPixel"].Float(), video["fullscreen"].Bool());
+		mainScreen = renderEngine->createWindow(NAME, res["width"].Float(), res["height"].Float(), video["bitsPerPixel"].Float(), video["fullscreen"].Bool());
+
 		logGlobal->infoStream() <<"\tInitializing screen: "<<pomtime.getDiff();
 	}
 
@@ -800,286 +784,18 @@ void dispose()
 	CMessage::dispose();
 }
 
-static bool checkVideoMode(int monitorIndex, int w, int h, int& bpp, bool fullscreen)
-{
-	#ifndef VCMI_SDL1
-	SDL_DisplayMode mode;
-	const int modeCount = SDL_GetNumDisplayModes(monitorIndex);
-	for (int i = 0; i < modeCount; i++) {
-		SDL_GetDisplayMode(0, i, &mode);
-		if (!mode.w || !mode.h || (w >= mode.w && h >= mode.h)) {
-			return true;
-		}
-	}
-	return false;	
-	#else
-	bpp = SDL_VideoModeOK(w, h, bpp, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
-	return !(bpp==0);
-	#endif // VCMI_SDL1
-}
-
-#ifndef VCMI_SDL1
-static bool recreateWindow(int w, int h, int bpp, bool fullscreen)
-{
-	// VCMI will only work with 2 or 4 bytes per pixel	
-	vstd::amax(bpp, 16);
-	vstd::amin(bpp, 32);
-	if(bpp>16)
-		bpp = 32;
-	
-	int suggestedBpp = bpp;
-
-	if(!checkVideoMode(0,w,h,suggestedBpp,fullscreen))
-	{
-		logGlobal->errorStream() << "Error: SDL says that " << w << "x" << h << " resolution is not available!";
-		return false;
-	}	
-	
-	bool bufOnScreen = (screenBuf == screen);
-
-	screenBuf = nullptr; //it`s a link - just nullify
-
-	if(nullptr != screen2)
-	{
-		SDL_FreeSurface(screen2);
-		screen2 = nullptr;
-	}
-		
-		
-	if(nullptr != screen)
-	{
-		SDL_FreeSurface(screen);
-		screen = nullptr;
-	}	
-		
-	
-	if(nullptr != screenTexture)
-	{
-		SDL_DestroyTexture(screenTexture);
-		screenTexture = nullptr;
-	}
-	
-	if(nullptr != mainRenderer)	
-	{
-		SDL_DestroyRenderer(mainRenderer);
-		mainRenderer = nullptr;
-	}
-		
-	if(nullptr != mainWindow)
-	{
-		SDL_DestroyWindow(mainWindow);
-		mainWindow = nullptr;
-	}	
-	
-	
-	if(fullscreen)
-	{
-		//in full-screen mode always use desktop resolution
-		mainWindow = SDL_CreateWindow(NAME.c_str(), SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	}
-	else
-	{
-		mainWindow = SDL_CreateWindow(NAME.c_str(), SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED, w, h, 0);
-	}
-	
-	
-	
-	if(nullptr == mainWindow)
-	{
-		throw std::runtime_error("Unable to create window\n");
-	}
-	
-	
-	//create first available renderer if preferred not set. Use no flags, so HW accelerated will be preferred but SW renderer also will possible
-	mainRenderer = SDL_CreateRenderer(mainWindow,preferredDriverIndex,0);
-
-	if(nullptr == mainRenderer)
-	{
-		throw std::runtime_error("Unable to create renderer\n");
-	}	
-	
-	SDL_RendererInfo info;
-	SDL_GetRendererInfo(mainRenderer,&info);
-	logGlobal->infoStream() << "Created renderer " << info.name;	
-	
-	SDL_RenderSetLogicalSize(mainRenderer, w, h);
-	
-	SDL_RenderSetViewport(mainRenderer, nullptr);
-
-
-	
-	#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
-		int bmask = 0xff000000;
-		int gmask = 0x00ff0000;
-		int rmask = 0x0000ff00;
-		int amask = 0x000000ff;
-	#else
-		int bmask = 0x000000ff;
-		int gmask = 0x0000ff00;
-		int rmask = 0x00ff0000;
-		int amask = 0xFF000000;
-	#endif
-
-	screen = SDL_CreateRGBSurface(0,w,h,bpp,rmask,gmask,bmask,amask);
-	if(nullptr == screen)
-	{
-		logGlobal->errorStream() << "Unable to create surface";
-		logGlobal->errorStream() << w << " "<<  h << " "<< bpp;
-		
-		logGlobal->errorStream() << SDL_GetError();
-		throw std::runtime_error("Unable to create surface");
-	}	
-	//No blending for screen itself. Required for proper cursor rendering.
-	SDL_SetSurfaceBlendMode(screen, SDL_BLENDMODE_NONE);
-	
-	screenTexture = SDL_CreateTexture(mainRenderer,
-                                            SDL_PIXELFORMAT_ARGB8888,
-                                            SDL_TEXTUREACCESS_STREAMING,
-                                            w, h);
-
-	if(nullptr == screenTexture)
-	{
-		logGlobal->errorStream() << "Unable to create screen texture";
-		logGlobal->errorStream() << SDL_GetError();
-		throw std::runtime_error("Unable to create screen texture");
-	}	
-		
-	screen2 = CSDL_Ext::copySurface(screen);
-
-
-	if(nullptr == screen2)
-	{
-		throw std::runtime_error("Unable to copy surface\n");
-	}			
-	
-	screenBuf = bufOnScreen ? screen : screen2;
-
-	SDL_SetRenderDrawColor(mainRenderer, 0, 0, 0, 0);
-	SDL_RenderClear(mainRenderer);
-	SDL_RenderPresent(mainRenderer);
-		
-	return true;	
-}
-#endif
-
-
-
-//used only once during initialization
-static void setScreenRes(int w, int h, int bpp, bool fullscreen, bool resetVideo)
-{
-#ifdef VCMI_SDL1
-	
-	// VCMI will only work with 2, 3 or 4 bytes per pixel
-	vstd::amax(bpp, 16);
-	vstd::amin(bpp, 32);
-
-	// Try to use the best screen depth for the display
-	int suggestedBpp = SDL_VideoModeOK(w, h, bpp, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0));
-	if(suggestedBpp == 0)
-	{
-		logGlobal->errorStream() << "Error: SDL says that " << w << "x" << h << " resolution is not available!";
-		return;
-	}
-
-	bool bufOnScreen = (screenBuf == screen);
-
-	if(suggestedBpp != bpp)
-	{
-		logGlobal->infoStream() << boost::format("Using %s bpp (bits per pixel) for the video mode. Default or overridden setting was %s bpp.") % suggestedBpp % bpp;
-	}
-
-	//For some reason changing fullscreen via config window checkbox result in SDL_Quit event
-	if (resetVideo)
-	{
-		if(screen) //screen has been already initialized
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-		SDL_InitSubSystem(SDL_INIT_VIDEO);
-	}
-
-	if((screen = SDL_SetVideoMode(w, h, suggestedBpp, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0))) == nullptr)
-	{
-		logGlobal->errorStream() << "Requested screen resolution is not available (" << w << "x" << h << "x" << suggestedBpp << "bpp)";
-		throw std::runtime_error("Requested screen resolution is not available\n");
-	}
-
-	logGlobal->infoStream() << "New screen flags: " << screen->flags;
-
-	if(screen2)
-		SDL_FreeSurface(screen2);
-	screen2 = CSDL_Ext::copySurface(screen);
-	SDL_EnableUNICODE(1);
-	SDL_WM_SetCaption(NAME.c_str(),""); //set window title
-	SDL_ShowCursor(SDL_DISABLE);
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-
-#ifdef _WIN32
-	SDL_SysWMinfo wm;
-	SDL_VERSION(&wm.version);
-	int getwm = SDL_GetWMInfo(&wm);
-	if(getwm == 1)
-	{
-		int sw = GetSystemMetrics(SM_CXSCREEN),
-			sh = GetSystemMetrics(SM_CYSCREEN);
-		RECT curpos;
-		GetWindowRect(wm.window,&curpos);
-		int ourw = curpos.right - curpos.left,
-			ourh = curpos.bottom - curpos.top;
-		SetWindowPos(wm.window, 0, (sw - ourw)/2, (sh - ourh)/2, 0, 0, SWP_NOZORDER|SWP_NOSIZE);
-	}
-	else
-	{
-        logGlobal->warnStream() << "Something went wrong, getwm=" << getwm;
-        logGlobal->warnStream() << "SDL says: " << SDL_GetError();
-        logGlobal->warnStream() << "Window won't be centered.";
-	}
-#endif
-	//TODO: centering game window on other platforms (or does the environment do their job correctly there?)
-
-	screenBuf = bufOnScreen ? screen : screen2;
-	//setResolution = true;	
-	
-#else
-	
-	if(!recreateWindow(w,h,bpp,fullscreen))
-	{
-		throw std::runtime_error("Requested screen resolution is not available\n");
-	}	
-#endif // VCMI_SDL1
-}
-
 static void fullScreenChanged()
 {
 	boost::unique_lock<boost::recursive_mutex> lock(*LOCPLINT->pim);
 
 	Settings full = settings.write["video"]["fullscreen"];
 	const bool toFullscreen = full->Bool();
-
-	auto bitsPerPixel = screen->format->BitsPerPixel;
 	
-	#ifdef VCMI_SDL1
-	bitsPerPixel = SDL_VideoModeOK(screen->w, screen->h, bitsPerPixel, SDL_SWSURFACE|(toFullscreen?SDL_FULLSCREEN:0));
-	if(bitsPerPixel == 0)
-	{
-        logGlobal->errorStream() << "Error: SDL says that " << screen->w << "x" << screen->h << " resolution is not available!";
-		return;
-	}
-
-	bool bufOnScreen = (screenBuf == screen);
-	screen = SDL_SetVideoMode(screen->w, screen->h, bitsPerPixel, SDL_SWSURFACE|(toFullscreen?SDL_FULLSCREEN:0));
-	screenBuf = bufOnScreen ? screen : screen2;
-	
-	#else
-	auto w = screen->w;
-	auto h = screen->h;
-	
-	if(!recreateWindow(w,h,bitsPerPixel,toFullscreen))
+	if(!mainScreen->setFullscreen(toFullscreen))
 	{
 		//will return false and report error if video mode is not supported
 		return;	
 	}	
-	#endif
-	
 	GH.totalRedraw();
 }
 
@@ -1164,7 +880,7 @@ static void mainLoop()
 	inGuiThread.reset(new bool(true));
 	GH.mainFPSmng->init();
 
-	while(1) //main SDL events loop
+	while(true) //main SDL events loop
 	{
 		SDL_Event ev;
 		
@@ -1234,7 +950,7 @@ void handleQuit()
 			SDL_Quit();
 
 		std::cout << "Ending...\n";
-		exit(0);
+		exit(EXIT_SUCCESS);
 	};
 
 	if(client && LOCPLINT)

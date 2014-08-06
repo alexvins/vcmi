@@ -47,11 +47,6 @@ inline void SDL_SetColors(SDL_Surface *surface, SDL_Color *colors, int firstcolo
 	SDL_SetPaletteColors(surface->format->palette,colors,firstcolor,ncolors);
 }
 
-inline void SDL_WarpMouse(int x, int y)
-{
-	SDL_WarpMouseInWindow(mainWindow,x,y);
-}
-
 void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h);
 #endif
 
