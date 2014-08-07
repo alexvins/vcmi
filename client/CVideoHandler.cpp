@@ -21,7 +21,6 @@ static bool keyDown()
 	}
 	return false;
 }
-#endif
 
 #if defined(_WIN32)  &&  (_MSC_VER < 1800 ||  !defined(USE_FFMPEG))
 
@@ -578,8 +577,6 @@ bool CVideoPlayer::playVideo(int x, int y, SDL_Surface *dst, bool stopOnKey)
 #pragma comment(lib, "swscale.lib")
 #endif // _MSC_VER
 
-
-#ifndef DISABLE_VIDEO
 
 // Define a set of functions to read data
 static int lodRead(void* opaque, uint8_t* buf, int size)

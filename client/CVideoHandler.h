@@ -42,6 +42,7 @@ public:
 	virtual bool open( std::string name ) {return false;};
 };
 
+#ifndef DISABLE_VIDEO
 
 #if defined(_WIN32)  &&  (_MSC_VER < 1800 ||  !defined(USE_FFMPEG))
 
@@ -214,8 +215,6 @@ public:
 };
 
 #else
-
-#ifndef DISABLE_VIDEO
 
 #include "../lib/filesystem/CInputStream.h"
 
