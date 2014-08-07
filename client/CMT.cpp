@@ -265,7 +265,7 @@ int main(int argc, char** argv)
 	CStopWatch total, pomtime;
 	std::cout.flags(std::ios::unitbuf);
 	console = new CConsoleHandler;
-	*console->cb = boost::bind(&processCommand, _1);
+	*console->cb = std::bind(&processCommand, _1);
 	console->start();
 	atexit(dispose);
 
@@ -387,7 +387,7 @@ int main(int argc, char** argv)
 
 	if(!gNoGUI )
 	{
-		if(!vm.count("battle") && !vm.count("nointro"))
+		if(!vm.count("battle") && !vm.count("nointro") && settings["video"]["showIntro"].Bool())
 			playIntro();
 			
 		mainScreen->fillWithColor(0, nullptr);
