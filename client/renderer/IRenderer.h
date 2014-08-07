@@ -63,6 +63,8 @@ public:
 	virtual void runActivated(const std::function<void(void)> & cb) = 0;
 		
 	virtual void update() = 0;
+	
+	virtual void saveAsBitmap(const std::string & fileName) = 0;
 };
 
 ///OS window (with attached OGL context if applicable)
@@ -81,7 +83,7 @@ public:
 	virtual void blit(SDL_Surface * what, int x, int y) = 0;	
 
 	///temporary, DEPRECATED. Blit surface to active target
-	virtual void blit(SDL_Surface * what, const SDL_Rect * srcrect, SDL_Rect * dstrect) = 0;
+	virtual void blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) = 0;
     
 
 	

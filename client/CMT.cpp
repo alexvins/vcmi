@@ -530,18 +530,11 @@ void processCommand(const std::string &message)
 	}
 	else if(cn=="screen")
 	{
-		//todo: support screenshots in engine
-//        std::cout << "Screenbuf points to ";
-//
-//		if(screenBuf == screen)
-//            logGlobal->errorStream() << "screen";
-//		else if(screenBuf == screen2)
-//            logGlobal->errorStream() << "screen2";
-//		else
-//            logGlobal->errorStream() << "?!?";
-//
-//		SDL_SaveBMP(screen, "Screen_c.bmp");
-//		SDL_SaveBMP(screen2, "Screen2_c.bmp");
+        logGlobal->errorStream() << "mainScreen " << (mainScreen->isActive() ? "active" : "inactive");
+        logGlobal->errorStream() << "bufferScreen " << (bufferScreen->isActive() ? "active" : "inactive");
+        
+        mainScreen->saveAsBitmap("Screen_c.bmp");
+        bufferScreen->saveAsBitmap("Screen2_c.bmp");
 	}
 	else if(cn=="save")
 	{

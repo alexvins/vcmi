@@ -56,8 +56,7 @@ namespace SoftRenderer
 		{
 			SDL_FreeSurface(surface);
 			surface = nullptr;
-		}	
-					
+		}			
 	}	
 	
 	bool SurfaceProxy::isActive()
@@ -79,6 +78,11 @@ namespace SoftRenderer
 	{
 		return surface->format;
 	}
+
+	void SurfaceProxy::saveAsBitmap(const std::string& fileName)
+	{
+		SDL_SaveBMP(surface, fileName.c_str());
+	}	
 
 	void SurfaceProxy::runActivated(const std::function<void(void)>& cb)
 	{
@@ -136,11 +140,10 @@ namespace SoftRenderer
 		blitAt(what,x,y,activeTarget->surface);
 	}
 	
-	void Window::blit(SDL_Surface* what, const SDL_Rect* srcrect, SDL_Rect* dstrect)
+	void Window::blit(SDL_Surface* what, SDL_Rect* srcrect, SDL_Rect* dstrect)
 	{
-		SDL_BlitSurface(what,srcrect, activeTarget->surface,dstrect);
-	}
-	
+		CSDL_Ext::blitSurface(what,srcrect,activeTarget->surface,dstrect);
+	}	
 	
 	void Window::clear()
 	{
@@ -362,9 +365,9 @@ namespace SoftRenderer
 	void Window::render(IShowable * object, bool total)
 	{
 		if(total)
-			object->showAll(surface);
+			object->showAll(activeTarget->surface);
 		else
-			object->show(surface);
+			object->show(activeTarget->surface);
 	}
 
 	void Window::pushActiveTarget()
@@ -372,7 +375,7 @@ namespace SoftRenderer
 		if(activeTarget != nullptr)
 			targetStack.push(activeTarget);
 		else
-			logGlobal->debugStream() << "Window::pushActiveTarget() no active target";
+			logGlobal->errorStream() << "Window::pushActiveTarget() no active target";
 	}
 
 	void Window::popActiveTarget()
@@ -383,7 +386,7 @@ namespace SoftRenderer
 			targetStack.pop();
 		}
 		else
-			logGlobal->debugStream() << "Window::popActiveTarget() no target to pop up";	
+			logGlobal->errorStream() << "Window::popActiveTarget() no target to pop up";	
 	}
 	
 		

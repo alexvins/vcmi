@@ -155,8 +155,9 @@ void CGuiHandler::totalRedraw()
 		for(auto & elem : objsToBlit)
 			mainScreen->render(elem, true);					
 	});
-	mainScreen->activate();
-	bufferScreen->blitTo(nullptr, nullptr);
+	mainScreen->runActivated([](){
+		bufferScreen->blitTo(nullptr, nullptr);						
+	});	
 }
 
 void CGuiHandler::updateTime()

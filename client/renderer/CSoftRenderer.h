@@ -37,6 +37,8 @@ namespace SoftRenderer
 		
 		Renderer * getRenderer(){return owner;};
 		
+		void saveAsBitmap(const std::string & fileName) override;
+		
 		void runActivated(const std::function<void(void)> & cb) override;
 		
 		void update() override;
@@ -76,7 +78,7 @@ namespace SoftRenderer
 		
 		///IWindow
 		void blit(SDL_Surface * what, int x, int y) override;
-		void blit(SDL_Surface * what, const SDL_Rect * srcrect, SDL_Rect * dstrect) override;			
+		void blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) override;			
 		
 		IRenderTarget * createTarget(int width, int height) override;
 
