@@ -49,6 +49,7 @@ namespace SoftRenderer
 		
 		virtual void clear();
 		virtual Window * getWindow() = 0; 
+		
 	private:
 		friend class RenderTarget;
 		friend class Window;		
@@ -94,18 +95,18 @@ namespace SoftRenderer
 		#else
 		void setScreenRes(int w, int h, int bpp, bool fullscreen);
 		#endif
-		
-		void setActiveTarget(SurfaceProxy * target){activeTarget = target;};
+
+		SurfaceProxy * getActiveTarget();		
+		void setActiveTarget(SurfaceProxy * target);
 		
 		void pushActiveTarget();
-		void popActiveTarget();
-		
-		SurfaceProxy * getActiveTarget(){return activeTarget;};
+		void popActiveTarget();		
+
 	protected:
 		void clear() override;	
 		Window * getWindow(){return this;};
-	private:
 		
+	private:		
 		std::stack<SurfaceProxy *> targetStack;
 		
 		SurfaceProxy * activeTarget;
@@ -134,11 +135,13 @@ namespace SoftRenderer
 		void init() override;
 		
 		///internal interface
+		#ifndef VCMI_SDL1
 		SDL_Renderer * createSDLRenderer(SDL_Window * window);
+		#endif // VCMI_SDL1
+		
 	protected:
 
 	private:
 		int preferredDriverIndex;	
 	};
-
 }

@@ -16,7 +16,6 @@
 #ifndef VCMI_SDL1
 #include <SDL_render.h>
 #include <SDL_hints.h>
-
 #endif // VCMI_SDL1
 
 #include "../../lib/CConfigHandler.h"
@@ -137,12 +136,12 @@ namespace SoftRenderer
 	
 	void Window::blit(SDL_Surface * what, int x, int y)
 	{
-		blitAt(what,x,y,activeTarget->surface);
+		blitAt(what, x, y, activeTarget->surface);
 	}
 	
-	void Window::blit(SDL_Surface* what, SDL_Rect* srcrect, SDL_Rect* dstrect)
+	void Window::blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect* dstrect)
 	{
-		CSDL_Ext::blitSurface(what,srcrect,activeTarget->surface,dstrect);
+		CSDL_Ext::blitSurface(what, srcrect, activeTarget->surface, dstrect);
 	}	
 	
 	void Window::clear()
@@ -195,11 +194,12 @@ namespace SoftRenderer
 		{
 			SDL_DisplayMode mode;
 			const int modeCount = SDL_GetNumDisplayModes(monitorIndex);
-			for (int i = 0; i < modeCount; i++) {
+			for (int i = 0; i < modeCount; i++) 
+			{
 				SDL_GetDisplayMode(0, i, &mode);
-				if (!mode.w || !mode.h || (w >= mode.w && h >= mode.h)) {
+				if (!mode.w || !mode.h || (w >= mode.w && h >= mode.h)) 				
 					return true;
-				}
+				
 			}
 			return false;
 		};
@@ -220,8 +220,7 @@ namespace SoftRenderer
 			return false;
 		}	
 			
-		clear();
-		
+		clear();		
 		
 		if(fullscreen)
 		{
@@ -232,9 +231,7 @@ namespace SoftRenderer
 		else
 		{
 			sdlWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED, w, h, 0);
-		}
-		
-		
+		}		
 		
 		if(nullptr == sdlWindow)
 		{
@@ -250,8 +247,6 @@ namespace SoftRenderer
 		SDL_RenderSetLogicalSize(sdlRenderer, w, h);
 		
 		SDL_RenderSetViewport(sdlRenderer, nullptr);
-
-
 		
 		#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
 			int bmask = 0xff000000;
@@ -309,7 +304,6 @@ namespace SoftRenderer
 			logGlobal->errorStream() << "Error: SDL says that " << w << "x" << h << " resolution is not available!";
 			throw std::runtime_error("Requested screen resolution is not available\n");
 		}
-
 
 		if(suggestedBpp != bpp)
 		{
@@ -369,6 +363,16 @@ namespace SoftRenderer
 		else
 			object->show(activeTarget->surface);
 	}
+	
+	SurfaceProxy * Window::getActiveTarget()
+	{
+		return activeTarget;
+	};		
+		
+	void Window::setActiveTarget(SurfaceProxy * target)
+	{
+		activeTarget = target;
+	};
 
 	void Window::pushActiveTarget()
 	{
@@ -475,8 +479,7 @@ namespace SoftRenderer
 			SDL_RendererInfo info;
 			SDL_GetRenderDriverInfo(it,&info);
 			
-			std::string driverName(info.name);
-			
+			std::string driverName(info.name);			
 						
 			logGlobal->infoStream() << "\t" << driverName;
 			
@@ -489,20 +492,17 @@ namespace SoftRenderer
 		#endif // VCMI_SDL1			
 	}
 	
-	
+#ifndef VCMI_SDL1	
 	SDL_Renderer * Renderer::createSDLRenderer(SDL_Window * window)
-	{
-		
+	{	
 		//create first available renderer if preferred not set. Use no flags, so HW accelerated will be preferred but SW renderer also will possible
 		SDL_Renderer * sdlRenderer = SDL_CreateRenderer(window, preferredDriverIndex,0);		
 		if(nullptr == sdlRenderer)
 		{
 			throw std::runtime_error("Unable to create renderer");
-		}
-		
+		}		
 		return sdlRenderer;	
-				
 	}
-	
+#endif // VCMI_SDL1		
 
 }//namespace SoftRenderer

@@ -21,8 +21,6 @@ class IRenderer;
 class IRenderTarget;
 class IWindow;
 
-
-
 /** @brief Single image, icon set or animation 
  *
  * In single texture atlas
@@ -37,6 +35,7 @@ class IRenderTarget: public boost::noncopyable
 {
 protected:
 	IRenderTarget();
+	
 public:
 	virtual ~IRenderTarget();	
 
@@ -45,10 +44,11 @@ public:
      * Only one rendering target can be active in window
      */
 	virtual void activate() = 0; 
-	
-	
+		
     /** @brief Blit content of this target to active target
+     *
      * Should not be called on active target
+     * 
      * @param srcRect Define part of target to blit, nullptr for whole contents.
      */
 	virtual void blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect) = 0;	
@@ -72,25 +72,23 @@ class IWindow: public virtual IRenderTarget
 {
 protected:	
 	IWindow();
+	
 public:
 	virtual ~IWindow();
-    /** @brief Set window fullscreen mode
-     *
-     * @return true on success
-     */                             
 
 	///temporary, DEPRECATED. Blit surface to active target
 	virtual void blit(SDL_Surface * what, int x, int y) = 0;	
 
 	///temporary, DEPRECATED. Blit surface to active target
-	virtual void blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) = 0;
-    
+	virtual void blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) = 0;    
 
-	
+    /** @brief Set window fullscreen mode
+     *
+     * @return true on success
+     */    	
 	virtual bool setFullscreen(bool enabled) = 0;	
 	
-	virtual void warpMouse(int x, int y) = 0;
-	
+	virtual void warpMouse(int x, int y) = 0;	
     
     /** @brief Creates new rendering target
      * Target is created inactive
@@ -108,8 +106,7 @@ public:
      * 
      * @param cb actual rendering implementation
      */                             	
-	virtual void renderFrame(const std::function<void(void)> & cb) = 0;	
-
+	virtual void renderFrame(const std::function<void(void)> & cb) = 0;
 
 	///temporary, DEPRECATED. Blit object to active target
 	virtual void render(IShowable * object, bool total) = 0;		
@@ -120,12 +117,11 @@ class IRenderer: public boost::noncopyable
 {
 protected:
 	IRenderer();
-public:
 	
+public:	
 	virtual ~IRenderer();
 	
 	virtual IWindow * createWindow(const std::string & name, int w, int h, int bpp, bool fullscreen) = 0;	
 	
 	virtual void init() = 0;
-	
 };
