@@ -21,6 +21,8 @@
 #include "../Graphics.h"
 #include "Geometries.h"
 
+#include "../renderer/IRenderer.h"
+
 
 //A macro to force inlining some of our functions. Compiler (at least MSVC) is not so smart here-> without that displaying is MUCH slower
 #ifdef _MSC_VER
@@ -35,19 +37,18 @@
 #define SDL_GetKeyState SDL_GetKeyboardState
 #endif
 
+extern IWindow * mainScreen;
+extern IRenderTarget * bufferScreen;
+
 //SDL2 support
 #if (SDL_MAJOR_VERSION == 2)
-
-extern SDL_Window * mainWindow;
-extern SDL_Renderer * mainRenderer;
-extern SDL_Texture * screenTexture;
 
 inline void SDL_SetColors(SDL_Surface *surface, SDL_Color *colors, int firstcolor, int ncolors)
 {
 	SDL_SetPaletteColors(surface->format->palette,colors,firstcolor,ncolors);
 }
 
-void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h);
+//void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h);
 #endif
 
 inline bool isCtrlKeyDown()
@@ -101,9 +102,8 @@ namespace CSDL_Ext
 }
 struct Rect;
 
-extern SDL_Surface * screen, *screen2, *screenBuf;
-void blitAt(SDL_Surface * src, int x, int y, SDL_Surface * dst=screen);
-void blitAt(SDL_Surface * src, const SDL_Rect & pos, SDL_Surface * dst=screen);
+void blitAt(SDL_Surface * src, int x, int y, SDL_Surface * dst);
+void blitAt(SDL_Surface * src, const SDL_Rect & pos, SDL_Surface * dst);
 bool isItIn(const SDL_Rect * rect, int x, int y);
 
 /**
@@ -241,13 +241,15 @@ namespace CSDL_Ext
 	Uint32 colorToUint32(const SDL_Color * color); //little endian only
 	SDL_Color makeColor(ui8 r, ui8 g, ui8 b, ui8 a);
 
-	void update(SDL_Surface * what = screen); //updates whole surface (default - main screen)
+//	void update(SDL_Surface * what); //updates whole surface
 	void drawBorder(SDL_Surface * sur, int x, int y, int w, int h, const int3 &color);
 	void drawBorder(SDL_Surface * sur, const SDL_Rect &r, const int3 &color);
 	void drawDashedBorder(SDL_Surface * sur, const Rect &r, const int3 &color);
 	void setPlayerColor(SDL_Surface * sur, PlayerColor player); //sets correct color of flags; -1 for neutral
 	std::string processStr(std::string str, std::vector<std::string> & tor); //replaces %s in string
-	SDL_Surface * newSurface(int w, int h, SDL_Surface * mod=screen); //creates new surface, with flags/format same as in surface given
+	SDL_Surface * newSurface(int w, int h, SDL_Surface * mod); //creates new surface, with flags/format same as in surface given
+	SDL_Surface * newSurface(int w, int h, SDL_PixelFormat * format, Uint32 flags = Uint32(SDL_SWSURFACE)); //creates new surface, with flags/format same as in surface given
+	
 	SDL_Surface * copySurface(SDL_Surface * mod); //returns copy of given surface
 	template<int bpp>
 	SDL_Surface * createSurfaceWithBpp(int width, int height); //create surface with give bits per pixels value

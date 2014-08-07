@@ -2,6 +2,7 @@
 
 class CAnimImage;
 struct SDL_Surface;
+class IRenderTarget;
 
 /*
  * CCursorhandler.h, part of VCMI engine
@@ -27,7 +28,7 @@ namespace ECursor
 /// handles mouse cursor
 class CCursorHandler 
 {
-	SDL_Surface * help;
+	IRenderTarget * help;
 	CAnimImage * currentCursor;
 	CAnimImage * dndObject; //if set, overrides currentCursor
 	bool showing;
@@ -36,8 +37,8 @@ class CCursorHandler
 	void drawWithScreenRestore();
 	/// Restore original image below cursor
 	void drawRestored();
-	/// Simple draw cursor
-	void draw(SDL_Surface *to);
+//	/// Simple draw cursor
+//	void draw(SDL_Surface *to);
 	
 public:
 	/// position of cursor

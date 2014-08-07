@@ -128,7 +128,7 @@ void CPicture::showAll(SDL_Surface * to)
 void CPicture::convertToScreenBPP()
 {
 	SDL_Surface *hlp = bg;
-	bg = SDL_ConvertSurface(hlp,screen->format,0);
+	bg = SDL_ConvertSurface(hlp,mainScreen->getFormat(),0);
 	CSDL_Ext::setDefaultColorKey(bg);	
 	SDL_FreeSurface(hlp);
 }
@@ -159,7 +159,7 @@ void CPicture::createSimpleRect(const Rect &r, bool screenFormat, ui32 color)
 	pos.w = r.w;
 	pos.h = r.h;
 	if(screenFormat)
-		bg = CSDL_Ext::newSurface(r.w, r.h);
+		bg = CSDL_Ext::newSurface(r.w, r.h, mainScreen->getFormat());
 	else
 		bg = SDL_CreateRGBSurface(SDL_SWSURFACE, r.w, r.h, 8, 0, 0, 0, 0);
 
@@ -1837,7 +1837,7 @@ CWindowObject::CWindowObject(int options_, std::string imageName):
 	if (background)
 		pos = background->center();
 	else
-		center(Point(screen->w/2, screen->h/2));
+		center(Point(mainScreen->getWidth()/2, mainScreen->getHeight()/2));
 
 	if (!(options & SHADOW_DISABLED))
 		setShadow(true);

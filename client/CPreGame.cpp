@@ -235,7 +235,7 @@ CMenuScreen::CMenuScreen(const JsonNode& configNode):
 	{
 		if (background->bg->format->palette)
 			background->convertToScreenBPP();
-		background->scaleTo(Point(screen->w, screen->h));
+		background->scaleTo(Point(mainScreen->getWidth(), mainScreen->getHeight()));
 	}
 
 	pos = background->center();
@@ -469,8 +469,8 @@ CGPreGameConfig::CGPreGameConfig() :
 
 CGPreGame::CGPreGame()
 {
-	pos.w = screen->w;
-	pos.h = screen->h;
+	pos.w = mainScreen->getWidth();
+	pos.h = mainScreen->getHeight();
 
 	GH.defActionsDef = 63;
 	CGP = this;
@@ -532,7 +532,9 @@ void CGPreGame::update()
 	// check for null othervice crash on finishing a campaign
 	// /FIXME: find out why GH.listInt is empty to begin with
 	if (GH.topInt() != nullptr)
-		GH.topInt()->show(screen);
+		mainScreen->runActivated([this](){
+			mainScreen->render(GH.topInt(), false);
+		});
 
 	if (settings["general"]["showfps"].Bool())
 		GH.drawFPSCounter();
@@ -3784,7 +3786,9 @@ void CBonusSelection::CRegion::clickLeft( tribool down, bool previousState )
 	{
 		owner->selectMap(myNumber, false);
 		owner->highlightedRegion = this;
-		parent->showAll(screen);
+		mainScreen->runActivated([this](){
+			mainScreen->render(parent, true);
+		});
 	}
 }
 

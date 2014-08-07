@@ -15,32 +15,38 @@ const SDL_Color Colors::METALLIC_GOLD = { 173, 142, 66, 0 };
 const SDL_Color Colors::GREEN = { 0, 255, 0, 0 };
 const SDL_Color Colors::DEFAULT_KEY_COLOR = {0, 255, 255, 0};
 
-#if (SDL_MAJOR_VERSION == 2)
-void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h)
-{
-	Rect rect(x,y,w,h);
-	if(0 !=SDL_UpdateTexture(screenTexture, &rect, surface->pixels, surface->pitch))
-		logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();
-
-	SDL_RenderClear(mainRenderer);
-	if(0 != SDL_RenderCopy(mainRenderer, screenTexture, NULL, NULL))
-		logGlobal->errorStream() << __FUNCTION__ << "SDL_RenderCopy " <<  SDL_GetError();
-	SDL_RenderPresent(mainRenderer);	
-	
-}
-#endif // VCMI_SDL1
+//#if (SDL_MAJOR_VERSION == 2)
+//void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h)
+//{
+//	Rect rect(x,y,w,h);
+//	if(0 !=SDL_UpdateTexture(screenTexture, &rect, surface->pixels, surface->pitch))
+//		logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();
+//
+//	SDL_RenderClear(mainRenderer);
+//	if(0 != SDL_RenderCopy(mainRenderer, screenTexture, NULL, NULL))
+//		logGlobal->errorStream() << __FUNCTION__ << "SDL_RenderCopy " <<  SDL_GetError();
+//	SDL_RenderPresent(mainRenderer);	
+//	
+//}
+//#endif // VCMI_SDL1
 
 SDL_Surface * CSDL_Ext::newSurface(int w, int h, SDL_Surface * mod) //creates new surface, with flags/format same as in surface given
 {
-	SDL_Surface * ret = SDL_CreateRGBSurface(mod->flags,w,h,mod->format->BitsPerPixel,mod->format->Rmask,mod->format->Gmask,mod->format->Bmask,mod->format->Amask);
-	if (mod->format->palette)
+	return newSurface(w, h, mod->format, mod->flags);
+}
+
+SDL_Surface * CSDL_Ext::newSurface(int w, int h, SDL_PixelFormat * format, Uint32 flags/* = Uint32(SDL_SWSURFACE)*/)
+{
+	SDL_Surface * ret = SDL_CreateRGBSurface(flags,w,h,format->BitsPerPixel,format->Rmask,format->Gmask,format->Bmask,format->Amask);
+	if (format->palette)
 	{
 		assert(ret->format->palette);
-		assert(ret->format->palette->ncolors == mod->format->palette->ncolors);
-		memcpy(ret->format->palette->colors, mod->format->palette->colors, mod->format->palette->ncolors * sizeof(SDL_Color));
+		assert(ret->format->palette->ncolors == format->palette->ncolors);
+		memcpy(ret->format->palette->colors, format->palette->colors, format->palette->ncolors * sizeof(SDL_Color));
 	}
-	return ret;
+	return ret;	
 }
+
 
 SDL_Surface * CSDL_Ext::copySurface(SDL_Surface * mod) //returns copy of given surface
 {
@@ -68,7 +74,7 @@ bool isItIn(const SDL_Rect * rect, int x, int y)
 
 void blitAt(SDL_Surface * src, int x, int y, SDL_Surface * dst)
 {
-	if(!dst) dst = screen;
+	assert(dst);	
 	SDL_Rect pom = genRect(src->h,src->w,x,y);
 	CSDL_Ext::blitSurface(src,nullptr,dst,&pom);
 }
@@ -504,18 +510,19 @@ Uint32 CSDL_Ext::colorToUint32(const SDL_Color * color)
 	return ret;
 }
 
-void CSDL_Ext::update(SDL_Surface * what)
-{
-	#ifdef VCMI_SDL1
-	if(what)
-		SDL_UpdateRect(what, 0, 0, what->w, what->h);	
-	#else
-	if(!what)
-		return;
-	if(0 !=SDL_UpdateTexture(screenTexture, nullptr, what->pixels, what->pitch))
-		logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();		
-	#endif // VCMI_SDL1
-}
+//void CSDL_Ext::update(SDL_Surface * what)
+//{
+//	#ifdef VCMI_SDL1
+//	if(what)
+//		SDL_UpdateRect(what, 0, 0, what->w, what->h);	
+//	#else
+//	if(!what)
+//		return;
+//	if(0 !=SDL_UpdateTexture(screenTexture, nullptr, what->pixels, what->pitch))
+//		logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();		
+//	#endif // VCMI_SDL1
+//}
+
 void CSDL_Ext::drawBorder(SDL_Surface * sur, int x, int y, int w, int h, const int3 &color)
 {
 	for(int i = 0; i < w; i++)
@@ -921,12 +928,12 @@ SDL_Surface * CSDL_Ext::scaleSurface(SDL_Surface *surf, int width, int height)
 
 void CSDL_Ext::blitSurface( SDL_Surface * src, SDL_Rect * srcRect, SDL_Surface * dst, SDL_Rect * dstRect )
 {
-	if (dst != screen)
-	{
-		SDL_BlitSurface(src, srcRect, dst, dstRect);
-	}
-	else
-	{
+//	if (dst != screen)
+//	{
+//		SDL_BlitSurface(src, srcRect, dst, dstRect);
+//	}
+//	else
+//	{
 		SDL_Rect betterDst;
 		if (dstRect)
 		{
@@ -938,7 +945,7 @@ void CSDL_Ext::blitSurface( SDL_Surface * src, SDL_Rect * srcRect, SDL_Surface *
 		}
 
 		SDL_BlitSurface(src, srcRect, dst, &betterDst);
-	}
+//	}
 }
 
 void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )

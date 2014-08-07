@@ -20,6 +20,7 @@ namespace SoftRenderer
 {
 	class Window;
 	class Renderer;
+	class RenderTarget;
 	
 	class SurfaceProxy : public virtual IRenderTarget
 	{
@@ -27,31 +28,40 @@ namespace SoftRenderer
 		SurfaceProxy(Renderer * owner);
 		virtual ~SurfaceProxy();
 		
+		void activate() override;		
+		void blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect) override;
+		bool isActive() override;		
 		int getWidth() override;
-		int getHeight() override;		
+		int getHeight() override;
+		SDL_PixelFormat * getFormat() override;		
 		
 		Renderer * getRenderer(){return owner;};
 		
-		void render(IShowable * object, bool total);	
+		void runActivated(const std::function<void(void)> & cb) override;
+		
+		void update() override;
+		
 	protected:
 		Renderer * owner;
 		SDL_Surface * surface;
 		
-		virtual void clear();	
+		virtual void clear();
+		virtual Window * getWindow() = 0; 
+	private:
+		friend class RenderTarget;
+		friend class Window;		
 	};
 	
 	class RenderTarget : public virtual SurfaceProxy
 	{
 	public:
-		RenderTarget(Window * owner);
+		RenderTarget(Window * owner, int width, int height);
 		virtual ~RenderTarget();
-		
-		///IRenderTarget
-
-		void activate() override;
-		void render(const std::function<void(void)> & cb) override;
+	
 	protected:
 		Window * window;
+		
+		Window * getWindow(){return window;};
 	};
 	
 	
@@ -62,20 +72,20 @@ namespace SoftRenderer
 		virtual ~Window();
 		
 		///IRenderTarget
-		void activate() override;
-		void render(const std::function<void(void)> & cb) override;
+		void renderFrame(const std::function<void(void)> & cb) override;
 		
 		///IWindow
-		bool setFullscreen(bool enabled) override;
-		void warpMouse(int x, int y) override;
-		
-		IRenderTarget * createTarget() override;
-		
 		void blit(SDL_Surface * what, int x, int y) override;
-		void render(IShowable * object, bool total) override;
+		void blit(SDL_Surface * what, const SDL_Rect * srcrect, SDL_Rect * dstrect) override;			
 		
+		IRenderTarget * createTarget(int width, int height) override;
+
+		void fillWithColor(Uint32 color, SDL_Rect * dstRect) override;
+		bool setFullscreen(bool enabled) override;
+		void warpMouse(int x, int y) override;		
 		
-				
+		void render(IShowable * object, bool total);
+			
 		///internal interface
 		#ifndef VCMI_SDL1		
 		bool recreate(int w, int h, int bpp, bool fullscreen);
@@ -83,10 +93,18 @@ namespace SoftRenderer
 		void setScreenRes(int w, int h, int bpp, bool fullscreen);
 		#endif
 		
-		void setActiveTarget(RenderTarget * target){activeTarget = target;};
+		void setActiveTarget(SurfaceProxy * target){activeTarget = target;};
+		
+		void pushActiveTarget();
+		void popActiveTarget();
+		
+		SurfaceProxy * getActiveTarget(){return activeTarget;};
 	protected:
 		void clear() override;	
+		Window * getWindow(){return this;};
 	private:
+		
+		std::stack<SurfaceProxy *> targetStack;
 		
 		SurfaceProxy * activeTarget;
 		
@@ -97,7 +115,9 @@ namespace SoftRenderer
 		SDL_Renderer * sdlRenderer;
 		#endif
 
-		std::string name;		
+		std::string name;
+		
+		friend class SurfaceProxy;		
 	};
 
 	class Renderer : public CBaseRenderer

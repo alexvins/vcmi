@@ -110,7 +110,7 @@ void CGuiHandler::pushInt( IShowActivatable *newInt )
 	assert(boost::range::find(listInt, newInt) == listInt.end()); // do not add same object twice
 
 	//a new interface will be present, we'll need to use buffer surface (unless it's advmapint that will alter screenBuf on activate anyway)
-	screenBuf = screen2;
+	bufferScreen->activate();
 
 	if(!listInt.empty())
 		listInt.front()->deactivate();
@@ -150,10 +150,13 @@ IShowActivatable * CGuiHandler::topInt()
 }
 
 void CGuiHandler::totalRedraw()
-{
-	for(auto & elem : objsToBlit)
-		elem->showAll(screen2);
-	blitAt(screen2,0,0,screen);
+{	
+	bufferScreen->runActivated([this](){
+		for(auto & elem : objsToBlit)
+			mainScreen->render(elem, true);					
+	});
+	mainScreen->activate();
+	bufferScreen->blitTo(nullptr, nullptr);
 }
 
 void CGuiHandler::updateTime()
@@ -370,10 +373,12 @@ void CGuiHandler::handleMouseMotion(SDL_Event *sEvent)
 
 void CGuiHandler::simpleRedraw()
 {
-	//update only top interface and draw background
-	if(objsToBlit.size() > 1)
-		blitAt(screen2,0,0,screen); //blit background
-	objsToBlit.back()->show(screen); //blit active interface/window
+	mainScreen->runActivated([this](){
+		//update only top interface and draw background
+		if(objsToBlit.size() > 1)
+			bufferScreen->blitTo(nullptr, nullptr);//blit background
+		mainScreen->render(objsToBlit.back(),false);//blit active interface/window
+	});
 }
 
 void CGuiHandler::handleMoveInterested( const SDL_MouseMotionEvent & motion )
@@ -409,20 +414,17 @@ void CGuiHandler::fakeMouseMove()
 
 void CGuiHandler::renderFrame()
 {
+
+	
 	auto doUpdate = [](IUpdateable * target)
 	{
-		if(nullptr != target)
-			target -> update();
-		// draw the mouse cursor and update the screen
-		CCS->curh->render();
-
-		#ifndef	VCMI_SDL1
-		if(0 != SDL_RenderCopy(mainRenderer, screenTexture, nullptr, nullptr))
-			logGlobal->errorStream() << __FUNCTION__ << " SDL_RenderCopy " << SDL_GetError();
-
-		SDL_RenderPresent(mainRenderer);				
-		#endif		
+		mainScreen->renderFrame([&](){
 		
+			if(nullptr != target)
+				target -> update();
+			// draw the mouse cursor and update the screen
+			CCS->curh->render();			
+		});		
 	};
 	
 	if(curInt)
@@ -460,10 +462,13 @@ void CGuiHandler::drawFPSCounter()
 {
 	const static SDL_Color yellow = {255, 255, 0, 0};
 	static SDL_Rect overlay = { 0, 0, 64, 32};
-	Uint32 black = SDL_MapRGB(screen->format, 10, 10, 10);
-	SDL_FillRect(screen, &overlay, black);
+	Uint32 black = SDL_MapRGB(mainScreen->getFormat(), 10, 10, 10);
+	mainScreen->fillWithColor(black, &overlay);
 	std::string fps = boost::lexical_cast<std::string>(mainFPSmng->fps);
+	//FIXME:
+	#if 0	
 	graphics->fonts[FONT_BIG]->renderTextLeft(screen, fps, yellow, Point(10, 10));
+	#endif // 0
 }
 
 SDLKey CGuiHandler::arrowToNum( SDLKey key )

@@ -811,8 +811,8 @@ CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
 
 	if(bitmap)
 	{
-		pos.x = screen->w/2 - bitmap->w/2;
-		pos.y = screen->h/2 - bitmap->h/2;
+		pos.x = mainScreen->getWidth()/2 - bitmap->w/2;
+		pos.y = mainScreen->getHeight()/2 - bitmap->h/2;
 		pos.h = bitmap->h;
 		pos.w = bitmap->w;
 	}
@@ -845,8 +845,8 @@ void CInfoPopup::init(int x, int y)
 	// Put the window back on screen if necessary
 	vstd::amax(pos.x, 0);
 	vstd::amax(pos.y, 0);
-	vstd::amin(pos.x, screen->w - bitmap->w);
-	vstd::amin(pos.y, screen->h - bitmap->h);
+	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->w);
+	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->h);
 }
 
 CComponent::CComponent(Etype Type, int Subtype, int Val, ESize imageSize):
@@ -3858,7 +3858,7 @@ void CInGameConsole::show(SDL_Surface * to)
 	boost::unique_lock<boost::mutex> lock(texts_mx);
 	for(auto it = texts.begin(); it != texts.end(); ++it, ++number)
 	{
-		Point leftBottomCorner(0, screen->h);
+		Point leftBottomCorner(0, mainScreen->getHeight());
 		if(LOCPLINT->battleInt)
 		{
 			leftBottomCorner = LOCPLINT->battleInt->pos.bottomLeft();
@@ -4229,7 +4229,7 @@ void CArtPlace::clickLeft(tribool down, bool previousState)
 	{
 		if(ourArt->artType->id == 0)
 		{
-			auto   spellWindow = new CSpellWindow(genRect(595, 620, (screen->w - 620)/2, (screen->h - 595)/2), ourOwner->curHero, LOCPLINT, LOCPLINT->battleInt);
+			auto   spellWindow = new CSpellWindow(genRect(595, 620, (mainScreen->getWidth() - 620)/2, (mainScreen->getHeight() - 595)/2), ourOwner->curHero, LOCPLINT, LOCPLINT->battleInt);
 			GH.pushInt(spellWindow);
 		}
 	}
@@ -5427,7 +5427,9 @@ void CTransformerWindow::CItem::clickLeft(tribool down, bool previousState)
 	if(previousState && (!down))
 	{
 		move();
-		parent->showAll(screen2);
+		bufferScreen->runActivated([this](){
+			mainScreen->render(parent, true);
+		});
 	}
 }
 
@@ -5463,7 +5465,7 @@ void CTransformerWindow::addAll()
 	for (auto & elem : items)
 		if (elem->left)
 			elem->move();
-	showAll(screen2);
+	bufferScreen->runActivated([this](){mainScreen->render(this,true);});
 }
 
 void CTransformerWindow::updateGarrisons()

@@ -145,7 +145,7 @@ void CBattleHero::show(SDL_Surface * to)
 	CSDL_Ext::blit8bppAlphaTo24bpp(
 		flag->ourImages[flagAnim].bitmap,
 		nullptr,
-		screen,
+		to,
 		&temp_rect);
 
 	//animation of hero
@@ -184,7 +184,7 @@ void CBattleHero::clickLeft(tribool down, bool previousState)
 		}
 		CCS->curh->changeGraphic(ECursor::ADVENTURE, 0);
 
-		auto  spellWindow = new CSpellWindow(genRect(595, 620, (screen->w - 620)/2, (screen->h - 595)/2), myHero, myOwner->getCurrentPlayerInterface());
+		auto  spellWindow = new CSpellWindow(genRect(595, 620, (mainScreen->getWidth() - 620)/2, (mainScreen->getHeight() - 595)/2), myHero, myOwner->getCurrentPlayerInterface());
 		GH.pushInt(spellWindow);
 	}
 }
@@ -461,7 +461,7 @@ void CBattleResultWindow::activate()
 void CBattleResultWindow::show(SDL_Surface * to)
 {
 	CIntObject::show(to);
-	CCS->videoh->update(pos.x + 107, pos.y + 70, screen, true, false);
+	CCS->videoh->update(pos.x + 107, pos.y + 70, to, true, false);
 }
 
 void CBattleResultWindow::bExitf()
@@ -637,8 +637,8 @@ CStackQueue::CStackQueue(bool Embedded, CBattleInterface * _owner)
 		bg = nullptr;
 		pos.w = QUEUE_SIZE * 37;
 		pos.h = 46;
-		pos.x = screen->w/2 - pos.w/2;
-		pos.y = (screen->h - 600)/2 + 10;
+		pos.x = mainScreen->getWidth()/2 - pos.w/2;
+		pos.y = (mainScreen->getHeight() - 600)/2 + 10;
 	}
 	else
 	{

@@ -114,7 +114,7 @@ void CMessage::dispose()
 SDL_Surface * CMessage::drawDialogBox(int w, int h, PlayerColor playerColor)
 {
 	//prepare surface
-	SDL_Surface * ret = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, screen->format->BitsPerPixel, screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, screen->format->Amask);
+	SDL_Surface * ret = CSDL_Ext::newSurface(w, h, mainScreen->getFormat());
 	for (int i=0; i<w; i+=background->w)//background
 	{
 		for (int j=0; j<h; j+=background->h)
@@ -227,8 +227,8 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 
 	for(int i = 0; 
 		i < ARRAY_COUNT(sizes) 
-			&& sizes[i][0] < screen->w - 150  
-			&& sizes[i][1] < screen->h - 150
+			&& sizes[i][0] < mainScreen->getWidth() - 150  
+			&& sizes[i][1] < mainScreen->getHeight() - 150
 			&& ret->text->slider;
 		i++)
 	{
@@ -267,7 +267,7 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 	vstd::amax(winSize.first, comps.w);
 	vstd::amax(winSize.first, bw);
 
-	vstd::amin(winSize.first, screen->w - 150);
+	vstd::amin(winSize.first, mainScreen->getWidth() - 150);
 
 	ret->bitmap = drawDialogBox (winSize.first + 2*SIDE_MARGIN, winSize.second + 2*SIDE_MARGIN, player);
 	ret->pos.h=ret->bitmap->h;

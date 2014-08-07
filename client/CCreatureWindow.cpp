@@ -293,7 +293,7 @@ void CCreatureWindow::init(const CStackInstance *Stack, const CBonusSystemNode *
 		bonusItems.push_back (new CBonusItem(genRect(0, 0, 251, 57), text, description, stack->bonusToGraphics(&b)));
 	}
 
-	bonusRows = std::min ((int)((bonusItems.size() + 1) / 2), (screen->h - 230) / 60);
+	bonusRows = std::min ((int)((bonusItems.size() + 1) / 2), (mainScreen->getHeight() - 230) / 60);
 	if (type >= COMMANDER)
 		vstd::amin(bonusRows, 3);
 	else
@@ -452,8 +452,10 @@ void CCreatureWindow::init(const CStackInstance *Stack, const CBonusSystemNode *
 	}
 	else //slider automatically places bonus Items
 		recreateSkillList (0);
-
-	showAll(screen2);
+		
+	bufferScreen->runActivated([this](){
+		mainScreen->render(this, true);
+	});
 
 	//AUIDAT.DEF
 }

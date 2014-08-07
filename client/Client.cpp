@@ -621,8 +621,8 @@ void CClient::battleStarted(const BattleInfo * info)
 	{
 		boost::unique_lock<boost::recursive_mutex> un(*LOCPLINT->pim);
 		auto bi = new CBattleInterface(leftSide.armyObject, rightSide.armyObject, leftSide.hero, rightSide.hero,
-			Rect((screen->w - 800)/2, 
-			     (screen->h - 600)/2, 800, 600), att, def);
+			Rect((mainScreen->getWidth() - 800)/2, 
+			     (mainScreen->getHeight() - 600)/2, 800, 600), att, def);
 
 		GH.pushInt(bi);
 	}

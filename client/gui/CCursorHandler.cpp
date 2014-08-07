@@ -26,11 +26,8 @@ void CCursorHandler::initCursor()
 	dndObject = nullptr;
 	currentCursor = nullptr;
 
-	help = CSDL_Ext::newSurface(40,40);
-	#ifndef VCMI_SDL1
-	//No blending. Ensure, that we are copying pixels during "screen restore draw"
-	SDL_SetSurfaceBlendMode(help,SDL_BLENDMODE_NONE);	
-	#endif // VCMI_SDL1
+	help = mainScreen->createTarget(40,40);
+
 	SDL_ShowCursor(SDL_DISABLE);
 
 	changeGraphic(ECursor::ADVENTURE, 0);
@@ -80,17 +77,20 @@ void CCursorHandler::drawWithScreenRestore()
 
 	SDL_Rect temp_rect1 = genRect(40,40,x,y);
 	SDL_Rect temp_rect2 = genRect(40,40,0,0);
-	SDL_BlitSurface(screen, &temp_rect1, help, &temp_rect2);
+	
+	help->runActivated([&](){
+		mainScreen->blitTo(&temp_rect1,&temp_rect2);
+	});
 
 	if (dndObject)
 	{
 		dndObject->moveTo(Point(x - dndObject->pos.w/2, y - dndObject->pos.h/2));
-		dndObject->showAll(screen);
+		mainScreen->render(dndObject, true);
 	}
 	else
 	{
 		currentCursor->moveTo(Point(x,y));
-		currentCursor->showAll(screen);
+		mainScreen->render(currentCursor, true);			
 	}
 }
 
@@ -103,15 +103,15 @@ void CCursorHandler::drawRestored()
 	shiftPos(x, y);
 
 	SDL_Rect temp_rect = genRect(40, 40, x, y);
-	SDL_BlitSurface(help, nullptr, screen, &temp_rect);
-	//blitAt(help,x,y);
+	
+	help->blitTo(nullptr, &temp_rect);		
 }
 
-void CCursorHandler::draw(SDL_Surface *to)
-{
-	currentCursor->moveTo(Point(xpos, ypos));
-	currentCursor->showAll(screen);
-}
+//void CCursorHandler::draw(SDL_Surface *to)
+//{
+//	currentCursor->moveTo(Point(xpos, ypos));
+//	currentCursor->showAll(to);
+//}
 
 void CCursorHandler::shiftPos( int &x, int &y )
 {
@@ -222,8 +222,8 @@ void CCursorHandler::shiftPos( int &x, int &y )
 
 void CCursorHandler::centerCursor()
 {
-	this->xpos = (screen->w / 2.) - (currentCursor->pos.w / 2.);
-	this->ypos = (screen->h / 2.) - (currentCursor->pos.h / 2.);
+	this->xpos = (mainScreen->getWidth() / 2.) - (currentCursor->pos.w / 2.);
+	this->ypos = (mainScreen->getHeight() / 2.) - (currentCursor->pos.h / 2.);
 	SDL_EventState(SDL_MOUSEMOTION, SDL_IGNORE);
 	
 	mainScreen->warpMouse(this->xpos, this->ypos);
@@ -233,17 +233,17 @@ void CCursorHandler::centerCursor()
 
 void CCursorHandler::render()
 {
-	drawWithScreenRestore();
-	CSDL_Ext::update(screen);
-	drawRestored();
+	mainScreen->runActivated([this](){
+		drawWithScreenRestore();
+		mainScreen->update();
+		drawRestored();	
+	});
 }
 
 
 CCursorHandler::~CCursorHandler()
 {
-	if(help)
-		SDL_FreeSurface(help);
-
+	delete help;
 	delete currentCursor;
 	delete dndObject;
 }

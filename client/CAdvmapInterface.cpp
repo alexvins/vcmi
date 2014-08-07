@@ -401,8 +401,8 @@ infoBar(Rect(ADVOPT.infoboxX, ADVOPT.infoboxY, 192, 192) )
 	state = NA;
 	spellBeingCasted = nullptr;
 	pos.x = pos.y = 0;
-	pos.w = screen->w;
-	pos.h = screen->h;
+	pos.w = mainScreen->getWidth();
+	pos.h = mainScreen->getHeight();
 	position = int3(0,0,0);
 	selection = nullptr;
 	townList.onSelect = boost::bind(&CAdvMapInt::selectionChanged,this);
@@ -446,14 +446,13 @@ void CAdvMapInt::fswitchLevel()
 	{
 		position.z--;
 		underground.setIndex(0,true);
-		underground.showAll(screenBuf);
 	}
 	else
 	{
 		underground.setIndex(1,true);
 		position.z++;
-		underground.showAll(screenBuf);
 	}
+	mainScreen->render(this, true);
 	updateScreen = true;
 	minimap.setLevel(position.z);
 }
@@ -495,7 +494,7 @@ void CAdvMapInt::fshowSpellbok()
 
 	centerOn(selection);
 
-	auto   spellWindow = new CSpellWindow(genRect(595, 620, (screen->w - 620)/2, (screen->h - 595)/2), curHero(), LOCPLINT, false);
+	auto   spellWindow = new CSpellWindow(genRect(595, 620, (mainScreen->getWidth() - 620)/2, (mainScreen->getHeight() - 595)/2), curHero(), LOCPLINT, false);
 	GH.pushInt(spellWindow);
 }
 
@@ -600,8 +599,7 @@ void CAdvMapInt::activate()
 	CIntObject::activate();
 	if (!(active & KEYBOARD))
 		CIntObject::activate(KEYBOARD);
-
-	screenBuf = screen;
+	mainScreen->activate();	
 	GH.statusbar = &statusbar;
 	if(!duringAITurn)
 	{
@@ -1054,7 +1052,7 @@ void CAdvMapInt::mouseMoved( const SDL_MouseMotionEvent & sEvent )
 		{
 			scrollingDir &= ~LEFT;
 		}
-		if(sEvent.x>screen->w-15)
+		if(sEvent.x > mainScreen->getWidth() - 15)
 		{
 			scrollingDir |= RIGHT;
 		}
@@ -1070,7 +1068,7 @@ void CAdvMapInt::mouseMoved( const SDL_MouseMotionEvent & sEvent )
 		{
 			scrollingDir &= ~UP;
 		}
-		if(sEvent.y>screen->h-15)
+		if(sEvent.y > mainScreen->getHeight() - 15)
 		{
 			scrollingDir |= DOWN;
 		}
@@ -1510,7 +1508,9 @@ void CAdvMapInt::aiTurnStarted()
 	CCS->musich->playMusicFromSet("enemy-turn", true);
 	adventureInt->minimap.setAIRadar(true);
 	adventureInt->infoBar.startEnemyTurn(LOCPLINT->cb->getCurrentPlayer());
-	adventureInt->infoBar.showAll(screen);//force refresh on inactive object
+	mainScreen->runActivated([](){
+		mainScreen->render(&(adventureInt->infoBar), true);//force refresh on inactive object
+	});
 }
 
 void CAdvMapInt::adjustActiveness(bool aiTurnStart)

@@ -134,12 +134,12 @@ CIntObject::~CIntObject()
 		parent_m->removeChild(this);
 }
 
-void CIntObject::printAtLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst/*=screen*/ )
+void CIntObject::printAtLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst)
 {
 	graphics->fonts[font]->renderTextLeft(dst, text, kolor, Point(pos.x + x, pos.y + y));
 }
 
-void CIntObject::printAtMiddleLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst/*=screen*/ )
+void CIntObject::printAtMiddleLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst)
 {
 	printAtMiddleLoc(text, Point(x,y), font, kolor, dst);
 }
@@ -214,8 +214,8 @@ void CIntObject::fitToScreen(int borderWidth, bool propagate)
 	Point newPos = pos.topLeft();
 	vstd::amax(newPos.x, borderWidth);
 	vstd::amax(newPos.y, borderWidth);
-	vstd::amin(newPos.x, screen->w - borderWidth - pos.w);
-	vstd::amin(newPos.y, screen->h - borderWidth - pos.h);
+	vstd::amin(newPos.x, mainScreen->getWidth() - borderWidth - pos.w);
+	vstd::amin(newPos.y, mainScreen->getHeight() - borderWidth - pos.h);
 	if (newPos != pos.topLeft())
 		moveTo(newPos, propagate);
 }
@@ -285,9 +285,12 @@ void CIntObject::redraw()
 		}
 		else
 		{
-			showAll(screenBuf);
-			if(screenBuf != screen)
-				showAll(screen);
+			mainScreen->render(this, true);//render to active target
+			if(!mainScreen->isActive())
+			{
+				//always render to framebuffer
+				mainScreen->runActivated([this](){mainScreen->render(this, true);});
+			}
 		}
 	}
 }
@@ -296,7 +299,7 @@ const Rect & CIntObject::center( const Rect &r, bool propagate )
 {
 	pos.w = r.w;
 	pos.h = r.h;
-	return center(Point(screen->w/2, screen->h/2), propagate);
+	return center(Point(mainScreen->getWidth()/2, mainScreen->getHeight()/2), propagate);
 }
 
 const Rect & CIntObject::center( bool propagate )

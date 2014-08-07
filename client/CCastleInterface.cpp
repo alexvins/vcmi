@@ -382,7 +382,9 @@ void CHeroGSlot::clickLeft(tribool down, bool previousState)
 		{
 			setHighlight(true);
 			owner->garr->selectSlot(nullptr);
-			showAll(screen2);
+			bufferScreen->runActivated([this](){
+				mainScreen->render(this,true);
+			});
 		}
 		hover(false);hover(true); //refresh statusbar
 	}
@@ -1091,7 +1093,7 @@ void CCreaInfo::clickRight(tribool down, bool previousState)
 	if(down)
 	{
 		if (showAvailable)
-			GH.pushInt(new CDwellingInfoBox(screen->w/2, screen->h/2, town, level));
+			GH.pushInt(new CDwellingInfoBox(mainScreen->getWidth()/2, mainScreen->getHeight()/2, town, level));
 		else
 			CRClickPopup::createAndPush(genGrowthText(), new CComponent(CComponent::creature, creature->idNumber));
 	}

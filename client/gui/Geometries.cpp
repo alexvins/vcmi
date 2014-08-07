@@ -4,7 +4,7 @@
 
 Rect Rect::createCentered( int w, int h )
 {
-	return Rect(screen->w/2 - w/2, screen->h/2 - h/2, w, h);
+	return Rect(mainScreen->getWidth()/2 - w/2, mainScreen->getHeight()/2 - h/2, w, h);
 }
 
 Rect Rect::around(const Rect &r, int width /*= 1*/) /*creates rect around another */

@@ -69,24 +69,12 @@ std::string NAME = GameConstants::VCMI_VERSION + std::string(" (") + NAME_AFFIX 
 CGuiHandler GH;
 static CClient *client=nullptr;
 
-IWindow * mainScreen = nullptr;
-IRenderTarget * bufferScreen = nullptr;
+IWindow * mainScreen = nullptr; //Main game window
+IRenderTarget * bufferScreen = nullptr; //buffer used to render to not-active interfaces layer
 IRenderer * renderEngine = nullptr;
-
-#ifndef VCMI_SDL1
-
-SDL_Window * mainWindow = nullptr;
-SDL_Renderer * mainRenderer = nullptr;
-SDL_Texture * screenTexture = nullptr;
-
-#endif // VCMI_SDL1
 
 extern boost::thread_specific_ptr<bool> inGuiThread;
 
-SDL_Surface *screen = nullptr, //main screen surface
-	*screen2 = nullptr,//and hlp surface (used to store not-active interfaces layer)
-	*screenBuf = screen; //points to screen (if only advmapint is present) or screen2 (else) - should be used when updating controls which are not regularly redrawed
-	
 std::queue<SDL_Event> events;
 boost::mutex eventsM;
 
@@ -304,7 +292,7 @@ int main(int argc, char** argv)
 		if (CResourceHandler::get()->existsResource(ResourceID(filename)))
 			return true;
 
-        logGlobal->errorStream() << "[FATAL] " << message << " was not found!";
+        logGlobal->errorStream() << message << " was not found!";
 		return false;
 	};
 
@@ -354,6 +342,8 @@ int main(int argc, char** argv)
 		renderEngine->init();
 		
 		mainScreen = renderEngine->createWindow(NAME, res["width"].Float(), res["height"].Float(), video["bitsPerPixel"].Float(), video["fullscreen"].Bool());
+		
+		bufferScreen = mainScreen->createTarget(mainScreen->getWidth(), mainScreen->getHeight());
 
 		logGlobal->infoStream() <<"\tInitializing screen: "<<pomtime.getDiff();
 	}
@@ -399,10 +389,11 @@ int main(int argc, char** argv)
 	{
 		if(!vm.count("battle") && !vm.count("nointro"))
 			playIntro();
-		SDL_FillRect(screen,nullptr,0);
+			
+		mainScreen->fillWithColor(0, nullptr);
+		mainScreen->update();
 	}
 
-	CSDL_Ext::update(screen);
 #ifndef VCMI_NO_THREADED_LOAD
 	loading.join();
 #endif
@@ -539,17 +530,18 @@ void processCommand(const std::string &message)
 	}
 	else if(cn=="screen")
 	{
-        std::cout << "Screenbuf points to ";
-
-		if(screenBuf == screen)
-            logGlobal->errorStream() << "screen";
-		else if(screenBuf == screen2)
-            logGlobal->errorStream() << "screen2";
-		else
-            logGlobal->errorStream() << "?!?";
-
-		SDL_SaveBMP(screen, "Screen_c.bmp");
-		SDL_SaveBMP(screen2, "Screen2_c.bmp");
+		//todo: support screenshots in engine
+//        std::cout << "Screenbuf points to ";
+//
+//		if(screenBuf == screen)
+//            logGlobal->errorStream() << "screen";
+//		else if(screenBuf == screen2)
+//            logGlobal->errorStream() << "screen2";
+//		else
+//            logGlobal->errorStream() << "?!?";
+//
+//		SDL_SaveBMP(screen, "Screen_c.bmp");
+//		SDL_SaveBMP(screen2, "Screen2_c.bmp");
 	}
 	else if(cn=="save")
 	{
@@ -763,10 +755,10 @@ void processCommand(const std::string &message)
 //plays intro, ends when intro is over or button has been pressed (handles events)
 void playIntro()
 {
-	if(CCS->videoh->openAndPlayVideo("3DOLOGO.SMK", 60, 40, screen, true))
-	{
-		CCS->videoh->openAndPlayVideo("AZVS.SMK", 60, 80, screen, true);
-	}
+//	if(CCS->videoh->openAndPlayVideo("3DOLOGO.SMK", 60, 40, screen, true))
+//	{
+//		CCS->videoh->openAndPlayVideo("AZVS.SMK", 60, 80, screen, true);
+//	}
 }
 
 void dispose()

@@ -316,7 +316,9 @@ void CPlayerInterface::heroMoved(const TryMoveHero & details)
 	{
 		movementPxStep(details, i, hp, hero);
 		adventureInt->updateScreen = true;
-		adventureInt->show(screen);
+		mainScreen->runActivated([](){
+			mainScreen->render(adventureInt, false);
+		});
 		{
 			//evil returns here ...
 			//todo: get rid of it 
@@ -325,8 +327,6 @@ void CPlayerInterface::heroMoved(const TryMoveHero & details)
 			GH.mainFPSmng->framerateDelay(); //for animation purposes
 			logGlobal->traceStream() << "after [un]locks in " << __FUNCTION__;		
 		}
-		//CSDL_Ext::update(screen);
-		
 	} //for(int i=1; i<32; i+=4)
 	//main moving done
 
@@ -815,7 +815,7 @@ void CPlayerInterface::battleEnd(const BattleResult *br)
 
 		if(!battleInt)
 		{
-			SDL_Rect temp_rect = genRect(561, 470, (screen->w - 800)/2 + 165, (screen->h - 600)/2 + 19);
+			SDL_Rect temp_rect = genRect(561, 470, (mainScreen->getWidth() - 800)/2 + 165, (mainScreen->getHeight() - 600)/2 + 19);
 			auto   resWindow = new CBattleResultWindow(*br, temp_rect, *this);
 			GH.pushInt(resWindow);
 			// #1490 - during AI turn when quick combat is on, we need to display the message and wait for user to close it.
@@ -2232,7 +2232,10 @@ void CPlayerInterface::acceptTurn()
 	adventureInt->infoBar.showDate();
 
 	adventureInt->updateNextHero(nullptr);
-	adventureInt->showAll(screen);
+	
+	mainScreen->runActivated([](){
+		mainScreen->render(adventureInt, true);
+	});
 
 	if(settings["session"]["autoSkip"].Bool() && !LOCPLINT->shiftPressed())
 	{

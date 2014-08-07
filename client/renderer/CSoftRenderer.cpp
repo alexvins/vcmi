@@ -21,6 +21,9 @@
 
 #include "../../lib/CConfigHandler.h"
 #include "../gui/CIntObject.h"
+#include "../gui/SDL_Extensions.h"
+#include "../gui/Geometries.h"
+
 
 #include "CSoftRenderer.h"
 
@@ -35,7 +38,17 @@ namespace SoftRenderer
 	SurfaceProxy::~SurfaceProxy()
 	{
 		clear();
+	}	
+		
+	void SurfaceProxy::activate()
+	{
+		getWindow()->setActiveTarget(this);
 	}
+	
+	void SurfaceProxy::blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect)
+	{
+		getWindow()->blit(surface, srcRect, dstRect);
+	}	
 	
 	void SurfaceProxy::clear()
 	{
@@ -45,7 +58,12 @@ namespace SoftRenderer
 			surface = nullptr;
 		}	
 					
-	}
+	}	
+	
+	bool SurfaceProxy::isActive()
+	{
+		return this == getWindow()->getActiveTarget();
+	}	
 	
 	int SurfaceProxy::getWidth()
 	{
@@ -57,38 +75,45 @@ namespace SoftRenderer
 		return nullptr == surface ? 0 : surface->h;
 	}	
 	
-	void SurfaceProxy::render(IShowable * object, bool total)
+	SDL_PixelFormat * SurfaceProxy::getFormat()
 	{
-		if(total)
-			object->showAll(surface);
-		else
-			object->show(surface);
+		return surface->format;
 	}
+
+	void SurfaceProxy::runActivated(const std::function<void(void)>& cb)
+	{
+		getWindow()->pushActiveTarget();
+		activate();
+		cb();
+		getWindow()->popActiveTarget();		
+	}	
 	
+	void SurfaceProxy::update()
+	{
+		#ifdef VCMI_SDL1
+		SDL_UpdateRect(surface, 0, 0, surface->w, surface->h);	
+		#else
+		if(0 !=SDL_UpdateTexture(getWindow()->screenTexture, nullptr, surface->pixels, surface->pitch))
+			logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();		
+		#endif // VCMI_SDL1		
+	}	
 	
 	///RenderTarget
-	RenderTarget::RenderTarget(Window * owner):
+	RenderTarget::RenderTarget(Window * owner, int width, int height):
 		SurfaceProxy(owner->getRenderer()), window(owner)
 	{
-		
+		surface = CSDL_Ext::newSurface(width, height, owner->surface);
+		#ifndef VCMI_SDL1
+		//No blending for targets themselves 
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);	
+		#endif // VCMI_SDL1		
 	}
 
 	RenderTarget::~RenderTarget()
 	{
 		
 	}
-	
-	void RenderTarget::activate()
-	{
-		window->setActiveTarget(this);
-	}
-	
-	void RenderTarget::render(const std::function<void(void)>& cb)
-	{
-		activate();
-		cb();
-	}
-	
+
 	
 	///Window
 	Window::Window(Renderer * owner, const std::string & name):
@@ -106,14 +131,14 @@ namespace SoftRenderer
 		
 	}
 	
-	void Window::activate()
+	void Window::blit(SDL_Surface * what, int x, int y)
 	{
-		activeTarget = this;
+		blitAt(what,x,y,activeTarget->surface);
 	}
 	
-	void Window::blit(SDL_Surface* what, int x, int y)
+	void Window::blit(SDL_Surface* what, const SDL_Rect* srcrect, SDL_Rect* dstrect)
 	{
-		
+		SDL_BlitSurface(what,srcrect, activeTarget->surface,dstrect);
 	}
 	
 	
@@ -140,10 +165,25 @@ namespace SoftRenderer
 		}		
 	}
 	
-	IRenderTarget * Window::createTarget()
+	IRenderTarget * Window::createTarget(int width, int height)
 	{
-		return new RenderTarget(this);
+		return new RenderTarget(this, width, height);
 	}
+	
+	void Window::fillWithColor(Uint32 color, SDL_Rect * dstRect)
+	{
+		SDL_Rect newRect;
+		if (dstRect)
+		{
+			newRect = *dstRect;
+		}
+		else
+		{
+			newRect = Rect(0, 0, activeTarget->getWidth(), activeTarget->getHeight());
+		}
+		SDL_FillRect(activeTarget->surface, &newRect, color);
+	}
+	
 
 	#ifndef VCMI_SDL1
 	bool Window::recreate(int w, int h, int bpp, bool fullscreen)
@@ -275,18 +315,18 @@ namespace SoftRenderer
 
 		//For some reason changing fullscreen via config window checkbox result in SDL_Quit event
 
-		if(screen) //screen has been already initialized
+		if(surface) //screen has been already initialized
 			SDL_QuitSubSystem(SDL_INIT_VIDEO);
 		SDL_InitSubSystem(SDL_INIT_VIDEO);
 		
 
-		if((screen = SDL_SetVideoMode(w, h, suggestedBpp, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0))) == nullptr)
+		if((surface = SDL_SetVideoMode(w, h, suggestedBpp, SDL_SWSURFACE|(fullscreen?SDL_FULLSCREEN:0))) == nullptr)
 		{
 			logGlobal->errorStream() << "Requested screen resolution is not available (" << w << "x" << h << "x" << suggestedBpp << "bpp)";
 			throw std::runtime_error("Requested screen resolution is not available\n");
 		}
 
-		logGlobal->infoStream() << "New screen flags: " << screen->flags;
+		logGlobal->infoStream() << "New screen flags: " << surface->flags;
 
 
 		SDL_EnableUNICODE(1);
@@ -318,20 +358,44 @@ namespace SoftRenderer
 		//TODO: centering game window on other platforms (or does the environment do their job correctly there?)
 	}	
 	#endif
-
-		
-	void Window::render(const std::function<void(void)>& cb)
-	{
-		activate();
-		cb();
-	}
-
+	
 	void Window::render(IShowable * object, bool total)
 	{
-		if(this->activeTarget == this)
-			SurfaceProxy::render(object, total);
+		if(total)
+			object->showAll(surface);
 		else
-			this->activeTarget->render(object, total);
+			object->show(surface);
+	}
+
+	void Window::pushActiveTarget()
+	{
+		if(activeTarget != nullptr)
+			targetStack.push(activeTarget);
+		else
+			logGlobal->debugStream() << "Window::pushActiveTarget() no active target";
+	}
+
+	void Window::popActiveTarget()
+	{
+		if(!targetStack.empty())
+		{
+			activeTarget = targetStack.top();
+			targetStack.pop();
+		}
+		else
+			logGlobal->debugStream() << "Window::popActiveTarget() no target to pop up";	
+	}
+	
+		
+	void Window::renderFrame(const std::function<void(void)>& cb)
+	{
+		cb();
+		#ifndef	VCMI_SDL1
+		if(0 != SDL_RenderCopy(sdlRenderer, screenTexture, nullptr, nullptr))
+			logGlobal->errorStream() << __FUNCTION__ << " SDL_RenderCopy " << SDL_GetError();
+
+		SDL_RenderPresent(sdlRenderer);				
+		#endif			
 	}
 
 	bool Window::setFullscreen(bool enabled)

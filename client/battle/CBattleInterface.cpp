@@ -128,7 +128,7 @@ CBattleInterface::CBattleInterface(const CCreatureSet * army1, const CCreatureSe
 	tacticsMode = static_cast<bool>(tacticianInterface);
 
 	//create stack queue
-	bool embedQueue = screen->h < 700;
+	bool embedQueue = mainScreen->getHeight() < 700;
 	queue = new CStackQueue(embedQueue, this);
 	if(!embedQueue)
 	{
@@ -352,7 +352,7 @@ CBattleInterface::CBattleInterface(const CCreatureSet * army1, const CCreatureSe
 		}
 	}
 
-	backgroundWithHexes = CSDL_Ext::newSurface(background->w, background->h, screen);
+	backgroundWithHexes = CSDL_Ext::newSurface(background->w, background->h,  mainScreen->getFormat());
 
 	//preparing obstacle defs
 	auto obst = curInt->cb->battleGetAllObstacles();
@@ -902,7 +902,7 @@ void CBattleInterface::bSpellf()
 	ESpellCastProblem::ESpellCastProblem spellCastProblem;
 	if (curInt->cb->battleCanCastSpell(&spellCastProblem))
 	{
-		auto  spellWindow = new CSpellWindow(genRect(595, 620, (screen->w - 620)/2, (screen->h - 595)/2), myHero, curInt.get());
+		auto  spellWindow = new CSpellWindow(genRect(595, 620, (mainScreen->getWidth() - 620)/2, (mainScreen->getHeight() - 595)/2), myHero, curInt.get());
 		GH.pushInt(spellWindow);
 	}
 	else if(spellCastProblem == ESpellCastProblem::MAGIC_IS_BLOCKED)
@@ -1219,7 +1219,7 @@ void CBattleInterface::displayBattleFinished()
 {
 	CCS->curh->changeGraphic(ECursor::ADVENTURE,0);
 
-	SDL_Rect temp_rect = genRect(561, 470, (screen->w - 800)/2 + 165, (screen->h - 600)/2 + 19);
+	SDL_Rect temp_rect = genRect(561, 470, (mainScreen->getWidth() - 800)/2 + 165, (mainScreen->getHeight() - 600)/2 + 19);
 	resWindow = new CBattleResultWindow(*bresult, temp_rect, *this->curInt);
 	GH.pushInt(resWindow);
 }
@@ -3422,7 +3422,7 @@ void CBattleInterface::showInterface(SDL_Surface * to)
 	}
 
 	//printing border around interface
-	if(screen->w != 800 || screen->h !=600)
+	if(mainScreen->getWidth() != 800 || mainScreen->getHeight() !=600)
 	{
 		CMessage::drawBorder(curInt->playerID,to,posWithQueue.w + 28, posWithQueue.h + 28, posWithQueue.x-14, posWithQueue.y-15);
 	}
