@@ -262,8 +262,8 @@ namespace SoftRenderer
 		SDL_Surface * sur = activeTarget->surface;
 		for(int i = 0; i < w; i++)
 		{
-		    CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+i,y,color.r,color.g,color.b);
-			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+i,y+h-1,color.r,color.g,color.b);
+		    CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur, x+i, y,color.r,color.g,color.b);
+			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur, x+i, y+h-1,color.r,color.g,color.b);
 		}
 		for(int i = 0; i < h; i++)
 		{
