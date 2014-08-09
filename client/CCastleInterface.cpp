@@ -1360,13 +1360,9 @@ std::string CBuildWindow::getTextForState(int state)
 			{
 				return town->town->buildings.at(build)->Name();
 			};
-			/*auto toBool = [&](const BuildingID build)
-			{
-				return town->hasBuilt(build);
-			};*/
 
 			ret = CGI->generaltexth->allTexts[52];
-			ret += "\n" + building->requirements.toString(toStr);
+			ret += "\n" + town->genBuildingRequirements(building->bid).toString(toStr);
 			break;
 		}
 	case EBuildingState::MISSING_BASE:
