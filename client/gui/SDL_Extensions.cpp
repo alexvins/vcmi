@@ -86,7 +86,7 @@ void blitAt(SDL_Surface * src, const SDL_Rect & pos, SDL_Surface * dst)
 }
 
 // Vertical flip
-SDL_Surface * CSDL_Ext::verticalFlip(SDL_Surface * toRot)
+SDL_Surface * CSDL_Ext::verticalFlip(Rot)
 {
 	SDL_Surface * ret = SDL_ConvertSurface(toRot, toRot->format, toRot->flags);
 	const int bpp = ret->format->BytesPerPixel;
@@ -510,19 +510,6 @@ Uint32 CSDL_Ext::colorToUint32(const SDL_Color * color)
 	return ret;
 }
 
-//void CSDL_Ext::update(SDL_Surface * what)
-//{
-//	#ifdef VCMI_SDL1
-//	if(what)
-//		SDL_UpdateRect(what, 0, 0, what->w, what->h);	
-//	#else
-//	if(!what)
-//		return;
-//	if(0 !=SDL_UpdateTexture(screenTexture, nullptr, what->pixels, what->pitch))
-//		logGlobal->errorStream() << __FUNCTION__ << "SDL_UpdateTexture " << SDL_GetError();		
-//	#endif // VCMI_SDL1
-//}
-
 void CSDL_Ext::drawBorder(SDL_Surface * sur, int x, int y, int w, int h, const int3 &color)
 {
 	for(int i = 0; i < w; i++)
@@ -735,7 +722,7 @@ void CSDL_Ext::applyEffectBpp( SDL_Surface * surf, const SDL_Rect * rect, int mo
 {
 	switch(mode)
 	{
-	case 0: //sepia
+	case EffectGuard::SEPIA:
 		{
 			const int sepiaDepth = 20;
 			const int sepiaIntensity = 30;
@@ -771,7 +758,7 @@ void CSDL_Ext::applyEffectBpp( SDL_Surface * surf, const SDL_Rect * rect, int mo
 			}
 		}
 		break;
-	case 1: //grayscale
+	case EffectGuard::GRAYSCALE:
 		{
 			for(int xp = rect->x; xp < rect->x + rect->w; ++xp)
 			{
@@ -962,19 +949,22 @@ void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )
 	SDL_FillRect(dst, &newRect, color);
 }
 
-void CSDL_Ext::fillRectBlack( SDL_Surface *dst, SDL_Rect *dstrect)
+void CSDL_Ext::fillRectBlack(SDL_Rect *dstrect)
 {
-	const Uint32 black = SDL_MapRGB(dst->format,0,0,0);
-	fillRect(dst,dstrect,black);
+	const Uint32 black = SDL_MapRGB(mainScreen->getFormat(),0,0,0);
+	mainScreen->fillRect(dstrect,black);
 }
 
-void CSDL_Ext::fillTexture(SDL_Surface *dst, SDL_Surface * src)
+void CSDL_Ext::fillTexture(SDL_Surface * src)
 {
 	SDL_Rect srcRect;
 	SDL_Rect dstRect;
+	
+	IRenderTarget * dst = nullptr;
 
 	SDL_GetClipRect(src, &srcRect);
-	SDL_GetClipRect(dst, &dstRect);
+	
+	mainScreen->getClipRect(&dstRect, dst);	
 
 	for (int y=dstRect.y; y < dstRect.y + dstRect.h; y+=srcRect.h)
 	{
@@ -983,7 +973,7 @@ void CSDL_Ext::fillTexture(SDL_Surface *dst, SDL_Surface * src)
 			int xLeft = std::min<int>(srcRect.w, dstRect.x + dstRect.w - x);
 			int yLeft = std::min<int>(srcRect.h, dstRect.y + dstRect.h - y);
 			Rect currentDest(x, y, xLeft, yLeft);
-			SDL_BlitSurface(src, &srcRect, dst, &currentDest);
+			mainScreen->blit(src, &srcRect, &currentDest);			
 		}
 	}
 }

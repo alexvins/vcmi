@@ -39,10 +39,10 @@ void CQuestLabel::clickLeft(tribool down, bool previousState)
 		callback();
 }
 
-void CQuestLabel::showAll(SDL_Surface * to)
+void CQuestLabel::showAll()
 {
 	if (active)
-		CMultiLineLabel::showAll (to);
+		CMultiLineLabel::showAll();
 }
 
 CQuestIcon::CQuestIcon (const std::string &defname, int index, int x, int y) :
@@ -57,10 +57,10 @@ void CQuestIcon::clickLeft(tribool down, bool previousState)
 		callback();
 }
 
-void CQuestIcon::showAll(SDL_Surface * to)
+void CQuestIcon::showAll()
 {
-	CSDL_Ext::CClipRectGuard guard(to, parent->pos);
-	CAnimImage::showAll(to);
+	ClipRectQuard guard(mainScreen, &parent->pos);
+	CAnimImage::showAll();
 }
 
 CQuestMinimap::CQuestMinimap (const Rect & position) :
@@ -108,11 +108,11 @@ void CQuestMinimap::iconClicked()
 	moveAdvMapSelection();
 }
 
-void CQuestMinimap::showAll(SDL_Surface * to)
+void CQuestMinimap::showAll()
 {
-	CIntObject::showAll(to); // blitting IntObject directly to hide radar
+	CIntObject::showAll(); // blitting IntObject directly to hide radar
 	for (auto pic : icons)
-		pic->showAll(to);
+		pic->showAll();
 }
 
 CQuestLog::CQuestLog (const std::vector<QuestInfo> & Quests) :
@@ -149,20 +149,20 @@ void CQuestLog::init()
 	recreateQuestList (0);
 }
 
-void CQuestLog::showAll(SDL_Surface * to)
+void CQuestLog::showAll()
 {
-	CIntObject::showAll (to);
+	CIntObject::showAll();
 	for (auto label : labels)
 	{
-		label->show(to); //shows only if active
+		label->show(); //shows only if active
 	}
 	if (labels.size() && labels[questIndex]->active)
 	{
 		CSDL_Ext::drawBorder(to, Rect::around(labels[questIndex]->pos), int3(Colors::METALLIC_GOLD.r, Colors::METALLIC_GOLD.g, Colors::METALLIC_GOLD.b));
 	}
-	description->show(to);
+	description->show();
 	minimap->update();
-	minimap->show(to);
+	minimap->show();
 }
 
 void CQuestLog::recreateQuestList (int newpos)

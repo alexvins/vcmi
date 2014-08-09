@@ -11,7 +11,6 @@
 
 #include "IRenderer.h"
 
-
 class CBaseRenderer : public IRenderer
 {
 public:
@@ -19,4 +18,24 @@ public:
 	virtual ~CBaseRenderer();
 protected:
 private:
+};
+
+
+template <typename _WindowImpl>
+class CBaseRendererT : public CBaseRenderer
+{
+public:
+	CBaseRendererT(){};
+	virtual ~CBaseRendererT(){};
+protected:
+	void setCurrentWindow(_WindowImpl * newCurrentWindow)
+	{
+		currentWindow.reset(newCurrentWindow);
+	};
+	_WindowImpl * getCurrentWindow()
+	{
+		return currentWindow.get();
+	};
+private:
+	boost::thread_specific_ptr<_WindowImpl> currentWindow;
 };

@@ -207,7 +207,7 @@ private:
 		std::string getSiegeName(ui16 what) const;
 		std::string getSiegeName(ui16 what, int state) const;
 
-		void printPartOfWall(SDL_Surface * to, int what);//what: 1 - background wall, 2 - keep, 3 - bottom tower, 4 - bottom wall, 5 - below gate, 6 - over gate, 7 - upper wall, 8 - uppert tower, 9 - gate, 10 - gate arch, 11 - bottom static wall, 12 - upper static wall, 15 - keep creature cover, 16 - bottom turret creature cover, 17 - upper turret creature cover
+		void printPartOfWall(int what);//what: 1 - background wall, 2 - keep, 3 - bottom tower, 4 - bottom wall, 5 - below gate, 6 - over gate, 7 - upper wall, 8 - uppert tower, 9 - gate, 10 - gate arch, 11 - bottom static wall, 12 - upper static wall, 15 - keep creature cover, 16 - bottom turret creature cover, 17 - upper turret creature cover
 
 		friend class CBattleInterface;
 	} * siegeH;
@@ -217,23 +217,23 @@ private:
 	const CGHeroInstance * getActiveHero(); //returns hero that can currently cast a spell
 
 	/** Methods for displaying battle screen */
-	void showBackground(SDL_Surface * to);
+	void showBackground();
 
-	void showBackgroundImage(SDL_Surface * to);
-	void showAbsoluteObstacles(SDL_Surface * to);
-	void showHighlightedHexes(SDL_Surface * to);
-	void showHighlightedHex(SDL_Surface * to, BattleHex hex);
-	void showInterface(SDL_Surface * to);
+	void showBackgroundImage();
+	void showAbsoluteObstacles();
+	void showHighlightedHexes();
+	void showHighlightedHex(BattleHex hex);
+	void showInterface();
 
-	void showBattlefieldObjects(SDL_Surface * to);
+	void showBattlefieldObjects();
 
-	void showAliveStacks(SDL_Surface * to, std::vector<const CStack *> stacks);
-	void showStacks(SDL_Surface * to, std::vector<const CStack *> stacks);
-	void showObstacles(SDL_Surface *to, std::vector<shared_ptr<const CObstacleInstance> > &obstacles);
-	void showPiecesOfWall(SDL_Surface * to, std::vector<int> pieces);
+	void showAliveStacks(std::vector<const CStack *> stacks);
+	void showStacks(std::vector<const CStack *> stacks);
+	void showObstacles(std::vector<shared_ptr<const CObstacleInstance> > &obstacles);
+	void showPiecesOfWall(std::vector<int> pieces);
 
-	void showBattleEffects(SDL_Surface *to, const std::vector<const BattleEffect *> &battleEffects);
-	void showProjectiles(SDL_Surface * to);
+	void showBattleEffects(const std::vector<const BattleEffect *> &battleEffects);
+	void showProjectiles();
 
 	BattleObjectsByHex sortObjectsByHex();
 	void updateBattleAnimations();
@@ -297,8 +297,8 @@ public:
 	void mouseMoved(const SDL_MouseMotionEvent &sEvent);
 	void clickRight(tribool down, bool previousState);
 
-	void show(SDL_Surface *to);
-	void showAll(SDL_Surface *to);
+	void show() override;
+	void showAll() override;
 
 	//call-ins
 	void startAction(const BattleAction* action);

@@ -390,7 +390,7 @@ int main(int argc, char** argv)
 		if(!vm.count("battle") && !vm.count("nointro") && settings["video"]["showIntro"].Bool())
 			playIntro();
 			
-		mainScreen->fillWithColor(0, nullptr);
+		mainScreen->fillRect(0, nullptr);
 		mainScreen->update();
 	}
 

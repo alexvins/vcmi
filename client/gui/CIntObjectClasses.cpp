@@ -101,13 +101,13 @@ void CPicture::init()
 	srcRect = nullptr;
 }
 
-void CPicture::show(SDL_Surface * to)
+void CPicture::show()
 {
 	if (needRefresh)
-		showAll(to);
+		showAll();
 }
 
-void CPicture::showAll(SDL_Surface * to)
+void CPicture::showAll()
 {
 	if(bg)
 	{
@@ -193,10 +193,10 @@ CFilledTexture::~CFilledTexture()
 	SDL_FreeSurface(texture);
 }
 
-void CFilledTexture::showAll(SDL_Surface *to)
+void CFilledTexture::showAll()
 {
-	CSDL_Ext::CClipRectGuard guard(to, pos);
-	CSDL_Ext::fillTexture(to, texture);
+	ClipRectQuard guard(mainScreen, &pos);
+	CSDL_Ext::fillTexture(texture);
 }
 
 CButtonBase::CButtonBase()
@@ -454,9 +454,9 @@ void CAdventureMapButton::setPlayerColor(PlayerColor player)
 		image->playerColored(player);
 }
 
-void CAdventureMapButton::showAll(SDL_Surface * to)
+void CAdventureMapButton::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	
 	#ifdef VCMI_SDL1
 	if (borderEnabled && borderColor.unused == 0)
@@ -598,28 +598,28 @@ void CHighlightableButtonsGroup::selectionChanged(int to)
 		parent->redraw();
 }
 
-void CHighlightableButtonsGroup::show(SDL_Surface * to)
+void CHighlightableButtonsGroup::show()
 {
 	if (musicLike)
 	{
 		for(auto & elem : buttons)
 			if(elem->isHighlighted())
-				elem->show(to);
+				elem->show();
 	}
 	else
-		CIntObject::show(to);
+		CIntObject::show();
 }
 
-void CHighlightableButtonsGroup::showAll(SDL_Surface * to)
+void CHighlightableButtonsGroup::showAll()
 {
 	if (musicLike)
 	{
 		for(auto & elem : buttons)
 			if(elem->isHighlighted())
-				elem->showAll(to);
+				elem->showAll();
 	}
 	else
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 }
 
 void CHighlightableButtonsGroup::block( ui8 on )
@@ -665,7 +665,7 @@ void CSlider::mouseMoved (const SDL_MouseMotionEvent & sEvent)
 
 void CSlider::redrawSlider()
 {
-	//slider->show(screenBuf);
+	//slider->show();
 }
 
 void CSlider::moveLeft()
@@ -848,10 +848,10 @@ void CSlider::setAmount( int to )
 	vstd::amax(positions, 0);
 }
 
-void CSlider::showAll(SDL_Surface * to)
+void CSlider::showAll()
 {
-	CSDL_Ext::fillRectBlack(to, &pos);
-	CIntObject::showAll(to);
+	CSDL_Ext::fillRectBlack(&pos);
+	CIntObject::showAll();
 }
 
 void CSlider::wheelScrolled(bool down, bool in)
@@ -1116,10 +1116,10 @@ const std::list<CIntObject *> &CListBox::getItems()
 	return items;
 }
 
-void CSimpleWindow::show(SDL_Surface * to)
+void CSimpleWindow::show()
 {
 	if(bitmap)
-		blitAt(bitmap,pos.x,pos.y,to);
+		mainScreen->blit(bitmap,pos.x,pos.y);		
 }
 CSimpleWindow::~CSimpleWindow()
 {
@@ -1186,9 +1186,9 @@ std::string CLabel::visibleText()
 	return text;
 }
 
-void CLabel::showAll(SDL_Surface * to)
+void CLabel::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	if(!visibleText().empty())
 		blitLine(to, pos, visibleText());
@@ -1322,9 +1322,9 @@ CTextContainer::CTextContainer(EAlignment alignment, EFonts font, SDL_Color colo
 	color(color)
 {}
 
-void CMultiLineLabel::showAll(SDL_Surface * to)
+void CMultiLineLabel::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	const IFont * f = graphics->fonts[font];
 
@@ -1505,9 +1505,9 @@ CGStatusBar::~CGStatusBar()
 	GH.statusbar = oldStatusBar;
 }
 
-void CGStatusBar::show(SDL_Surface * to)
+void CGStatusBar::show()
 {
-    showAll(to);
+    showAll();
 }
 
 void CGStatusBar::init()
@@ -1992,10 +1992,10 @@ void CWindowObject::setShadow(bool on)
 	}
 }
 
-void CWindowObject::showAll(SDL_Surface *to)
+void CWindowObject::showAll()
 {
-	CIntObject::showAll(to);
-	if ((options & BORDERED) && (pos.h != to->h || pos.w != to->w))
+	CIntObject::showAll();
+	if ((options & BORDERED) && (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth()))
 		CMessage::drawBorder(LOCPLINT ? LOCPLINT->playerID : PlayerColor(1), to, pos.w+28, pos.h+29, pos.x-14, pos.y-15);
 }
 

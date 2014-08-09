@@ -30,54 +30,54 @@ size_t IFont::getStringWidth(const std::string & data) const
 	return width;
 }
 
-void IFont::renderTextLeft(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
+void IFont::renderTextLeft(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
-	renderText(surface, data, color, pos);
+	renderText(data, color, pos);
 }
 
-void IFont::renderTextRight(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
-{
-	Point size(getStringWidth(data), getLineHeight());
-	renderText(surface, data, color, pos - size);
-}
-
-void IFont::renderTextCenter(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
+void IFont::renderTextRight(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
 	Point size(getStringWidth(data), getLineHeight());
-	renderText(surface, data, color, pos - size / 2);
+	renderText(data, color, pos - size);
 }
 
-void IFont::renderTextLinesLeft(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
+void IFont::renderTextCenter(const std::string & data, const SDL_Color & color, const Point & pos) const
+{
+	Point size(getStringWidth(data), getLineHeight());
+	renderText(data, color, pos - size / 2);
+}
+
+void IFont::renderTextLinesLeft(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
 {
 	Point currPos = pos;
 
 	for(const std::string & line : data)
 	{
-		renderTextLeft(surface, line, color, currPos);
+		renderTextLeft(line, color, currPos);
 		currPos.y += getLineHeight();
 	}
 }
 
-void IFont::renderTextLinesRight(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
+void IFont::renderTextLinesRight(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
 {
 	Point currPos = pos;
 	currPos.y -= data.size() * getLineHeight();
 
 	for(const std::string & line : data)
 	{
-		renderTextRight(surface, line, color, currPos);
+		renderTextRight(line, color, currPos);
 		currPos.y += getLineHeight();
 	}
 }
 
-void IFont::renderTextLinesCenter(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
+void IFont::renderTextLinesCenter(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const
 {
 	Point currPos = pos;
 	currPos.y -= data.size() * getLineHeight()/2;
 
 	for(const std::string & line : data)
 	{
-		renderTextCenter(surface, line, color, currPos);
+		renderTextCenter(line, color, currPos);
 		currPos.y += getLineHeight();
 	}
 }
@@ -178,12 +178,10 @@ void CBitmapFont::renderCharacter(SDL_Surface * surface, const BitmapChar & char
 	posX += character.rightOffset;
 }
 
-void CBitmapFont::renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
+void CBitmapFont::renderText(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
 	if (data.empty())
-		return;
-
-	assert(surface);
+		return;	
 
 	int posX = pos.x;
 	int posY = pos.y;
@@ -192,8 +190,6 @@ void CBitmapFont::renderText(SDL_Surface * surface, const std::string & data, co
 	//assert(data[0] != '{');
 	//assert(data[data.size()-1] != '}');
 
-	SDL_LockSurface(surface);
-
 	for(size_t i=0; i<data.size(); i += Unicode::getCharacterSize(data[i]))
 	{
 		std::string localChar = Unicode::fromUnicode(data.substr(i, Unicode::getCharacterSize(data[i])));
@@ -201,7 +197,7 @@ void CBitmapFont::renderText(SDL_Surface * surface, const std::string & data, co
 		if (localChar.size() == 1)
 			renderCharacter(surface, chars[ui8(localChar[0])], color, posX, posY);
 	}
-	SDL_UnlockSurface(surface);
+
 }
 
 std::pair<std::unique_ptr<ui8[]>, ui64> CTrueTypeFont::loadData(const JsonNode & config)
@@ -266,12 +262,12 @@ size_t CTrueTypeFont::getStringWidth(const std::string & data) const
 	return width;
 }
 
-void CTrueTypeFont::renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
+void CTrueTypeFont::renderText(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
 	if (color.r != 0 && color.g != 0 && color.b != 0) // not black - add shadow
 	{
 		SDL_Color black = { 0, 0, 0, SDL_ALPHA_OPAQUE};
-		renderText(surface, data, black, Point(pos.x + 1, pos.y + 1));
+		renderText(data, black, Point(pos.x + 1, pos.y + 1));
 	}
 
 	if (!data.empty())
@@ -285,7 +281,7 @@ void CTrueTypeFont::renderText(SDL_Surface * surface, const std::string & data, 
 		assert(rendered);
 
 		Rect rect(pos.x, pos.y, rendered->w, rendered->h);
-		SDL_BlitSurface(rendered, nullptr, surface, &rect);
+		mainScreen->blit(rendered, nullptr, surface, &rect);		
 		SDL_FreeSurface(rendered);
 	}
 }
@@ -346,12 +342,10 @@ void CBitmapHanFont::renderCharacter(SDL_Surface * surface, int characterIndex, 
 	posX += size + 1;
 }
 
-void CBitmapHanFont::renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const
+void CBitmapHanFont::renderText(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
 	int posX = pos.x;
 	int posY = pos.y;
-
-	SDL_LockSurface(surface);
 
 	for(size_t i=0; i<data.size(); i += Unicode::getCharacterSize(data[i]))
 	{
@@ -363,7 +357,6 @@ void CBitmapHanFont::renderText(SDL_Surface * surface, const std::string & data,
 		if (localChar.size() == 2)
 			renderCharacter(surface, getCharacterIndex(localChar[0], localChar[1]), color, posX, posY);
 	}
-	SDL_UnlockSurface(surface);
 }
 
 CBitmapHanFont::CBitmapHanFont(const JsonNode &config):

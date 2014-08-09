@@ -261,20 +261,20 @@ CIntObject * CMenuScreen::createTab(size_t index)
 	return new CMenuEntry(this, config["items"].Vector()[index]);
 }
 
-void CMenuScreen::showAll(SDL_Surface * to)
+void CMenuScreen::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
-	if (pos.h != to->h || pos.w != to->w)
-		CMessage::drawBorder(PlayerColor(1), to, pos.w+28, pos.h+30, pos.x-14, pos.y-15);
+	if (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth())
+		CMessage::drawBorder(PlayerColor(1), pos.w+28, pos.h+30, pos.x-14, pos.y-15);
 
 }
 
-void CMenuScreen::show(SDL_Surface * to)
+void CMenuScreen::show()
 {
 	if (!config["video"].isNull())
-		CCS->videoh->update(config["video"]["x"].Float() + pos.x, config["video"]["y"].Float() + pos.y, to, true, false);
-	CIntObject::show(to);
+		CCS->videoh->update(config["video"]["x"].Float() + pos.x, config["video"]["y"].Float() + pos.y, true, false);
+	CIntObject::show();
 }
 
 void CMenuScreen::activate()
@@ -419,9 +419,9 @@ CreditsScreen::CreditsScreen():
 	credits->scrollTextTo(-600); // move all text below the screen
 }
 
-void CreditsScreen::show(SDL_Surface * to)
+void CreditsScreen::show()
 {
-	CIntObject::show(to);
+	CIntObject::show();
 	positionCounter++;
 	if (positionCounter % 2 == 0)
 		credits->scrollTextBy(1);
@@ -533,7 +533,7 @@ void CGPreGame::update()
 	// /FIXME: find out why GH.listInt is empty to begin with
 	if (GH.topInt() != nullptr)
 		mainScreen->runActivated([this](){
-			mainScreen->render(GH.topInt(), false);
+			GH.topInt()->show();
 		});
 
 	if (settings["general"]["showfps"].Bool())
@@ -1055,11 +1055,11 @@ void CSelectionScreen::propagateNames()
 	*serv << &pn;
 }
 
-void CSelectionScreen::showAll(SDL_Surface *to)
+void CSelectionScreen::showAll()
 {
-	CIntObject::showAll(to);
-	if (bordered && (pos.h != to->h || pos.w != to->w))
-		CMessage::drawBorder(PlayerColor(1), to, pos.w+28, pos.h+30, pos.x-14, pos.y-15);
+	CIntObject::showAll();
+	if (bordered && (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth()))
+		CMessage::drawBorder(PlayerColor(1), pos.w+28, pos.h+30, pos.x-14, pos.y-15);
 }
 
 // A new size filter (Small, Medium, ...) has been selected. Populate
@@ -1396,9 +1396,8 @@ void SelectionTab::sliderMove( int slidPos )
 // elemIdx is the index of the maps or saved game to display on line 0
 // slider->capacity contains the number of available screen lines
 // slider->positionsAmnt is the number of elements after filtering
-void SelectionTab::printMaps(SDL_Surface *to)
+void SelectionTab::printMaps()
 {
-
 	int elemIdx = slider->value;
 
 	// Display all elements if there's enough space
@@ -1421,7 +1420,7 @@ void SelectionTab::printMaps(SDL_Surface *to)
 			//amount of players
 			std::ostringstream ostr(std::ostringstream::out);
 			ostr << currentItem->playerAmnt << "/" << currentItem->humanPlayers;
-			printAtLoc(ostr.str(), 29, 120 + line * 25, FONT_SMALL, itemColor, to);
+			printAtLoc(ostr.str(), 29, 120 + line * 25, FONT_SMALL, itemColor);
 
 			//map size
 			std::string temp2 = "C";
@@ -1440,7 +1439,7 @@ void SelectionTab::printMaps(SDL_Surface *to)
 				temp2="XL";
 				break;
 			}
-			printAtMiddleLoc(temp2, 70, 128 + line * 25, FONT_SMALL, itemColor, to);
+			printAtMiddleLoc(temp2, 70, 128 + line * 25, FONT_SMALL, itemColor);
 
 			int temp=-1;
 			switch (currentItem->mapHeader->version)
@@ -1462,20 +1461,20 @@ void SelectionTab::printMaps(SDL_Surface *to)
                 logGlobal->warnStream() << "Warning: " << currentItem->fileURI << " has wrong version!";
 				continue;
 			}
-			blitAtLoc(format->ourImages[temp].bitmap, 88, 117 + line * 25, to);
+			blitAtLoc(format->ourImages[temp].bitmap, 88, 117 + line * 25);
 
 			//victory conditions
-			blitAtLoc(CGP->victory->ourImages[currentItem->mapHeader->victoryIconIndex].bitmap, 306, 117 + line * 25, to);
+			blitAtLoc(CGP->victory->ourImages[currentItem->mapHeader->victoryIconIndex].bitmap, 306, 117 + line * 25);
 
 			//loss conditions
-			blitAtLoc(CGP->loss->ourImages[currentItem->mapHeader->defeatIconIndex].bitmap, 339, 117 + line * 25, to);
+			blitAtLoc(CGP->loss->ourImages[currentItem->mapHeader->defeatIconIndex].bitmap, 339, 117 + line * 25);
 		}
 		else //if campaign
 		{
 			//number of maps in campaign
 			std::ostringstream ostr(std::ostringstream::out);
 			ostr << CGI->generaltexth->campaignRegionNames[ currentItem->campaignHeader->mapVersion ].size();
-			printAtLoc(ostr.str(), 29, 120 + line * 25, FONT_SMALL, itemColor, to);
+			printAtLoc(ostr.str(), 29, 120 + line * 25, FONT_SMALL, itemColor);
 		}
 
 		std::string name;
@@ -1496,14 +1495,14 @@ void SelectionTab::printMaps(SDL_Surface *to)
 		}
 
 		//print name
-		printAtMiddleLoc(name, 213, 128 + line * 25, FONT_SMALL, itemColor, to);
+		printAtMiddleLoc(name, 213, 128 + line * 25, FONT_SMALL, itemColor);
 	}
 }
 
-void SelectionTab::showAll(SDL_Surface * to)
+void SelectionTab::showAll()
 {
-	CIntObject::showAll(to);
-	printMaps(to);
+	CIntObject::showAll();
+	printMaps();
 
 	std::string title;
 	switch(tabType) {
@@ -1521,10 +1520,10 @@ void SelectionTab::showAll(SDL_Surface * to)
 		break;
 	}
 
-	printAtMiddleLoc(title, 205, 28, FONT_MEDIUM, Colors::YELLOW, to); //Select a Scenario to Play
+	printAtMiddleLoc(title, 205, 28, FONT_MEDIUM, Colors::YELLOW); //Select a Scenario to Play
 	if(tabType != CMenuScreen::campaignList)
 	{
-		printAtMiddleLoc(CGI->generaltexth->allTexts[510], 87, 62, FONT_SMALL, Colors::YELLOW, to); //Map sizes
+		printAtMiddleLoc(CGI->generaltexth->allTexts[510], 87, 62, FONT_SMALL, Colors::YELLOW); //Map sizes
 	}
 }
 
@@ -1811,34 +1810,34 @@ void CRandomMapTab::validateCompOnlyPlayersCnt(int compOnlyPlayersCnt)
 	}
 }
 
-void CRandomMapTab::showAll(SDL_Surface * to)
+void CRandomMapTab::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	// Headline
-	printAtMiddleLoc(CGI->generaltexth->allTexts[738], 222, 36, FONT_BIG, Colors::YELLOW, to);
-	printAtMiddleLoc(CGI->generaltexth->allTexts[739], 222, 56, FONT_SMALL, Colors::WHITE, to);
+	printAtMiddleLoc(CGI->generaltexth->allTexts[738], 222, 36, FONT_BIG, Colors::YELLOW);
+	printAtMiddleLoc(CGI->generaltexth->allTexts[739], 222, 56, FONT_SMALL, Colors::WHITE);
 
 	// Map size
-	printAtMiddleLoc(CGI->generaltexth->allTexts[752], 104, 97, FONT_SMALL, Colors::WHITE, to);
+	printAtMiddleLoc(CGI->generaltexth->allTexts[752], 104, 97, FONT_SMALL, Colors::WHITE);
 
 	// Players cnt
-	printAtLoc(CGI->generaltexth->allTexts[753], 68, 133, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[753], 68, 133, FONT_SMALL, Colors::WHITE);
 
 	// Teams cnt
-	printAtLoc(CGI->generaltexth->allTexts[754], 68, 199, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[754], 68, 199, FONT_SMALL, Colors::WHITE);
 
 	// Computer only players cnt
-	printAtLoc(CGI->generaltexth->allTexts[755], 68, 265, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[755], 68, 265, FONT_SMALL, Colors::WHITE);
 
 	// Computer only teams cnt
-	printAtLoc(CGI->generaltexth->allTexts[756], 68, 331, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[756], 68, 331, FONT_SMALL, Colors::WHITE);
 
 	// Water content
-	printAtLoc(CGI->generaltexth->allTexts[757], 68, 398, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[757], 68, 398, FONT_SMALL, Colors::WHITE);
 
 	// Monster strength
-	printAtLoc(CGI->generaltexth->allTexts[758], 68, 465, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(CGI->generaltexth->allTexts[758], 68, 465, FONT_SMALL, Colors::WHITE);
 }
 
 void CRandomMapTab::updateMapInfo()
@@ -1995,24 +1994,24 @@ InfoCard::~InfoCard()
 	delete sFlags;
 }
 
-void InfoCard::showAll(SDL_Surface * to)
+void InfoCard::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	//blit texts
 	if(SEL->screenType != CMenuScreen::campaignList)
 	{
-		printAtLoc(CGI->generaltexth->allTexts[390] + ":", 24, 400, FONT_SMALL, Colors::WHITE, to); //Allies
-		printAtLoc(CGI->generaltexth->allTexts[391] + ":", 190, 400, FONT_SMALL, Colors::WHITE, to); //Enemies
-		printAtLoc(CGI->generaltexth->allTexts[494], 33, 430, FONT_SMALL, Colors::YELLOW, to);//"Map Diff:"
-		printAtLoc(CGI->generaltexth->allTexts[492] + ":", 133,430, FONT_SMALL, Colors::YELLOW, to); //player difficulty
-		printAtLoc(CGI->generaltexth->allTexts[218] + ":", 290,430, FONT_SMALL, Colors::YELLOW, to); //"Rating:"
-		printAtLoc(CGI->generaltexth->allTexts[495], 26, 22, FONT_SMALL, Colors::YELLOW, to); //Scenario Name:
+		printAtLoc(CGI->generaltexth->allTexts[390] + ":", 24, 400, FONT_SMALL, Colors::WHITE); //Allies
+		printAtLoc(CGI->generaltexth->allTexts[391] + ":", 190, 400, FONT_SMALL, Colors::WHITE); //Enemies
+		printAtLoc(CGI->generaltexth->allTexts[494], 33, 430, FONT_SMALL, Colors::YELLOW);//"Map Diff:"
+		printAtLoc(CGI->generaltexth->allTexts[492] + ":", 133,430, FONT_SMALL, Colors::YELLOW); //player difficulty
+		printAtLoc(CGI->generaltexth->allTexts[218] + ":", 290,430, FONT_SMALL, Colors::YELLOW); //"Rating:"
+		printAtLoc(CGI->generaltexth->allTexts[495], 26, 22, FONT_SMALL, Colors::YELLOW); //Scenario Name:
 		if(!chatOn)
 		{
-			printAtLoc(CGI->generaltexth->allTexts[496], 26, 132, FONT_SMALL, Colors::YELLOW, to); //Scenario Description:
-			printAtLoc(CGI->generaltexth->allTexts[497], 26, 283, FONT_SMALL, Colors::YELLOW, to); //Victory Condition:
-			printAtLoc(CGI->generaltexth->allTexts[498], 26, 339, FONT_SMALL, Colors::YELLOW, to); //Loss Condition:
+			printAtLoc(CGI->generaltexth->allTexts[496], 26, 132, FONT_SMALL, Colors::YELLOW); //Scenario Description:
+			printAtLoc(CGI->generaltexth->allTexts[497], 26, 283, FONT_SMALL, Colors::YELLOW); //Victory Condition:
+			printAtLoc(CGI->generaltexth->allTexts[498], 26, 339, FONT_SMALL, Colors::YELLOW); //Loss Condition:
 		}
 		else //players list
 		{
@@ -2022,7 +2021,7 @@ void InfoCard::showAll(SDL_Surface * to)
 			{
 				if(i->second.playerID != PlayerSettings::PLAYER_AI)
 				{
-					printAtLoc(i->second.name, 24, 285 + playerSoFar++ * graphics->fonts[FONT_SMALL]->getLineHeight(), FONT_SMALL, Colors::WHITE, to);
+					printAtLoc(i->second.name, 24, 285 + playerSoFar++ * graphics->fonts[FONT_SMALL]->getLineHeight(), FONT_SMALL, Colors::WHITE);
 					playerNames.erase(i->second.playerID);
 				}
 			}
@@ -2030,7 +2029,7 @@ void InfoCard::showAll(SDL_Surface * to)
 			playerSoFar = 0;
 			for (auto i = playerNames.cbegin(); i != playerNames.cend(); i++)
 			{
-				printAtLoc(i->second, 193, 285 + playerSoFar++ * graphics->fonts[FONT_SMALL]->getLineHeight(), FONT_SMALL, Colors::WHITE, to);
+				printAtLoc(i->second, 193, 285 + playerSoFar++ * graphics->fonts[FONT_SMALL]->getLineHeight(), FONT_SMALL, Colors::WHITE);
 			}
 
 		}
@@ -2049,12 +2048,12 @@ void InfoCard::showAll(SDL_Surface * to)
 
 				CMapHeader * header = SEL->current->mapHeader.get();
 				//victory conditions
-				printAtLoc(header->victoryMessage, 60, 307, FONT_SMALL, Colors::WHITE, to);
-				blitAtLoc(victory->ourImages[header->victoryIconIndex].bitmap, 24, 302, to); //victory cond descr
+				printAtLoc(header->victoryMessage, 60, 307, FONT_SMALL, Colors::WHITE);
+				blitAtLoc(victory->ourImages[header->victoryIconIndex].bitmap, 24, 302); //victory cond descr
 
 				//loss conditoins
-				printAtLoc(header->defeatMessage, 60, 366, FONT_SMALL, Colors::WHITE, to);
-				blitAtLoc(loss->ourImages[header->defeatIconIndex].bitmap, 24, 359, to); //loss cond
+				printAtLoc(header->defeatMessage, 60, 366, FONT_SMALL, Colors::WHITE);
+				blitAtLoc(loss->ourImages[header->defeatIconIndex].bitmap, 24, 359); //loss cond
 
 				if (!CGP)
 				{
@@ -2066,7 +2065,7 @@ void InfoCard::showAll(SDL_Surface * to)
 			//difficulty
 			assert(SEL->current->mapHeader->difficulty <= 4);
 			std::string &diff = CGI->generaltexth->arraytxt[142 + SEL->current->mapHeader->difficulty];
-			printAtMiddleLoc(diff, 62, 472, FONT_SMALL, Colors::WHITE, to);
+			printAtMiddleLoc(diff, 62, 472, FONT_SMALL, Colors::WHITE);
 
 			//selecting size icon
 			switch (SEL->current->mapHeader->width)
@@ -2087,11 +2086,11 @@ void InfoCard::showAll(SDL_Surface * to)
 				temp=4;
 				break;
 			}
-			blitAtLoc(sizes->ourImages[temp].bitmap, 318, 22, to);
+			blitAtLoc(sizes->ourImages[temp].bitmap, 318, 22);
 
 
 			if(SEL->screenType == CMenuScreen::loadGame)
-				printToLoc((static_cast<const CMapInfo*>(SEL->current))->date,308,34, FONT_SMALL, Colors::WHITE, to);
+				printToLoc((static_cast<const CMapInfo*>(SEL->current))->date, 308, 34, FONT_SMALL, Colors::WHITE);
 
 			//print flags
 			int fx = 34  + graphics->fonts[FONT_SMALL]->getStringWidth(CGI->generaltexth->allTexts[390]);
@@ -2107,7 +2106,7 @@ void InfoCard::showAll(SDL_Surface * to)
 			for (auto i = SEL->sInfo.playerInfos.cbegin(); i != SEL->sInfo.playerInfos.cend(); i++)
 			{
 				int *myx = ((i->first == playerColor  ||  SEL->current->mapHeader->players[i->first.getNum()].team == myT) ? &fx : &ex);
-				blitAtLoc(sFlags->ourImages[i->first.getNum()].bitmap, *myx, 399, to);
+				blitAtLoc(sFlags->ourImages[i->first.getNum()].bitmap, *myx, 399);
 				*myx += sFlags->ourImages[i->first.getNum()].bitmap->w;
 			}
 
@@ -2130,7 +2129,7 @@ void InfoCard::showAll(SDL_Surface * to)
 				tob="200%";
 				break;
 			}
-			printAtMiddleLoc(tob, 311, 472, FONT_SMALL, Colors::WHITE, to);
+			printAtMiddleLoc(tob, 311, 472, FONT_SMALL, Colors::WHITE);
 		}
 
 		//blit description
@@ -2147,9 +2146,9 @@ void InfoCard::showAll(SDL_Surface * to)
 
 		//name
 		if (name.length())
-			printAtLoc(name, 26, 39, FONT_BIG, Colors::YELLOW, to);
+			printAtLoc(name, 26, 39, FONT_BIG, Colors::YELLOW);
 		else
-			printAtLoc("Unnamed", 26, 39, FONT_BIG, Colors::YELLOW, to);
+			printAtLoc("Unnamed", 26, 39, FONT_BIG, Colors::YELLOW);
 	}
 }
 
@@ -2252,18 +2251,18 @@ OptionsTab::~OptionsTab()
 
 }
 
-void OptionsTab::showAll(SDL_Surface * to)
+void OptionsTab::showAll()
 {
-	CIntObject::showAll(to);
-	printAtMiddleLoc(CGI->generaltexth->allTexts[515], 222, 30, FONT_BIG, Colors::YELLOW, to);
-	printAtMiddleWBLoc(CGI->generaltexth->allTexts[516], 222, 68, FONT_SMALL, 300, Colors::WHITE, to); //Select starting options, handicap, and name for each player in the game.
-	printAtMiddleWBLoc(CGI->generaltexth->allTexts[517], 107, 110, FONT_SMALL, 100, Colors::YELLOW, to); //Player Name Handicap Type
-	printAtMiddleWBLoc(CGI->generaltexth->allTexts[518], 197, 110, FONT_SMALL, 70, Colors::YELLOW, to); //Starting Town
-	printAtMiddleWBLoc(CGI->generaltexth->allTexts[519], 273, 110, FONT_SMALL, 70, Colors::YELLOW, to); //Starting Hero
-	printAtMiddleWBLoc(CGI->generaltexth->allTexts[520], 349, 110, FONT_SMALL, 70, Colors::YELLOW, to); //Starting Bonus
-	printAtMiddleLoc(CGI->generaltexth->allTexts[521], 222, 538, FONT_SMALL, Colors::YELLOW, to); // Player Turn Duration
+	CIntObject::showAll();
+	printAtMiddleLoc(CGI->generaltexth->allTexts[515], 222, 30, FONT_BIG, Colors::YELLOW);
+	printAtMiddleWBLoc(CGI->generaltexth->allTexts[516], 222, 68, FONT_SMALL, 300, Colors::WHITE); //Select starting options, handicap, and name for each player in the game.
+	printAtMiddleWBLoc(CGI->generaltexth->allTexts[517], 107, 110, FONT_SMALL, 100, Colors::YELLOW); //Player Name Handicap Type
+	printAtMiddleWBLoc(CGI->generaltexth->allTexts[518], 197, 110, FONT_SMALL, 70, Colors::YELLOW); //Starting Town
+	printAtMiddleWBLoc(CGI->generaltexth->allTexts[519], 273, 110, FONT_SMALL, 70, Colors::YELLOW); //Starting Hero
+	printAtMiddleWBLoc(CGI->generaltexth->allTexts[520], 349, 110, FONT_SMALL, 70, Colors::YELLOW); //Starting Bonus
+	printAtMiddleLoc(CGI->generaltexth->allTexts[521], 222, 538, FONT_SMALL, Colors::YELLOW); // Player Turn Duration
 	if (turnDuration)
-		printAtMiddleLoc(CGI->generaltexth->turnDurations[turnDuration->value], 319,559, FONT_SMALL, Colors::WHITE, to);//Turn duration value
+		printAtMiddleLoc(CGI->generaltexth->turnDurations[turnDuration->value], 319,559, FONT_SMALL, Colors::WHITE);//Turn duration value
 }
 
 void OptionsTab::nextCastle( PlayerColor player, int dir )
@@ -2586,11 +2585,11 @@ OptionsTab::PlayerOptionsEntry::PlayerOptionsEntry( OptionsTab *owner, PlayerSet
 	bonus = new SelectedBox(Point(271, 2), s, BONUS);
 }
 
-void OptionsTab::PlayerOptionsEntry::showAll(SDL_Surface * to)
+void OptionsTab::PlayerOptionsEntry::showAll()
 {
-	CIntObject::showAll(to);
-	printAtMiddleLoc(s.name, 55, 10, FONT_SMALL, Colors::WHITE, to);
-	printAtMiddleWBLoc(CGI->generaltexth->arraytxt[206+whoCanPlay], 28, 39, FONT_TINY, 50, Colors::WHITE, to);
+	CIntObject::showAll();
+	printAtMiddleLoc(s.name, 55, 10, FONT_SMALL, Colors::WHITE);
+	printAtMiddleWBLoc(CGI->generaltexth->arraytxt[206+whoCanPlay], 28, 39, FONT_TINY, 50, Colors::WHITE);
 }
 
 void OptionsTab::PlayerOptionsEntry::update()
@@ -3158,76 +3157,86 @@ void CBonusSelection::init()
 		"BB_BG.BMP", "NB_BG.BMP", "EL_BG.BMP", "RN_BG.BMP", "UA_BG.BMP", "SP_BG.BMP"};
 
 	loadPositionsOfGraphics();
+	
+	
 
-	background = BitmapHandler::loadBitmap(bgNames[ourCampaign->camp->header.mapVersion]);
-	pos.h = background->h;
-	pos.w = background->w;
-	center();
+	SDL_Surface * backgroundPicture = BitmapHandler::loadBitmap(bgNames[ourCampaign->camp->header.mapVersion]);
+	pos.h = backgroundPicture->h;
+	pos.w = backgroundPicture->w;
+	
+	background = mainScreen->createTarget(pos.w, pos.h);
+	
+	background->runActivated([&,this](){
+		mainScreen->blit(backgroundPicture,0,0);
+		SDL_FreeSurface(backgroundPicture);
+		
+		center();
 
-	SDL_Surface * panel = BitmapHandler::loadBitmap("CAMPBRF.BMP");
+		SDL_Surface * panel = BitmapHandler::loadBitmap("CAMPBRF.BMP");		
+		mainScreen->blit(panel, 456, 6);
+		SDL_FreeSurface(panel);		
 
-	blitAt(panel, 456, 6, background);
+		startB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::startMap, this), 475, 536, "CBBEGIB.DEF", SDLK_RETURN);
+		restartB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::restartMap, this), 475, 536, "CBRESTB.DEF", SDLK_RETURN);
+		backB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::goBack, this), 624, 536, "CBCANCB.DEF", SDLK_ESCAPE);
 
-    startB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::startMap, this), 475, 536, "CBBEGIB.DEF", SDLK_RETURN);
-    restartB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::restartMap, this), 475, 536, "CBRESTB.DEF", SDLK_RETURN);
-    backB = new CAdventureMapButton("", "", std::bind(&CBonusSelection::goBack, this), 624, 536, "CBCANCB.DEF", SDLK_ESCAPE);
+		//campaign name
+		if (ourCampaign->camp->header.name.length())
+			graphics->fonts[FONT_BIG]->renderTextLeft(ourCampaign->camp->header.name, Colors::YELLOW, Point(481, 28));
+		else
+			graphics->fonts[FONT_BIG]->renderTextLeft(CGI->generaltexth->allTexts[508], Colors::YELLOW, Point(481, 28));
 
-	//campaign name
-	if (ourCampaign->camp->header.name.length())
-		graphics->fonts[FONT_BIG]->renderTextLeft(background, ourCampaign->camp->header.name, Colors::YELLOW, Point(481, 28));
-	else
-		graphics->fonts[FONT_BIG]->renderTextLeft(background, CGI->generaltexth->allTexts[508], Colors::YELLOW, Point(481, 28));
+		//map size icon
+		sizes = CDefHandler::giveDef("SCNRMPSZ.DEF");
 
-	//map size icon
-	sizes = CDefHandler::giveDef("SCNRMPSZ.DEF");
+		//campaign description
+		graphics->fonts[FONT_SMALL]->renderTextLeft(CGI->generaltexth->allTexts[38], Colors::YELLOW, Point(481, 63));
 
-	//campaign description
-	graphics->fonts[FONT_SMALL]->renderTextLeft(background, CGI->generaltexth->allTexts[38], Colors::YELLOW, Point(481, 63));
+		campaignDescription = new CTextBox(ourCampaign->camp->header.description, Rect(480, 86, 286, 117), 1);
 
-	campaignDescription = new CTextBox(ourCampaign->camp->header.description, Rect(480, 86, 286, 117), 1);
-	//campaignDescription->showAll(background);
+		//map description
+		mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
 
-	//map description
-	mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
+		//bonus choosing
+		graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
+		bonuses = new CHighlightableButtonsGroup(bind(&CBonusSelection::selectBonus, this, _1));
 
-	//bonus choosing
-	graphics->fonts[FONT_MEDIUM]->renderTextLeft(background, CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
-	bonuses = new CHighlightableButtonsGroup(bind(&CBonusSelection::selectBonus, this, _1));
-
-	//set left part of window
-	bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
-	for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
-	{
-		if(ourCampaign->camp->conquerable(g))
+		//set left part of window
+		bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
+		for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
 		{
-			regions.push_back(new CRegion(this, true, true, g));
-			regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
-			if(highlightedRegion == nullptr)
+			if(ourCampaign->camp->conquerable(g))
 			{
-				if(!isCurrentMapConquerable || (isCurrentMapConquerable && g == *ourCampaign->currentMap))
+				regions.push_back(new CRegion(this, true, true, g));
+				regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
+				if(highlightedRegion == nullptr)
 				{
-					highlightedRegion = regions.back();
-					selectMap(g, true);
+					if(!isCurrentMapConquerable || (isCurrentMapConquerable && g == *ourCampaign->currentMap))
+					{
+						highlightedRegion = regions.back();
+						selectMap(g, true);
+					}
 				}
 			}
+			else if (ourCampaign->camp->scenarios[g].conquered) //display as striped
+			{
+				regions.push_back(new CRegion(this, false, false, g));
+				regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
+			}
 		}
-		else if (ourCampaign->camp->scenarios[g].conquered) //display as striped
-		{
-			regions.push_back(new CRegion(this, false, false, g));
-			regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
-		}
-	}
 
-	//allies / enemies
-	graphics->fonts[FONT_SMALL]->renderTextLeft(background, CGI->generaltexth->allTexts[390] + ":", Colors::WHITE, Point(486, 407));
-	graphics->fonts[FONT_SMALL]->renderTextLeft(background, CGI->generaltexth->allTexts[391] + ":", Colors::WHITE, Point(619, 407));
+		//allies / enemies
+		graphics->fonts[FONT_SMALL]->renderTextLeft(CGI->generaltexth->allTexts[390] + ":", Colors::WHITE, Point(486, 407));
+		graphics->fonts[FONT_SMALL]->renderTextLeft(CGI->generaltexth->allTexts[391] + ":", Colors::WHITE, Point(619, 407));
 
-	SDL_FreeSurface(panel);
 
-	//difficulty
-	std::vector<std::string> difficulty;
-	boost::split(difficulty, CGI->generaltexth->allTexts[492], boost::is_any_of(" "));
-	graphics->fonts[FONT_MEDIUM]->renderTextLeft(background, difficulty.back(), Colors::WHITE, Point(689, 432));
+
+		//difficulty
+		std::vector<std::string> difficulty;
+		boost::split(difficulty, CGI->generaltexth->allTexts[492], boost::is_any_of(" "));
+		graphics->fonts[FONT_MEDIUM]->renderTextLeft(difficulty.back(), Colors::WHITE, Point(689, 432));
+
+	}); //end of drawing to background
 
 	//difficulty pics
 	for (int b=0; b<ARRAY_COUNT(diffPics); ++b)
@@ -3264,7 +3273,7 @@ CBonusSelection::CBonusSelection(const std::string & campaignFName)
 
 CBonusSelection::~CBonusSelection()
 {
-	SDL_FreeSurface(background);
+	delete background;
 	delete sizes;
 	delete ourHeader;
 	delete sFlags;
@@ -3279,14 +3288,15 @@ void CBonusSelection::goBack()
 	GH.popIntTotally(this);
 }
 
-void CBonusSelection::showAll(SDL_Surface * to)
+void CBonusSelection::showAll()
 {
-	blitAt(background, pos.x, pos.y, to);
-	CIntObject::showAll(to);
+	background->blitTo(nullptr,&pos);
 
-	show(to);
-	if (pos.h != to->h || pos.w != to->w)
-		CMessage::drawBorder(PlayerColor(1), to, pos.w+28, pos.h+30, pos.x-14, pos.y-15);
+	CIntObject::showAll();
+
+	show();
+	if (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth())
+		CMessage::drawBorder(PlayerColor(1), pos.w+28, pos.h+30, pos.x-14, pos.y-15);
 }
 
 void CBonusSelection::loadPositionsOfGraphics()
@@ -3368,7 +3378,7 @@ void CBonusSelection::selectMap(int mapNr, bool initialSelect)
 	}
 }
 
-void CBonusSelection::show(SDL_Surface * to)
+void CBonusSelection::show()
 {
 	//blitAt(background, pos.x, pos.y, to);
 
@@ -3376,14 +3386,14 @@ void CBonusSelection::show(SDL_Surface * to)
 	std::string mapName = ourHeader->name;
 
 	if (mapName.length())
-		printAtLoc(mapName, 481, 219, FONT_BIG, Colors::YELLOW, to);
+		printAtLoc(mapName, 481, 219, FONT_BIG, Colors::YELLOW);
 	else
-		printAtLoc("Unnamed", 481, 219, FONT_BIG, Colors::YELLOW, to);
+		printAtLoc("Unnamed", 481, 219, FONT_BIG, Colors::YELLOW);
 
 	//map description
-	printAtLoc(CGI->generaltexth->allTexts[496], 481, 253, FONT_SMALL, Colors::YELLOW, to);
+	printAtLoc(CGI->generaltexth->allTexts[496], 481, 253, FONT_SMALL, Colors::YELLOW);
 
-	mapDescription->showAll(to); //showAll because CTextBox has no show()
+	mapDescription->showAll(); //showAll because CTextBox has no show()
 
 	//map size icon
 	int temp;
@@ -3405,7 +3415,7 @@ void CBonusSelection::show(SDL_Surface * to)
 		temp=4;
 		break;
 	}
-	blitAtLoc(sizes->ourImages[temp].bitmap, 735, 26, to);
+	blitAtLoc(sizes->ourImages[temp].bitmap, 735, 26);
 
 	//flags
 	int fx = 496  + graphics->fonts[FONT_SMALL]->getStringWidth(CGI->generaltexth->allTexts[390]);
@@ -3415,14 +3425,14 @@ void CBonusSelection::show(SDL_Surface * to)
 	for (auto i = startInfo.playerInfos.cbegin(); i != startInfo.playerInfos.cend(); i++)
 	{
 		int *myx = ((i->first == playerColor  ||  ourHeader->players[i->first.getNum()].team == myT) ? &fx : &ex);
-		blitAtLoc(sFlags->ourImages[i->first.getNum()].bitmap, *myx, 405, to);
+		blitAtLoc(sFlags->ourImages[i->first.getNum()].bitmap, *myx, 405);
 		*myx += sFlags->ourImages[i->first.getNum()].bitmap->w;
 	}
 
 	//difficulty
-	blitAtLoc(diffPics[startInfo.difficulty], 709, 455, to);
+	blitAtLoc(diffPics[startInfo.difficulty], 709, 455);
 
-	CIntObject::show(to);
+	CIntObject::show();
 }
 
 void CBonusSelection::updateBonusSelection()
@@ -3787,7 +3797,7 @@ void CBonusSelection::CRegion::clickLeft( tribool down, bool previousState )
 		owner->selectMap(myNumber, false);
 		owner->highlightedRegion = this;
 		mainScreen->runActivated([this](){
-			mainScreen->render(parent, true);
+			parent->showAll();
 		});
 	}
 }
@@ -3802,23 +3812,23 @@ void CBonusSelection::CRegion::clickRight( tribool down, bool previousState )
 	}
 }
 
-void CBonusSelection::CRegion::show(SDL_Surface * to)
+void CBonusSelection::CRegion::show()
 {
 	//const SCampPositions::SRegionDesc & desc = owner->campDescriptions[owner->ourCampaign->camp->header.mapVersion].regions[myNumber];
 	if (!accessible)
 	{
 		//show as striped
-		blitAtLoc(graphics[2], 0, 0, to);
+		blitAtLoc(graphics[2], 0, 0);
 	}
 	else if (this == owner->highlightedRegion)
 	{
 		//show as selected
-		blitAtLoc(graphics[1], 0, 0, to);
+		blitAtLoc(graphics[1], 0, 0);
 	}
 	else
 	{
 		//show as not selected selected
-		blitAtLoc(graphics[0], 0, 0, to);
+		blitAtLoc(graphics[0], 0, 0);
 	}
 }
 
@@ -4073,12 +4083,12 @@ void CCampaignScreen::CCampaignButton::hover(bool on)
 		hoverLabel->setText(" ");
 }
 
-void CCampaignScreen::CCampaignButton::show(SDL_Surface * to)
+void CCampaignScreen::CCampaignButton::show()
 {
 	if (status == CCampaignScreen::DISABLED)
 		return;
 
-	CIntObject::show(to);
+	CIntObject::show();
 
 	// Play the campaign button video when the mouse cursor is placed over the button
 	if (hovered)
@@ -4086,7 +4096,7 @@ void CCampaignScreen::CCampaignButton::show(SDL_Surface * to)
 		if (CCS->videoh->fname != video)
 			CCS->videoh->open(video);
 
-		CCS->videoh->update(pos.x, pos.y, to, true, false); // plays sequentially frame by frame, starts at the beginning when the video is over
+		CCS->videoh->update(pos.x, pos.y, true, false); // plays sequentially frame by frame, starts at the beginning when the video is over
 	}
 	else if (CCS->videoh->fname == video) // When you got out of the bounds of the button then close the video
 	{
@@ -4131,11 +4141,11 @@ CCampaignScreen::CCampaignScreen(const JsonNode &config)
 		campButtons.push_back(new CCampaignButton(node));
 }
 
-void CCampaignScreen::showAll(SDL_Surface *to)
+void CCampaignScreen::showAll()
 {
-	CIntObject::showAll(to);
-	if (pos.h != to->h || pos.w != to->w)
-		CMessage::drawBorder(PlayerColor(1), to, pos.w+28, pos.h+30, pos.x-14, pos.y-15);
+	CIntObject::showAll();
+	if (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth())
+		CMessage::drawBorder(PlayerColor(1), pos.w+28, pos.h+30, pos.x-14, pos.y-15);
 }
 
 void CGPreGame::showLoadingScreen(std::function<void()> loader)
@@ -4171,12 +4181,11 @@ CLoadingScreen::~CLoadingScreen()
 	loadingThread.join();
 }
 
-void CLoadingScreen::showAll(SDL_Surface *to)
+void CLoadingScreen::showAll()
 {
-	Rect rect(0,0,to->w, to->h);
-	SDL_FillRect(to, &rect, 0);
-
-	CWindowObject::showAll(to);
+	Rect rect(0,0,mainScreen->getWidth(), mainScreen->getHeight());
+	mainScreen->fillRect(0,&rect);
+	CWindowObject::showAll();
 }
 
 CPrologEpilogVideo::CPrologEpilogVideo( CCampaignScenario::SScenarioPrologEpilog _spe, std::function<void()> callback ):
@@ -4199,13 +4208,13 @@ CPrologEpilogVideo::CPrologEpilogVideo( CCampaignScenario::SScenarioPrologEpilog
 	text->scrollTextTo(-100);
 }
 
-void CPrologEpilogVideo::show( SDL_Surface * to )
+void CPrologEpilogVideo::show()
 {
-	CSDL_Ext::fillRectBlack(to, &pos);
+	CSDL_Ext::fillRectBlack(&pos);
 	//BUG: some videos are 800x600 in size while some are 800x400
 	//VCMI should center them in the middle of the screen. Possible but needs modification
 	//of video player API which I'd like to avoid until we'll get rid of Windows-specific player
-	CCS->videoh->update(pos.x, pos.y, to, true, false);
+	CCS->videoh->update(pos.x, pos.y, true, false);
 
 	//move text every 5 calls/frames; seems to be good enough
 	++positionCounter;
@@ -4214,7 +4223,7 @@ void CPrologEpilogVideo::show( SDL_Surface * to )
 		text->scrollTextBy(1);
 	}
 	else
-		text->showAll(to);// blit text over video, if needed
+		text->showAll();// blit text over video, if needed
 
 	if (text->textSize.y + 100 < positionCounter / 5)
 		clickLeft(false, false);

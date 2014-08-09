@@ -26,7 +26,7 @@ class CSimpleWindow : public CIntObject
 {
 public:
 	SDL_Surface * bitmap; //background
-	virtual void show(SDL_Surface * to);
+	void show() override;
 	CSimpleWindow():bitmap(nullptr){}; //c-tor
 	virtual ~CSimpleWindow(); //d-tor
 };
@@ -60,8 +60,8 @@ public:
 
 	void scaleTo(Point size);
 	void createSimpleRect(const Rect &r, bool screenFormat, ui32 color);
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	void convertToScreenBPP();
 	void colorizeAndConvert(PlayerColor player);
 	void colorize(PlayerColor player);
@@ -75,7 +75,7 @@ class CFilledTexture : CIntObject
 public:
 	CFilledTexture(std::string imageName, Rect position);
 	~CFilledTexture();
-	void showAll(SDL_Surface *to);
+	void showAll();
 };
 
 namespace config{struct ButtonInfo;}
@@ -150,7 +150,7 @@ public:
 	void setIndex(size_t index, bool playerColoredButton=false);
 	void setImage(CAnimation* anim, bool playerColoredButton=false, int animFlags=0);
 	void setPlayerColor(PlayerColor player);
-	void showAll(SDL_Surface * to);
+	void showAll();
 };
 
 /// A button which can be selected/deselected
@@ -184,8 +184,8 @@ public:
 	~CHighlightableButtonsGroup();
 	void select(int id, bool mode); //mode==0: id is serial; mode==1: id is unique button id
 	void selectionChanged(int to);
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	void block(ui8 on);
 };
 
@@ -217,7 +217,7 @@ public:
 	void wheelScrolled(bool down, bool in);
 	void clickLeft(tribool down, bool previousState);
 	void mouseMoved (const SDL_MouseMotionEvent & sEvent);
-	void showAll(SDL_Surface * to);	
+	void showAll();	
 
 	CSlider(int x, int y, int totalw, std::function<void(int)> Moved, int Capacity, int Amount, 
 		int Value=0, bool Horizontal=true, int style = 0); //style 0 - brown, 1 - blue
@@ -335,7 +335,7 @@ protected:
 	/// returns size of border, for left- or right-aligned text
 	virtual Point getBorderSize() = 0;
 	/// do actual blitting of line. Text "what" will be placed at "where" and aligned according to alignment
-	void blitLine(SDL_Surface * to, Rect where, std::string what);
+	void blitLine(Rect where, std::string what);
 
 	CTextContainer(EAlignment alignment, EFonts font, SDL_Color color);
 
@@ -363,7 +363,7 @@ public:
 
 	CLabel(int x=0, int y=0, EFonts Font = FONT_SMALL, EAlignment Align = TOPLEFT,
 	       const SDL_Color &Color = Colors::WHITE, const std::string &Text =  "");
-	void showAll(SDL_Surface * to); //shows statusbar (with current text)
+	void showAll(); //shows statusbar (with current text)
 };
 
 /// Multi-line label that can display multiple lines of text
@@ -385,7 +385,7 @@ public:
 	CMultiLineLabel(Rect position, EFonts Font = FONT_SMALL, EAlignment Align = TOPLEFT, const SDL_Color &Color = Colors::WHITE, const std::string &Text =  "");
 
 	void setText(const std::string &Txt);
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	void setVisibleSize(Rect visibleSize);
 	// scrolls text visible in widget. Positive value will move text up
@@ -424,7 +424,7 @@ public:
 	void clear();//clears statusbar and refreshes
 	void setText(const std::string & Text) override; //prints text and refreshes statusbar
 
-	void show(SDL_Surface * to); //shows statusbar (with current text)
+	void show() override; //shows statusbar (with current text)
 
 	CGStatusBar(CPicture *BG, EFonts Font = FONT_SMALL, EAlignment Align = CENTER, const SDL_Color &Color = Colors::WHITE); //given CPicture will be captured by created sbar and it's pos will be used as pos for sbar
 	CGStatusBar(int x, int y, std::string name, int maxw=-1);
@@ -533,7 +533,7 @@ protected:
 	//Used only if RCLICK_POPUP was set
 	void clickRight(tribool down, bool previousState);
 	//To display border
-	void showAll(SDL_Surface *to);
+	void showAll();
 	//change or set background image
 	void setBackground(std::string filename);
 	void updateShadow();

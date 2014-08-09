@@ -69,8 +69,8 @@ public:
 	};
 	CMenuScreen(const JsonNode& configNode);
 
-	void showAll(SDL_Surface * to);
-	void show(SDL_Surface * to);
+	void showAll() override;
+	void show() override;
 	void activate();
 	void deactivate();
 
@@ -94,7 +94,7 @@ class CreditsScreen : public CIntObject
 public:
 	CreditsScreen();
 
-	void show(SDL_Surface * to);
+	void show() override;
 
 	void clickLeft(tribool down, bool previousState);
 	void clickRight(tribool down, bool previousState);
@@ -130,7 +130,7 @@ public:
 	CDefHandler *sizes, *sFlags;
 
 	void changeSelection(const CMapInfo *to);
-	void showAll(SDL_Surface * to);
+	void showAll();
 	void clickRight(tribool down, bool previousState);
 	void showTeamsPopup();
 	void toggleChat();
@@ -173,12 +173,12 @@ public:
 	void sliderMove(int slidPos);
 	void sortBy(int criteria);
 	void sort();
-	void printMaps(SDL_Surface *to);
+	void printMaps();
 	int getLine();
 	void selectFName(std::string fname);
 	const CMapInfo * getSelectedMapInfo() const;
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 	void clickLeft(tribool down, bool previousState);
 	void keyPressed(const SDL_KeyboardEvent & key);
 	void onDoubleClick();
@@ -248,7 +248,7 @@ public:
 
 		PlayerOptionsEntry(OptionsTab *owner, PlayerSettings &S);
 		void selectButtons(); //hides unavailable buttons
-		void showAll(SDL_Surface * to);
+		void showAll();
 		void update();
 	};
 
@@ -276,7 +276,7 @@ public:
 	void recreate();
 	OptionsTab();
 	~OptionsTab();
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	int nextAllowedHero(PlayerColor player, int min, int max, int incl, int dir );
 
@@ -289,7 +289,7 @@ class CRandomMapTab : public CIntObject
 public:
 	CRandomMapTab();
 
-    void showAll(SDL_Surface * to);
+    void showAll();
 	void updateMapInfo();
 	CFunctionList<void (const CMapInfo *)> & getMapInfoChanged();
 	const CMapInfo * getMapInfo() const;
@@ -377,7 +377,7 @@ public:
 	void postRequest(ui8 what, ui8 dir) override;
 	void postChatMessage(const std::string &txt) override;
 	void propagateNames();
-	void showAll(SDL_Surface *to);
+	void showAll();
 };
 
 /// Save game screen
@@ -447,7 +447,7 @@ public:
 	CPrologEpilogVideo(CCampaignScenario::SScenarioPrologEpilog _spe, std::function<void()> callback);
 
 	void clickLeft(tribool down, bool previousState);
-	void show(SDL_Surface * to);
+	void show() override;
 };
 
 /// Campaign screen where you can choose one out of three starting bonuses
@@ -458,8 +458,8 @@ public:
 	CBonusSelection(shared_ptr<CCampaignState> _ourCampaign);
 	~CBonusSelection();
 
-	void showAll(SDL_Surface * to) override;
-	void show(SDL_Surface * to) override;
+	void showAll() override;
+	void show() override;
 
 private:
 	struct SCampPositions
@@ -492,7 +492,7 @@ private:
 
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
-		void show(SDL_Surface * to);
+		void show() override;
 	};
 
 	void init();
@@ -511,7 +511,8 @@ private:
 	void decreaseDifficulty();
 
 	// GUI components
-	SDL_Surface * background;
+	IRenderTarget * background;
+	
 	CAdventureMapButton * startB, * restartB, * backB;
 	CTextBox * campaignDescription, * mapDescription;
 	std::vector<SCampPositions> campDescriptions;
@@ -557,7 +558,7 @@ private:
 
 	public:
 		CCampaignButton(const JsonNode &config );
-		void show(SDL_Surface * to);
+		void show() override;
 	};
 
 	CAdventureMapButton *back;
@@ -570,7 +571,7 @@ public:
 	enum CampaignSet {ROE, AB, SOD, WOG};
 
 	CCampaignScreen(const JsonNode &config);
-	void showAll(SDL_Surface *to);
+	void showAll();
 };
 
 /// Manages the configuration of pregame GUI elements like campaign screen, main menu, loading screen,...
@@ -622,7 +623,7 @@ public:
 	CLoadingScreen(std::function<void()> loader);
 	~CLoadingScreen();
 
-	void showAll(SDL_Surface *to);
+	void showAll();
 };
 
 /// Simple window to enter the server's address.

@@ -457,9 +457,9 @@ CMinimapInstance::~CMinimapInstance()
 	SDL_FreeSurface(minimap);
 }
 
-void CMinimapInstance::showAll(SDL_Surface *to)
+void CMinimapInstance::showAll()
 {
-	blitAtLoc(minimap, 0, 0, to);
+	blitAtLoc(minimap, 0, 0);
 
 	//draw heroes
 	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false);
@@ -572,15 +572,14 @@ void CMinimap::mouseMoved(const SDL_MouseMotionEvent & sEvent)
 		moveAdvMapSelection();
 }
 
-void CMinimap::showAll(SDL_Surface * to)
+void CMinimap::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	if (minimap)
 	{
 		int3 mapSizes = LOCPLINT->cb->getMapSize();
 
 		//draw radar
-		SDL_Rect oldClip;
 		SDL_Rect radar =
 		{
 			si16(adventureInt->position.x * pos.w / mapSizes.x + pos.x),
@@ -588,11 +587,11 @@ void CMinimap::showAll(SDL_Surface * to)
 			ui16(adventureInt->terrain.tilesw * pos.w / mapSizes.x),
 			ui16(adventureInt->terrain.tilesh * pos.h / mapSizes.y)
 		};
-
-		SDL_GetClipRect(to, &oldClip);
-		SDL_SetClipRect(to, &pos);
-		CSDL_Ext::drawDashedBorder(to, radar, int3(255,75,125));
-		SDL_SetClipRect(to, &oldClip);
+		
+		{
+			CSDL_Ext::CClipRectGuard guard(to, pos);
+			CSDL_Ext::drawDashedBorder(to, radar, int3(255,75,125));			
+		}
 	}
 }
 
@@ -651,11 +650,11 @@ CInfoBar::CVisibleInfo::CVisibleInfo(Point position):
 
 }
 
-void CInfoBar::CVisibleInfo::show(SDL_Surface *to)
+void CInfoBar::CVisibleInfo::show()
 {
-	CIntObject::show(to);
+	CIntObject::show();
 	for(auto object : forceRefresh)
-		object->showAll(to);
+		object->showAll();
 }
 
 void CInfoBar::CVisibleInfo::loadHero(const CGHeroInstance * hero)

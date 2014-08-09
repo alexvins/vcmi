@@ -194,7 +194,7 @@ public:
 	CMinimapInstance(CMinimap * parent, int level);
 	~CMinimapInstance();
 
-	void showAll(SDL_Surface *to);
+	void showAll();
 	void tileToPixels (const int3 &tile, int &x, int &y,int toX = 0, int toY = 0);
 
 	void refreshTile(const int3 &pos);
@@ -231,7 +231,7 @@ public:
 	void setLevel(int level);
 	void setAIRadar(bool on);
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	void hideTile(const int3 &pos); //puts FoW
 	void showTile(const int3 &pos); //removes FoW
@@ -255,7 +255,7 @@ class CInfoBar : public CIntObject
 	public:
 		CVisibleInfo(Point position);
 
-		void show(SDL_Surface *to);
+		void show() override;
 
 		//functions that must be called only once
 		void loadHero(const CGHeroInstance * hero);

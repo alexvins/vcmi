@@ -203,9 +203,11 @@ namespace CSDL_Ext
 
 	void blitSurface(SDL_Surface * src, SDL_Rect * srcRect, SDL_Surface * dst, SDL_Rect * dstRect);
 	void fillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color);
-	void fillRectBlack(SDL_Surface * dst, SDL_Rect * dstrect);
-	//fill dest image with source texture.
-	void fillTexture(SDL_Surface *dst, SDL_Surface * sourceTexture);
+	
+	//fill current target with black color
+	void fillRectBlack(SDL_Rect * dstrect);
+	//fill current target with source texture.
+	void fillTexture(SDL_Surface * sourceTexture); //TODO: move to renderer
 
 	void SDL_PutPixelWithoutRefresh(SDL_Surface *ekran, const int & x, const int & y, const Uint8 & R, const Uint8 & G, const Uint8 & B, Uint8 A = 255);
 	void SDL_PutPixelWithoutRefreshIfInSurf(SDL_Surface *ekran, const int & x, const int & y, const Uint8 & R, const Uint8 & G, const Uint8 & B, Uint8 A = 255);
@@ -241,7 +243,6 @@ namespace CSDL_Ext
 	Uint32 colorToUint32(const SDL_Color * color); //little endian only
 	SDL_Color makeColor(ui8 r, ui8 g, ui8 b, ui8 a);
 
-//	void update(SDL_Surface * what); //updates whole surface
 	void drawBorder(SDL_Surface * sur, int x, int y, int w, int h, const int3 &color);
 	void drawBorder(SDL_Surface * sur, const SDL_Rect &r, const int3 &color);
 	void drawDashedBorder(SDL_Surface * sur, const Rect &r, const int3 &color);

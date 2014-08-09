@@ -56,8 +56,8 @@ public:
 	void clickLeft(tribool down, bool previousState);
 	void clickRight(tribool down, bool previousState);
 	void mouseMoved (const SDL_MouseMotionEvent & sEvent);
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 };
 
 /// Dwelling info box - right-click screen for dwellings
@@ -150,8 +150,8 @@ public:
 	void addBuilding(BuildingID building);
 	void removeBuilding(BuildingID building);//FIXME: not tested!!!
 	
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show();
+	void showAll();
 };
 
 /// Creature info window

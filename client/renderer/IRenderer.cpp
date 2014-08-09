@@ -11,6 +11,27 @@
 
 #include "IRenderer.h"
 
+ClipRectQuard::ClipRectQuard(IWindow * window, const SDL_Rect * newClipRect)
+{
+	window->getClipRect(&oldRect, target);
+	target->setClipRect(newClipRect);
+}
+
+ClipRectQuard::~ClipRectQuard()
+{
+	target->setClipRect(&oldRect);
+}
+
+EffectGuard::EffectGuard(IWindow * window, const SDL_Rect * clipRect, EffectType type);
+{
+	handle = window->applyEffect(clipRect, type); 
+};
+EffectGuard::~EffectGuard();
+{
+	delete handle;
+};
+
+///
 IRenderTarget::IRenderTarget()
 {
 	

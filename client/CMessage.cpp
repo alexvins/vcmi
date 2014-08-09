@@ -43,7 +43,7 @@ public:
 	CComponent *comp;
 
 	//blit component with image centered at this position
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	//ComponentResolved(); //c-tor
 	ComponentResolved(CComponent *Comp); //c-tor
@@ -124,7 +124,7 @@ SDL_Surface * CMessage::drawDialogBox(int w, int h, PlayerColor playerColor)
 			CSDL_Ext::blitSurface(background, &srcR, ret, &dstR);
 		}
 	}
-	drawBorder(playerColor, ret, w, h);
+	drawBorder(playerColor, w, h);
 	return ret;
 }
 
@@ -308,7 +308,7 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 		ret->components[i]->moveBy(Point(ret->pos.x, ret->pos.y));
 }
 
-void CMessage::drawBorder(PlayerColor playerColor, SDL_Surface * ret, int w, int h, int x, int y)
+void CMessage::drawBorder(PlayerColor playerColor, int w, int h, int x, int y)
 {	
 	std::vector<SDL_Surface *> &box = piecesOfBox[playerColor.getNum()];
 
@@ -325,12 +325,12 @@ void CMessage::drawBorder(PlayerColor playerColor, SDL_Surface * ret, int w, int
 
 		// Top border
 		Rect srcR(0, 0, cur_w, box[6]->h);
-		Rect dstR(start_x, y, 0, 0);
-		CSDL_Ext::blitSurface(box[6], &srcR, ret, &dstR);
+		Rect dstR(start_x, y, 0, 0);		
+		mainScreen->blit(box[6], &srcR, &dstR);
 		
 		// Bottom border
 		dstR.y = bottom_y;
-		CSDL_Ext::blitSurface(box[7], &srcR, ret, &dstR);
+		mainScreen->blit(box[7], &srcR, &dstR);
 
 		start_x += cur_w;
 	}
@@ -347,27 +347,27 @@ void CMessage::drawBorder(PlayerColor playerColor, SDL_Surface * ret, int w, int
 		// Left border
 		Rect srcR(0, 0, box[4]->w, cur_h);
 		Rect dstR(x, start_y, 0, 0);
-		CSDL_Ext::blitSurface(box[4], &srcR, ret, &dstR);
+		mainScreen->blit(box[4], &srcR, &dstR);
 
 		// Right border
 		dstR.x = right_x;
-		CSDL_Ext::blitSurface(box[5], &srcR, ret, &dstR);
+		mainScreen->blit(box[5], &srcR, &dstR);
 
 		start_y += cur_h;
 	}
 
 	//corners
 	Rect dstR(x, y, box[0]->w, box[0]->h);
-	CSDL_Ext::blitSurface(box[0], nullptr, ret, &dstR);
+	mainScreen->blit(box[0], nullptr, &dstR);
 
 	dstR=Rect(x+w-box[1]->w, y,   box[1]->w, box[1]->h);
-	CSDL_Ext::blitSurface(box[1], nullptr, ret, &dstR);
+	mainScreen->blit(box[1], nullptr, &dstR);
 
 	dstR=Rect(x, y+h-box[2]->h+1, box[2]->w, box[2]->h);
-	CSDL_Ext::blitSurface(box[2], nullptr, ret, &dstR);
+	mainScreen->blit(box[2], nullptr, &dstR);
 
 	dstR=Rect(x+w-box[3]->w, y+h-box[3]->h+1, box[3]->w, box[3]->h);
-	CSDL_Ext::blitSurface(box[3], nullptr, ret, &dstR);
+	mainScreen->blit(box[3], nullptr, &dstR);
 }
 
 ComponentResolved::ComponentResolved( CComponent *Comp ):
@@ -399,10 +399,10 @@ ComponentResolved::~ComponentResolved()
 	}
 }
 
-void ComponentResolved::showAll(SDL_Surface *to)
+void ComponentResolved::showAll()
 {
-	CIntObject::showAll(to);
-	comp->showAll(to);
+	CIntObject::showAll();
+	comp->showAll();
 }
 
 ComponentsToBlit::~ComponentsToBlit()
@@ -485,7 +485,7 @@ void ComponentsToBlit::blitCompsOnSur( bool blitOr, int inter, int &curh, SDL_Su
 			cur->moveTo(Point(curw, curh));
 
 			//blit component
-			cur->showAll(ret);
+			cur->showAll();
 			curw += cur->pos.w;
 
 			//if there is subsequent component blit "or"
@@ -495,7 +495,7 @@ void ComponentsToBlit::blitCompsOnSur( bool blitOr, int inter, int &curh, SDL_Su
 				{
 					curw+=inter;
 
-					graphics->fonts[FONT_MEDIUM]->renderTextLeft(ret, CGI->generaltexth->allTexts[4], Colors::WHITE,
+					graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[4], Colors::WHITE,
 					        Point(curw,middleh-(graphics->fonts[FONT_MEDIUM]->getLineHeight()/2)));
 
 					curw+=orWidth;

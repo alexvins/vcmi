@@ -96,8 +96,8 @@ public:
 	void setDelComps(bool DelComps);
 	virtual void close();
 
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	void sliderMoved(int to);
 
 	CInfoWindow(std::string Text, PlayerColor player, const TCompsInfo &comps = TCompsInfo(), const TButtonsInfo &Buttons = TButtonsInfo(), bool delComps = true); //c-tor
@@ -148,8 +148,8 @@ public:
 	IShowActivatable *inner;
 	bool delInner;
 
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	CRClickPopupInt(IShowActivatable *our, bool deleteInt); //c-tor
 	virtual ~CRClickPopupInt(); //d-tor
 };
@@ -160,7 +160,7 @@ public:
 	bool free; //TODO: comment me
 	SDL_Surface * bitmap; //popup background
 	void close();
-	void show(SDL_Surface * to);
+	void show() override;
 	CInfoPopup(SDL_Surface * Bitmap, int x, int y, bool Free=false); //c-tor
 	CInfoPopup(SDL_Surface * Bitmap, const Point &p, EAlignment alignment, bool Free=false); //c-tor
 	CInfoPopup(SDL_Surface * Bitmap = nullptr, bool Free = false); //default c-tor
@@ -232,7 +232,7 @@ public:
 	bool selected; //if true, this component is selected
 	std::function<void()> onSelect; //function called on selection change
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 	void select(bool on);
 
 	void clickLeft(tribool down, bool previousState); //call-in
@@ -411,7 +411,7 @@ class CRecruitmentWindow : public CWindowObject
 
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
-		void showAll(SDL_Surface *to);
+		void showAll();
 	public:
 		const CCreature * creature;
 		si32 amount;
@@ -454,7 +454,7 @@ class CRecruitmentWindow : public CWindowObject
 	void buy();
 	void sliderMoved(int to);
 
-	void showAll(SDL_Surface *to);
+	void showAll();
 public:
 	const CGDwelling * const dwelling;
 	CRecruitmentWindow(const CGDwelling *Dwelling, int Level, const CArmedInstance *Dst, const std::function<void(CreatureID,int)> & Recruit, int y_offset = 0); //creatures - pairs<creature_ID,amount> //c-tor
@@ -511,8 +511,8 @@ class CMinorResDataBar : public CIntObject
 {
 public:
 	SDL_Surface *bg; //background bitmap
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show();
+	void showAll();
 	CMinorResDataBar(); //c-tor
 	~CMinorResDataBar(); //d-tor
 };
@@ -612,11 +612,11 @@ public:
 		CFunctionList<void()> callback;
 		bool downSelection;
 
-		void showAllAt(const Point &dstPos, const std::string &customSub, SDL_Surface * to);
+		void showAllAt(const Point &dstPos, const std::string &customSub);
 
 		void clickRight(tribool down, bool previousState);
 		void hover (bool on);
-		void showAll(SDL_Surface * to);
+		void showAll() override;
 		void clickLeft(tribool down, bool previousState);
 		std::string getName(int number = -1) const;
 		CTradeableItem(Point pos, EType Type, int ID, bool Left, int Serial);
@@ -638,7 +638,7 @@ public:
 
 	CTradeWindow(std::string bgName, const IMarket *Market, const CGHeroInstance *Hero, EMarketMode::EMarketMode Mode); //c
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	void initSubs(bool Left);
 	void initTypes();
@@ -712,7 +712,7 @@ public:
 	void putOnAltar(int backpackIndex);
 	bool putOnAltar(CTradeableItem* altarSlot, const CArtifactInstance *art);
 	void makeDeal();
-	void showAll(SDL_Surface * to);
+	void showAll();
 
 	void blockTrade();
 	void sliderMoved(int to);
@@ -816,7 +816,7 @@ public:
 
 	void recruitb();
 	void thievesguildb();
-	void show(SDL_Surface * to);
+	void show() override;
 };
 
 class CInGameConsole : public CIntObject
@@ -830,7 +830,7 @@ private:
 	int maxDisplayedTexts; //hiw many texts can be displayed simultaneously
 public:
 	std::string enteredText;
-	void show(SDL_Surface * to);
+	void show();
 	void print(const std::string &txt);
 	void keyPressed (const SDL_KeyboardEvent & key); //call-in
 
@@ -922,7 +922,7 @@ public:
 	void clickRight(tribool down, bool previousState);
 	void select ();
 	void deselect ();
-	void showAll(SDL_Surface * to);
+	void showAll();
 	bool fitsHere (const CArtifactInstance * art) const; //returns true if given artifact can be placed here
 
 	void setMeAsDest(bool backpackAsVoid = true);
@@ -1081,8 +1081,8 @@ private:
 	ui8 currentAlpha;
 
 public:
-	void showAll(SDL_Surface * to);
-	void show(SDL_Surface * to);
+	void showAll() override;
+	void show() override;
 
 	CPuzzleWindow(const int3 &grailPos, double discoveredRatio);
 };
@@ -1127,7 +1127,7 @@ class CUniversityWindow : public CWindowObject
 		int ID;//id of selected skill
 		CUniversityWindow * parent;
 
-		void showAll(SDL_Surface * to);
+		void showAll();
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
 		void hover(bool on);
@@ -1181,7 +1181,7 @@ public:
 
 	CHillFortWindow(const CGHeroInstance *visitor, const CGObjectInstance *object); //c-tor
 
-	void showAll (SDL_Surface *to);
+	void showAll();
 	std::string getDefForSlot(SlotID slot);//return def name for this slot
 	std::string getTextForSlot(SlotID slot);//return hover text for this slot
 	void makeDeal(SlotID slot);//-1 for upgrading all creatures

@@ -140,7 +140,7 @@ SDL_Color multiplyColors (const SDL_Color &b, const SDL_Color &a, double f)
 	return ret;
 }
 
-void CBuildingRect::show(SDL_Surface * to)
+void CBuildingRect::show()
 {
 	const ui32 stageDelay = 16;
 
@@ -152,12 +152,12 @@ void CBuildingRect::show(SDL_Surface * to)
 	if (stateCounter < S1_TRANSP)
 	{
 		setAlpha(255*stateCounter/stageDelay);
-		CShowableAnim::show(to);
+		CShowableAnim::show();
 	}
 	else
 	{
 		setAlpha(255);
-		CShowableAnim::show(to);
+		CShowableAnim::show();
 	}
 
 	if (border && stateCounter > S1_TRANSP)
@@ -165,7 +165,7 @@ void CBuildingRect::show(SDL_Surface * to)
 		if (stateCounter == BUILDED)
 		{
 			if (parent->selectedBuilding == this)
-				blitAtLoc(border,0,0,to);
+				blitAtLoc(border,0,0);
 			return;
 		}
 		if (border->format->palette != nullptr)
@@ -188,7 +188,7 @@ void CBuildingRect::show(SDL_Surface * to)
 				newColor = oldColor;
 
 			SDL_SetColors(border, &newColor, colorID, 1);
-			blitAtLoc(border,0,0,to);
+			blitAtLoc(border,0,0);
 			SDL_SetColors(border, &oldColor, colorID, 1);
 		}
 	}
@@ -196,14 +196,14 @@ void CBuildingRect::show(SDL_Surface * to)
 		stateCounter++;
 }
 
-void CBuildingRect::showAll(SDL_Surface * to)
+void CBuildingRect::showAll()
 {
 	if (stateCounter == 0)
 		return;
 
-	CShowableAnim::showAll(to);
+	CShowableAnim::showAll();
 	if(!active && parent->selectedBuilding == this && border)
-		blitAtLoc(border,0,0,to);
+		blitAtLoc(border,0,0);
 }
 
 std::string CBuildingRect::getSubtitle()//hover text for building
@@ -383,7 +383,7 @@ void CHeroGSlot::clickLeft(tribool down, bool previousState)
 			setHighlight(true);
 			owner->garr->selectSlot(nullptr);
 			bufferScreen->runActivated([this](){
-				mainScreen->render(this,true);
+				showAll();
 			});
 		}
 		hover(false);hover(true); //refresh statusbar
@@ -559,18 +559,18 @@ void CCastleBuildings::removeBuilding(BuildingID building)
 	recreate();
 }
 
-void CCastleBuildings::show(SDL_Surface * to)
+void CCastleBuildings::show()
 {
-	CIntObject::show(to);
+	CIntObject::show();
 	for(CBuildingRect * str : buildings)
-		str->show(to);
+		str->show();
 }
 
-void CCastleBuildings::showAll(SDL_Surface * to)
+void CCastleBuildings::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	for(CBuildingRect * str : buildings)
-		str->showAll(to);
+		str->showAll();
 }
 
 const CGHeroInstance* CCastleBuildings::getHero()

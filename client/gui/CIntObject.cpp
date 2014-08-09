@@ -49,21 +49,21 @@ void CIntObject::onTimer(int timePassed)
 	}
 }
 
-void CIntObject::show(SDL_Surface * to)
+void CIntObject::show()
 {
 	if(defActions & UPDATE)
 		for(auto & elem : children)
 			if(elem->recActions & UPDATE)
-				elem->show(to);
+				elem->show();
 }
 
-void CIntObject::showAll(SDL_Surface * to)
+void CIntObject::showAll()
 {
 	if(defActions & SHOWALL)
 	{
 		for(auto & elem : children)
 			if(elem->recActions & SHOWALL)
-				elem->showAll(to);
+				elem->showAll();
 
 	}
 }
@@ -134,39 +134,39 @@ CIntObject::~CIntObject()
 		parent_m->removeChild(this);
 }
 
-void CIntObject::printAtLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst)
+void CIntObject::printAtLoc( const std::string & text, int x, int y, EFonts font, SDL_Color color/*=Colors::WHITE*/)
 {
-	graphics->fonts[font]->renderTextLeft(dst, text, kolor, Point(pos.x + x, pos.y + y));
+	graphics->fonts[font]->renderTextLeft(text, color, Point(pos.x + x, pos.y + y));
 }
 
-void CIntObject::printAtMiddleLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/, SDL_Surface * dst)
+void CIntObject::printAtMiddleLoc( const std::string & text, int x, int y, EFonts font, SDL_Color color/*=Colors::WHITE*/)
 {
-	printAtMiddleLoc(text, Point(x,y), font, kolor, dst);
+	printAtMiddleLoc(text, Point(x,y), font, color);
 }
 
-void CIntObject::printAtMiddleLoc(const std::string & text, const Point &p, EFonts font, SDL_Color kolor, SDL_Surface * dst)
+void CIntObject::printAtMiddleLoc(const std::string & text, const Point &p, EFonts font, SDL_Color kolor)
 {
-	graphics->fonts[font]->renderTextCenter(dst, text, kolor, pos.topLeft() + p);
+	graphics->fonts[font]->renderTextCenter(text, kolor, pos.topLeft() + p);
 }
 
-void CIntObject::blitAtLoc( SDL_Surface * src, int x, int y, SDL_Surface * dst )
+void CIntObject::blitAtLoc(SDL_Surface * src, int x, int y)
 {
-	blitAt(src, pos.x + x, pos.y + y, dst);
+	mainScreen->blit(src,pos.x + x, pos.y + y);
 }
 
-void CIntObject::blitAtLoc(SDL_Surface * src, const Point &p, SDL_Surface * dst)
+void CIntObject::blitAtLoc(SDL_Surface * src, const Point &p)
 {
-	blitAtLoc(src, p.x, p.y, dst);
+	blitAtLoc(src, p.x, p.y);
 }
 
-void CIntObject::printAtMiddleWBLoc( const std::string & text, int x, int y, EFonts font, int charpr, SDL_Color kolor, SDL_Surface * dst)
+void CIntObject::printAtMiddleWBLoc( const std::string & text, int x, int y, EFonts font, int charpr, SDL_Color kolor)
 {
-	graphics->fonts[font]->renderTextLinesCenter(dst, CMessage::breakText(text, charpr, font), kolor, Point(pos.x + x, pos.y + y));
+	graphics->fonts[font]->renderTextLinesCenter(CMessage::breakText(text, charpr, font), kolor, Point(pos.x + x, pos.y + y));
 }
 
-void CIntObject::printToLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor, SDL_Surface * dst )
+void CIntObject::printToLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor)
 {
-	graphics->fonts[font]->renderTextRight(dst, text, kolor, Point(pos.x + x, pos.y + y));
+	graphics->fonts[font]->renderTextRight(text, kolor, Point(pos.x + x, pos.y + y));
 }
 
 void CIntObject::addUsedEvents(ui16 newActions)
@@ -285,11 +285,11 @@ void CIntObject::redraw()
 		}
 		else
 		{
-			mainScreen->render(this, true);//render to active target
+			showAll();//render to active target
 			if(!mainScreen->isActive())
 			{
 				//always render to framebuffer
-				mainScreen->runActivated([this](){mainScreen->render(this, true);});
+				mainScreen->runActivated([this](){showAll();});
 			}
 		}
 	}

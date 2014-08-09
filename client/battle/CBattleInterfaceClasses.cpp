@@ -35,29 +35,29 @@
  *
  */
 
-void CBattleConsole::showAll(SDL_Surface * to)
+void CBattleConsole::showAll()
 {
 	Point textPos(pos.x + pos.w/2, pos.y + 17);
 
 	if(ingcAlter.size())
 	{
-		graphics->fonts[FONT_SMALL]->renderTextLinesCenter(to, CMessage::breakText(ingcAlter, pos.w, FONT_SMALL), Colors::WHITE, textPos);
+		graphics->fonts[FONT_SMALL]->renderTextLinesCenter(CMessage::breakText(ingcAlter, pos.w, FONT_SMALL), Colors::WHITE, textPos);
 	}
 	else if(alterTxt.size())
 	{
-		graphics->fonts[FONT_SMALL]->renderTextLinesCenter(to, CMessage::breakText(alterTxt, pos.w, FONT_SMALL), Colors::WHITE, textPos);
+		graphics->fonts[FONT_SMALL]->renderTextLinesCenter(CMessage::breakText(alterTxt, pos.w, FONT_SMALL), Colors::WHITE, textPos);
 	}
 	else if(texts.size())
 	{
 		if(texts.size()==1)
 		{
-			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(to, CMessage::breakText(texts[0], pos.w, FONT_SMALL), Colors::WHITE, textPos);
+			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(CMessage::breakText(texts[0], pos.w, FONT_SMALL), Colors::WHITE, textPos);
 		}
 		else
 		{
-			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(to, CMessage::breakText(texts[lastShown - 1], pos.w, FONT_SMALL), Colors::WHITE, textPos);
+			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(CMessage::breakText(texts[lastShown - 1], pos.w, FONT_SMALL), Colors::WHITE, textPos);
 			textPos.y += 16;
-			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(to, CMessage::breakText(texts[lastShown], pos.w, FONT_SMALL), Colors::WHITE, textPos);
+			graphics->fonts[FONT_SMALL]->renderTextLinesCenter(CMessage::breakText(texts[lastShown], pos.w, FONT_SMALL), Colors::WHITE, textPos);
 		}
 	}
 }
@@ -121,7 +121,7 @@ void CBattleConsole::scrollDown(ui32 by)
 CBattleConsole::CBattleConsole() : lastShown(-1), alterTxt(""), whoSetAlter(0)
 {}
 
-void CBattleHero::show(SDL_Surface * to)
+void CBattleHero::show()
 {
 	//animation of flag
 	SDL_Rect temp_rect;
@@ -142,15 +142,12 @@ void CBattleHero::show(SDL_Surface * to)
 			pos.x + 72,
 			pos.y + 39);
 	}
-	CSDL_Ext::blit8bppAlphaTo24bpp(
-		flag->ourImages[flagAnim].bitmap,
-		nullptr,
-		to,
-		&temp_rect);
+	
+	mainScreen->blitAlpha(flag->ourImages[flagAnim].bitmap, nullptr, &temp_rect);
 
 	//animation of hero
 	SDL_Rect rect = pos;
-	CSDL_Ext::blit8bppAlphaTo24bpp(dh->ourImages[currentFrame].bitmap, nullptr, to, &rect);
+	mainScreen->blitAlpha(dh->ourImages[currentFrame].bitmap, nullptr, &rect);
 
 	if ( ++animCount == 4 )
 	{
@@ -458,10 +455,10 @@ void CBattleResultWindow::activate()
 	CIntObject::activate();
 }
 
-void CBattleResultWindow::show(SDL_Surface * to)
+void CBattleResultWindow::show()
 {
-	CIntObject::show(to);
-	CCS->videoh->update(pos.x + 107, pos.y + 70, to, true, false);
+	CIntObject::show();
+	CCS->videoh->update(pos.x + 107, pos.y + 70, true, false);
 }
 
 void CBattleResultWindow::bExitf()
@@ -660,33 +657,31 @@ CStackQueue::~CStackQueue()
 	SDL_FreeSurface(bg);
 }
 
-void CStackQueue::showAll(SDL_Surface * to)
+void CStackQueue::showAll()
 {
-	blitBg(to);
-
-	CIntObject::showAll(to);
+	blitBg();
+	CIntObject::showAll();
 }
 
-void CStackQueue::blitBg( SDL_Surface * to )
+void CStackQueue::blitBg()
 {
 	if(bg)
 	{
-		SDL_SetClipRect(to, &pos);
-		CSDL_Ext::fillTexture(to, bg);
-		SDL_SetClipRect(to, nullptr);
+		ClipRectQuard guard(mainScreen, &pos);		
+		CSDL_Ext::fillTexture(bg);
 	}
 }
 
-void CStackQueue::StackBox::showAll(SDL_Surface * to)
+void CStackQueue::StackBox::showAll()
 {
 	assert(stack);
 	bg->colorize(stack->owner);
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	if(small)
-		printAtMiddleLoc(makeNumberShort(stack->count), pos.w/2, pos.h - 7, FONT_SMALL, Colors::WHITE, to);
+		printAtMiddleLoc(makeNumberShort(stack->count), pos.w/2, pos.h - 7, FONT_SMALL, Colors::WHITE);
 	else
-		printAtMiddleLoc(makeNumberShort(stack->count), pos.w/2, pos.h - 8, FONT_MEDIUM, Colors::WHITE, to);
+		printAtMiddleLoc(makeNumberShort(stack->count), pos.w/2, pos.h - 8, FONT_MEDIUM, Colors::WHITE);
 }
 
 void CStackQueue::StackBox::setStack( const CStack *stack )

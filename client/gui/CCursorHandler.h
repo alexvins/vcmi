@@ -37,8 +37,6 @@ class CCursorHandler
 	void drawWithScreenRestore();
 	/// Restore original image below cursor
 	void drawRestored();
-//	/// Simple draw cursor
-//	void draw(SDL_Surface *to);
 	
 public:
 	/// position of cursor

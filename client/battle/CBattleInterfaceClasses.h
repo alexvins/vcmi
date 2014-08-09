@@ -38,7 +38,7 @@ public:
 	std::string ingcAlter; //alternative text set by in-game console - very important!
 	int whoSetAlter; //who set alter text; 0 - battle interface or none, 1 - button
 	CBattleConsole();
-	void showAll(SDL_Surface * to = 0);
+	void showAll() override;
 	bool addText(const std::string &text); //adds text at the last position; returns false if failed (e.g. text longer than 70 characters)
 	void alterText(const std::string &text); //place string at alterTxt
 	void eraseText(ui32 pos); //erases added text at position pos
@@ -60,7 +60,7 @@ public:
 	int nextPhase; //stage of animation to be set after current phase is fully displayed
 	int currentFrame, firstFrame, lastFrame; //frame of animation
 	ui8 flagAnim, animCount; //for flag animation
-	void show(SDL_Surface * to); //prints next frame of animation to to
+	void show(); //prints next frame of animation to to
 	void setPhase(int newPhase); //sets phase of hero animation
 	void clickLeft(tribool down, bool previousState); //call-in
 	CBattleHero(const std::string &defName, bool filpG, PlayerColor player, const CGHeroInstance *hero, const CBattleInterface *owner); //c-tor
@@ -97,7 +97,7 @@ public:
 	void bExitf(); //exit button callback
 
 	void activate();
-	void show(SDL_Surface * to = 0);
+	void show() override;
 };
 
 /// Class which stands for a single hex field on a battlefield
@@ -132,7 +132,7 @@ class CStackQueue : public CIntObject
 		const CStack *stack;
 		bool small;
 
-		void showAll(SDL_Surface * to);
+		void showAll();
 		void setStack(const CStack *nStack);
 		StackBox(bool small);
 	};
@@ -150,6 +150,6 @@ public:
 	CStackQueue(bool Embedded, CBattleInterface * _owner);
 	~CStackQueue();
 	void update();
-	void showAll(SDL_Surface *to);
-	void blitBg(SDL_Surface * to);
+	void showAll();
+	void blitBg();
 };

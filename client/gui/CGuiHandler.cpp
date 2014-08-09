@@ -153,7 +153,7 @@ void CGuiHandler::totalRedraw()
 {	
 	bufferScreen->runActivated([this](){
 		for(auto & elem : objsToBlit)
-			mainScreen->render(elem, true);					
+			elem->showAll();
 	});
 	mainScreen->runActivated([](){
 		bufferScreen->blitTo(nullptr, nullptr);						
@@ -378,7 +378,7 @@ void CGuiHandler::simpleRedraw()
 		//update only top interface and draw background
 		if(objsToBlit.size() > 1)
 			bufferScreen->blitTo(nullptr, nullptr);//blit background
-		mainScreen->render(objsToBlit.back(),false);//blit active interface/window
+		objsToBlit.back()->show();//blit active interface/window
 	});
 }
 
@@ -464,12 +464,9 @@ void CGuiHandler::drawFPSCounter()
 	const static SDL_Color yellow = {255, 255, 0, 0};
 	static SDL_Rect overlay = { 0, 0, 64, 32};
 	Uint32 black = SDL_MapRGB(mainScreen->getFormat(), 10, 10, 10);
-	mainScreen->fillWithColor(black, &overlay);
+	mainScreen->fillRect(black, &overlay);
 	std::string fps = boost::lexical_cast<std::string>(mainFPSmng->fps);
-	//FIXME:
-	#if 0	
-	graphics->fonts[FONT_BIG]->renderTextLeft(screen, fps, yellow, Point(10, 10));
-	#endif // 0
+	graphics->fonts[FONT_BIG]->renderTextLeft(fps, yellow, Point(10, 10));
 }
 
 SDLKey CGuiHandler::arrowToNum( SDLKey key )

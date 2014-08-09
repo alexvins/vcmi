@@ -120,7 +120,7 @@ void CTerrainRect::hover(bool on)
 	}
 	//Hoverable::hover(on);
 }
-void CTerrainRect::showPath(const SDL_Rect * extRect, SDL_Surface * to)
+void CTerrainRect::showPath(const SDL_Rect * extRect)
 {
 	const static int pns[9][9] = {
 				{16, 17, 18,  7, -1, 19,  6,  5, -1},
@@ -189,35 +189,33 @@ void CTerrainRect::showPath(const SDL_Rect * extRect, SDL_Surface * to)
 				continue;
 			int hvx = (x+arrows->ourImages[pn].bitmap->w)-(pos.x+pos.w),
 				hvy = (y+arrows->ourImages[pn].bitmap->h)-(pos.y+pos.h);
-
-			SDL_Rect prevClip;
-			SDL_GetClipRect(to, &prevClip);
-			SDL_SetClipRect(to, extRect); //preventing blitting outside of that rect
+				
+			ClipRectQuard guard(mainScreen, extRect);//preventing blitting outside of that rect
 
 			if(ADVOPT.smoothMove) //version for smooth hero move, with pos shifts
 			{
 				if (hvx<0 && hvy<0)
 				{
 					Rect dstRect = genRect(32, 32, x + moveX, y + moveY);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, nullptr, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, nullptr, &dstRect);
 				}
 				else if(hvx<0)
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w, x + moveX, y + moveY);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
 				else if (hvy<0)
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h, arrows->ourImages[pn].bitmap->w-hvx, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h, arrows->ourImages[pn].bitmap->w-hvx, x + moveX, y + moveY);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
 				else
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w-hvx, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w-hvx, x + moveX, y + moveY);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
 			}
 			else //standard version
@@ -225,51 +223,50 @@ void CTerrainRect::showPath(const SDL_Rect * extRect, SDL_Surface * to)
 				if (hvx<0 && hvy<0)
 				{
 					Rect dstRect = genRect(32, 32, x, y);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, nullptr, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, nullptr, &dstRect);
 				}
 				else if(hvx<0)
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w, x, y);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
 				else if (hvy<0)
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h, arrows->ourImages[pn].bitmap->w-hvx, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h, arrows->ourImages[pn].bitmap->w-hvx, x, y);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
 				else
 				{
 					Rect srcRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w-hvx, 0, 0);
 					Rect dstRect = genRect(arrows->ourImages[pn].bitmap->h-hvy, arrows->ourImages[pn].bitmap->w-hvx, x, y);
-					CSDL_Ext::blit8bppAlphaTo24bpp(arrows->ourImages[pn].bitmap, &srcRect, to, &dstRect);
+					mainScreen->blitAlpha(arrows->ourImages[pn].bitmap, &srcRect, &dstRect);
 				}
-			}
-			SDL_SetClipRect(to, &prevClip);
+			}		
 
 		}
 	} //for (int i=0;i<currentPath->nodes.size()-1;i++)
 }
 
-void CTerrainRect::show(SDL_Surface * to)
+void CTerrainRect::show()
 {
 	if(ADVOPT.smoothMove)
 		CGI->mh->terrainRect
 			(adventureInt->position, adventureInt->anim,
 			 &LOCPLINT->cb->getVisibilityMap(), true, adventureInt->heroAnim,
-			 to, &pos, moveX, moveY, false, int3());
+			 &pos, moveX, moveY, false, int3());
 	else
 		CGI->mh->terrainRect
 			(adventureInt->position, adventureInt->anim,
 			 &LOCPLINT->cb->getVisibilityMap(), true, adventureInt->heroAnim,
-			 to, &pos, 0, 0, false, int3());
+			 &pos, 0, 0, false, int3());
 
 	//SDL_BlitSurface(teren,&genRect(pos.h,pos.w,0,0),screen,&genRect(547,594,7,6));
 	//SDL_FreeSurface(teren);
 	if (currentPath/* && adventureInt->position.z==currentPath->startPos().z*/) //drawing path
 	{
-		showPath(&pos, to);
+		showPath(&pos);
 	}
 }
 
@@ -332,14 +329,14 @@ CResDataBar::~CResDataBar()
 {
 	SDL_FreeSurface(bg);
 }
-void CResDataBar::draw(SDL_Surface * to)
+void CResDataBar::draw()
 {
-	blitAt(bg,pos.x,pos.y,to);
+	mainScreen->blit(bg,pos.x,pos.y);
 	for (auto i=Res::WOOD; i<=Res::GOLD; vstd::advance(i, 1))
 	{
 		std::string text = boost::lexical_cast<std::string>(LOCPLINT->cb->getResourceAmount(i));
 
-		graphics->fonts[FONT_SMALL]->renderTextLeft(to, text, Colors::WHITE, Point(txtpos[i].first,txtpos[i].second));
+		graphics->fonts[FONT_SMALL]->renderTextLeft(text, Colors::WHITE, Point(txtpos[i].first,txtpos[i].second));
 	}
 	std::vector<std::string> temp;
 
@@ -347,17 +344,17 @@ void CResDataBar::draw(SDL_Surface * to)
 	temp.push_back(boost::lexical_cast<std::string>(LOCPLINT->cb->getDate(Date::WEEK)));
 	temp.push_back(boost::lexical_cast<std::string>(LOCPLINT->cb->getDate(Date::DAY_OF_WEEK)));
 
-	graphics->fonts[FONT_SMALL]->renderTextLeft(to, processStr(datetext,temp), Colors::WHITE, Point(txtpos[7].first,txtpos[7].second));
+	graphics->fonts[FONT_SMALL]->renderTextLeft(processStr(datetext,temp), Colors::WHITE, Point(txtpos[7].first,txtpos[7].second));
 }
 
-void CResDataBar::show(SDL_Surface * to)
+void CResDataBar::show()
 {
 
 }
 
-void CResDataBar::showAll(SDL_Surface * to)
+void CResDataBar::showAll()
 {
-	draw(to);
+	draw();
 }
 
 CAdvMapInt::CAdvMapInt():
@@ -452,7 +449,7 @@ void CAdvMapInt::fswitchLevel()
 		underground.setIndex(1,true);
 		position.z++;
 	}
-	mainScreen->render(this, true);
+	showAll();	
 	updateScreen = true;
 	minimap.setLevel(position.z);
 }
@@ -652,36 +649,36 @@ void CAdvMapInt::deactivate()
 			LOCPLINT->cingconsole->deactivate();
 	}
 }
-void CAdvMapInt::showAll(SDL_Surface * to)
+void CAdvMapInt::showAll()
 {
-	blitAt(bg,0,0,to);
+	mainScreen->blit(bg,0,0);
 
 	if(state != INGAME)
 		return;
 
-	kingOverview.showAll(to);
-	underground.showAll(to);
-	questlog.showAll(to);
-	sleepWake.showAll(to);
-	moveHero.showAll(to);
-	spellbook.showAll(to);
-	advOptions.showAll(to);
-	sysOptions.showAll(to);
-	nextHero.showAll(to);
-	endTurn.showAll(to);
+	kingOverview.showAll();
+	underground.showAll();
+	questlog.showAll();
+	sleepWake.showAll();
+	moveHero.showAll();
+	spellbook.showAll();
+	advOptions.showAll();
+	sysOptions.showAll();
+	nextHero.showAll();
+	endTurn.showAll();
 
-	minimap.showAll(to);
-	heroList.showAll(to);
-	townList.showAll(to);
+	minimap.showAll();
+	heroList.showAll();
+	townList.showAll();
 	updateScreen = true;
-	show(to);
+	show();
 
-	resdatabar.draw(to);
+	resdatabar.draw();
 
-	statusbar.show(to);
+	statusbar.show();
 
-	infoBar.showAll(to);
-	LOCPLINT->cingconsole->showAll(to);
+	infoBar.showAll();
+	LOCPLINT->cingconsole->showAll();
 }
 
 bool CAdvMapInt::isHeroSleeping(const CGHeroInstance *hero)
@@ -701,7 +698,7 @@ void CAdvMapInt::setHeroSleeping(const CGHeroInstance *hero, bool sleep)
 	updateNextHero(nullptr);
 }
 
-void CAdvMapInt::show(SDL_Surface * to)
+void CAdvMapInt::show()
 {
 	if(state != INGAME)
 		return;
@@ -752,14 +749,14 @@ void CAdvMapInt::show(SDL_Surface * to)
 			position = betterPos;
 		}
 
-		terrain.show(to);
+		terrain.show();
 		for(int i=0;i<4;i++)
-			blitAt(gems[i]->ourImages[LOCPLINT->playerID.getNum()].bitmap,ADVOPT.gemX[i],ADVOPT.gemY[i],to);
+			mainScreen->blit(gems[i]->ourImages[LOCPLINT->playerID.getNum()].bitmap,ADVOPT.gemX[i],ADVOPT.gemY[i]);
 		updateScreen=false;
-		LOCPLINT->cingconsole->showAll(to);
+		LOCPLINT->cingconsole->showAll();
 	}
-	infoBar.show(to);
-	statusbar.showAll(to);
+	infoBar.show();
+	statusbar.showAll();
 }
 
 void CAdvMapInt::selectionChanged()
@@ -1509,7 +1506,7 @@ void CAdvMapInt::aiTurnStarted()
 	adventureInt->minimap.setAIRadar(true);
 	adventureInt->infoBar.startEnemyTurn(LOCPLINT->cb->getCurrentPlayer());
 	mainScreen->runActivated([](){
-		mainScreen->render(&(adventureInt->infoBar), true);//force refresh on inactive object
+		adventureInt->infoBar.showAll();//force refresh on inactive object
 	});
 }
 

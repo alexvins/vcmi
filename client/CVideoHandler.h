@@ -9,8 +9,8 @@ public:
 	virtual bool open(std::string name)=0; //true - succes
 	virtual void close()=0;
 	virtual bool nextFrame()=0;
-	virtual void show(int x, int y, SDL_Surface *dst, bool update = true)=0;
-	virtual void redraw(int x, int y, SDL_Surface *dst, bool update = true)=0; //reblits buffer
+	virtual void show(int x, int y, bool update = true)=0;
+	virtual void redraw(int x, int y, bool update = true)=0; //reblits buffer
 	virtual bool wait()=0;
 	virtual int curFrame() const =0;
 	virtual int frameCount() const =0;
@@ -22,8 +22,8 @@ class IMainVideoPlayer : public IVideoPlayer
 public:
 	std::string fname;  //name of current video file (empty if idle)
 
-	virtual void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true){}
-	virtual bool openAndPlayVideo(std::string name, int x, int y, SDL_Surface *dst, bool stopOnKey = false) 
+	virtual void update(int x, int y, bool forceRedraw, bool update = true){}
+	virtual bool openAndPlayVideo(std::string name, int x, int y, bool stopOnKey = false) 
 	{
 		return false;
 	}
@@ -34,8 +34,8 @@ class CEmptyVideoPlayer : public IMainVideoPlayer
 public:
 	virtual int curFrame() const {return -1;};
 	virtual int frameCount() const {return -1;};
-	virtual void redraw( int x, int y, SDL_Surface *dst, bool update = true ) {};
-	virtual void show( int x, int y, SDL_Surface *dst, bool update = true ) {};
+	virtual void redraw( int x, int y, bool update = true ) {};
+	virtual void show( int x, int y, bool update = true ) {};
 	virtual bool nextFrame() {return false;};
 	virtual void close() {};
 	virtual bool wait() {return false;};
@@ -267,9 +267,9 @@ public:
 	void close();
 	bool nextFrame();			// display next frame
 
-	void show(int x, int y, SDL_Surface *dst, bool update = true); //blit current frame
-	void redraw(int x, int y, SDL_Surface *dst, bool update = true); //reblits buffer
-	void update(int x, int y, SDL_Surface *dst, bool forceRedraw, bool update = true); //moves to next frame if appropriate, and blits it or blits only if redraw parameter is set true
+	void show(int x, int y, bool update = true); //blit current frame
+	void redraw(int x, int y, bool update = true); //reblits buffer
+	void update(int x, int y, bool forceRedraw, bool update = true); //moves to next frame if appropriate, and blits it or blits only if redraw parameter is set true
 	
 	// Opens video, calls playVideo, closes video; returns playVideo result (if whole video has been played)
 	bool openAndPlayVideo(std::string name, int x, int y, SDL_Surface *dst, bool stopOnKey = false);

@@ -85,12 +85,12 @@ void CCursorHandler::drawWithScreenRestore()
 	if (dndObject)
 	{
 		dndObject->moveTo(Point(x - dndObject->pos.w/2, y - dndObject->pos.h/2));
-		mainScreen->render(dndObject, true);
+		dndObject->showAll();
 	}
 	else
 	{
 		currentCursor->moveTo(Point(x,y));
-		mainScreen->render(currentCursor, true);			
+		currentCursor->showAll();
 	}
 }
 
@@ -106,12 +106,6 @@ void CCursorHandler::drawRestored()
 	
 	help->blitTo(nullptr, &temp_rect);		
 }
-
-//void CCursorHandler::draw(SDL_Surface *to)
-//{
-//	currentCursor->moveTo(Point(xpos, ypos));
-//	currentCursor->showAll(to);
-//}
 
 void CCursorHandler::shiftPos( int &x, int &y )
 {

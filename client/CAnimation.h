@@ -61,7 +61,7 @@ class IImage
 public:
 
 	//draws image on surface "where" at position
-	virtual void draw(SDL_Surface *where, int posX=0, int posY=0, Rect *src=nullptr, ui8 alpha=255) const=0;
+	virtual void draw(int posX=0, int posY=0, Rect *src=nullptr, ui8 alpha=255) const=0;
 
 	//decrease ref count, returns true if image can be deleted (refCount <= 0)
 	bool decreaseRef();
@@ -97,7 +97,7 @@ public:
 	SDLImage(SDL_Surface * from, bool extraRef);
 	~SDLImage();
 
-	void draw(SDL_Surface *where, int posX=0, int posY=0, Rect *src=nullptr,  ui8 alpha=255) const;
+	void draw(int posX=0, int posY=0, Rect *src=nullptr,  ui8 alpha=255) const;
 	void playerColored(PlayerColor player);
 	int width() const;
 	int height() const;
@@ -143,7 +143,7 @@ public:
 	CompImage(SDL_Surface * surf);
 	~CompImage();
 
-	void draw(SDL_Surface *where, int posX=0, int posY=0, Rect *src=nullptr, ui8 alpha=255) const;
+	void draw(int posX=0, int posY=0, Rect *src=nullptr, ui8 alpha=255) const;
 	void playerColored(PlayerColor player);
 	int width() const;
 	int height() const;
@@ -248,7 +248,7 @@ public:
 	//makes image player-colored
 	void playerColored(PlayerColor player);
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 };
 
 /// Base class for displaying animation, used as superclass for different animations
@@ -278,7 +278,7 @@ protected:
 	ui8 flags;//Flags from EFlags enum
 
 	//blit image with optional rotation, fitting into rect, etc
-	void blitImage(size_t frame, size_t group, SDL_Surface *to);
+	void blitImage(size_t frame, size_t group);
 
 	//For clipping in rect, offsets of picture coordinates
 	int xOffset, yOffset;
@@ -309,8 +309,8 @@ public:
 	virtual void reset();
 
 	//show current frame and increase counter
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show();
+	void showAll();
 };
 
 /// Creature-dependend animations like attacking, moving,...

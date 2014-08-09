@@ -332,41 +332,41 @@ void CHeroWindow::commanderWindow()
 
 }
 
-void CHeroWindow::showAll(SDL_Surface * to)
+void CHeroWindow::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	 
 	//printing hero's name
-	printAtMiddleLoc(curHero->name, 190, 38, FONT_BIG, Colors::YELLOW, to);
+	printAtMiddleLoc(curHero->name, 190, 38, FONT_BIG, Colors::YELLOW);
 	 
 	//printing hero's level
 	std::string secondLine= CGI->generaltexth->allTexts[342];
 	boost::algorithm::replace_first(secondLine,"%d",boost::lexical_cast<std::string>(curHero->level));
 	boost::algorithm::replace_first(secondLine,"%s",curHero->type->heroClass->name);
-	printAtMiddleLoc(secondLine, 190, 65, FONT_MEDIUM, Colors::WHITE, to);
+	printAtMiddleLoc(secondLine, 190, 65, FONT_MEDIUM, Colors::WHITE);
 
 	//printing primary skills' amounts
 	for(int m=0; m<4; ++m)
 	{
 	 	std::ostringstream primarySkill;
 	 	primarySkill << primSkillAreas[m]->bonusValue;
-	 	printAtMiddleLoc(primarySkill.str(), 53 + 70 * m, 166, FONT_SMALL, Colors::WHITE, to);
+	 	printAtMiddleLoc(primarySkill.str(), 53 + 70 * m, 166, FONT_SMALL, Colors::WHITE);
 	}
 	 
 	//secondary skills
 	for(size_t v=0; v<std::min(secSkillAreas.size(), curHero->secSkills.size()); ++v)
 	{
-	 	printAtLoc(CGI->generaltexth->levels[curHero->secSkills[v].second-1], (v%2) ? 212 : 68, 280 + 48 * (v/2), FONT_SMALL, Colors::WHITE, to);
-	 	printAtLoc(CGI->generaltexth->skillName[curHero->secSkills[v].first], (v%2) ? 212 : 68, 300 + 48 * (v/2), FONT_SMALL, Colors::WHITE, to);
+	 	printAtLoc(CGI->generaltexth->levels[curHero->secSkills[v].second-1], (v%2) ? 212 : 68, 280 + 48 * (v/2), FONT_SMALL, Colors::WHITE);
+	 	printAtLoc(CGI->generaltexth->skillName[curHero->secSkills[v].first], (v%2) ? 212 : 68, 300 + 48 * (v/2), FONT_SMALL, Colors::WHITE);
 	}
 	 
 	//printing special ability
-	printAtLoc(curHero->type->specName, 69, 205, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(curHero->type->specName, 69, 205, FONT_SMALL, Colors::WHITE);
 	std::ostringstream expstr;
 	expstr << curHero->exp;
-	printAtLoc(expstr.str(), 68, 252, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(expstr.str(), 68, 252, FONT_SMALL, Colors::WHITE);
 
 	std::ostringstream manastr;
 	manastr << curHero->mana << '/' << heroWArt.manaLimit();
-	printAtLoc(manastr.str(), 211, 252, FONT_SMALL, Colors::WHITE, to);
+	printAtLoc(manastr.str(), 211, 252, FONT_SMALL, Colors::WHITE);
 }

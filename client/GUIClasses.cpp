@@ -700,9 +700,9 @@ void CInfoWindow::close()
 		LOCPLINT->showingDialog->setn(false);
 }
 
-void CInfoWindow::show(SDL_Surface * to)
+void CInfoWindow::show()
 {
-	CIntObject::show(to);
+	CIntObject::show();
 }
 
 CInfoWindow::~CInfoWindow()
@@ -714,10 +714,10 @@ CInfoWindow::~CInfoWindow()
 	}
 }
 
-void CInfoWindow::showAll(SDL_Surface * to)
+void CInfoWindow::showAll()
 {
-	CSimpleWindow::show(to);
-	CIntObject::showAll(to);
+	CSimpleWindow::show();
+	CIntObject::showAll();
 }
 
 void CInfoWindow::showInfoDialog(const std::string &text, const std::vector<CComponent *> *components, bool DelComps, PlayerColor player)
@@ -824,9 +824,9 @@ void CInfoPopup::close()
 		SDL_FreeSurface(bitmap);
 	GH.popIntTotally(this);
 }
-void CInfoPopup::show(SDL_Surface * to)
+void CInfoPopup::show()
 {
-	blitAt(bitmap,pos.x,pos.y,to);
+	mainScreen->blit(bitmap,pos.x,pos.y);
 }
 CInfoPopup::~CInfoPopup()
 {
@@ -1081,9 +1081,9 @@ void CSelectableComponent::select(bool on)
 	}
 }
 
-void CSelectableComponent::showAll(SDL_Surface * to)
+void CSelectableComponent::showAll()
 {
-	CComponent::showAll(to);
+	CComponent::showAll();
 	if(selected)
 	{
 		CSDL_Ext::drawBorder(to, Rect::around(image->pos), int3(239,215,123));
@@ -1389,9 +1389,9 @@ void CRecruitmentWindow::CCreatureCard::clickRight(tribool down, bool previousSt
 		GH.pushInt(createCreWindow(creature->idNumber, CCreatureWindow::OTHER, 0));
 }
 
-void CRecruitmentWindow::CCreatureCard::showAll(SDL_Surface * to)
+void CRecruitmentWindow::CCreatureCard::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	if (selected)
 		drawBorder(to, pos, int3(248, 0, 0));
 	else
@@ -1517,9 +1517,9 @@ void CRecruitmentWindow::buy()
 		close();
 }
 
-void CRecruitmentWindow::showAll(SDL_Surface * to)
+void CRecruitmentWindow::showAll()
 {
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 
 	// recruit\total values
 	drawBorder(to, pos.x + 172, pos.y + 222, 67, 42, int3(239,215,123));
@@ -1771,18 +1771,18 @@ CLevelWindow::~CLevelWindow()
 	LOCPLINT->showingDialog->setn(false);
 }
 
-void CMinorResDataBar::show(SDL_Surface * to)
+void CMinorResDataBar::show()
 {
 }
 
-void CMinorResDataBar::showAll(SDL_Surface * to)
+void CMinorResDataBar::showAll()
 {
-	blitAt(bg,pos.x,pos.y,to);
+	mainScreen->blit(bg,pos.x,pos.y);
 	for (Res::ERes i=Res::WOOD; i<=Res::GOLD; vstd::advance(i, 1))
 	{
 		std::string text = boost::lexical_cast<std::string>(LOCPLINT->cb->getResourceAmount(i));
 
-		graphics->fonts[FONT_SMALL]->renderTextCenter(to, text, Colors::WHITE, Point(pos.x + 50 + 76 * i, pos.y + pos.h/2));
+		graphics->fonts[FONT_SMALL]->renderTextCenter(text, Colors::WHITE, Point(pos.x + 50 + 76 * i, pos.y + pos.h/2));
 	}
 	std::vector<std::string> temp;
 
@@ -1793,7 +1793,7 @@ void CMinorResDataBar::showAll(SDL_Surface * to)
 	std::string datetext =  CGI->generaltexth->allTexts[62]+": %s, " + CGI->generaltexth->allTexts[63]
 	                        + ": %s, " + CGI->generaltexth->allTexts[64] + ": %s";
 
-	graphics->fonts[FONT_SMALL]->renderTextCenter(to, processStr(datetext,temp), Colors::WHITE, Point(pos.x+545+(pos.w-545)/2,pos.y+pos.h/2));
+	graphics->fonts[FONT_SMALL]->renderTextCenter(processStr(datetext,temp), Colors::WHITE, Point(pos.x+545+(pos.w-545)/2,pos.y+pos.h/2));
 }
 
 CMinorResDataBar::CMinorResDataBar()
@@ -2053,7 +2053,7 @@ int CTradeWindow::CTradeableItem::getIndex()
 	}
 }
 
-void CTradeWindow::CTradeableItem::showAll(SDL_Surface * to)
+void CTradeWindow::CTradeableItem::showAll()
 {
 	Point posToBitmap;
 	Point posToSubCenter;
@@ -2087,10 +2087,10 @@ void CTradeWindow::CTradeableItem::showAll(SDL_Surface * to)
 	if (image)
 	{
 		image->moveTo(pos.topLeft() + posToBitmap);
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 	}
 
-	printAtMiddleLoc(subtitle, posToSubCenter, FONT_SMALL, Colors::WHITE, to);
+	printAtMiddleLoc(subtitle, posToSubCenter, FONT_SMALL, Colors::WHITE);
 }
 
 void CTradeWindow::CTradeableItem::clickLeft(tribool down, bool previousState)
@@ -2144,7 +2144,7 @@ void CTradeWindow::CTradeableItem::clickLeft(tribool down, bool previousState)
 	}
 }
 
-void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::string &customSub, SDL_Surface * to)
+void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::string &customSub)
 {
 	Rect oldPos = pos;
 	std::string oldSub = subtitle;
@@ -2152,7 +2152,7 @@ void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::str
 
 	moveTo(dstPos);
 	subtitle = customSub;
-	showAll(to);
+	showAll();
 
 	downSelection = false;
 	moveTo(oldPos.topLeft());
@@ -2482,9 +2482,9 @@ void CTradeWindow::initSubs(bool Left)
 	}
 }
 
-void CTradeWindow::showAll(SDL_Surface * to)
+void CTradeWindow::showAll()
 {
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 
 	if(hRight)
 		CSDL_Ext::drawBorder(to,hRight->pos.x-1,hRight->pos.y-1,hRight->pos.w+2,hRight->pos.h+2,int3(255,231,148));
@@ -2493,8 +2493,8 @@ void CTradeWindow::showAll(SDL_Surface * to)
 
 	if(readyToTrade)
 	{
-		hLeft->showAllAt(pos.topLeft() + selectionOffset(true), selectionSubtitle(true), to);
-		hRight->showAllAt(pos.topLeft() + selectionOffset(false), selectionSubtitle(false), to);
+		hLeft->showAllAt(pos.topLeft() + selectionOffset(true), selectionSubtitle(true));
+		hRight->showAllAt(pos.topLeft() + selectionOffset(false), selectionSubtitle(false));
 	}
 }
 
@@ -3370,17 +3370,17 @@ void CAltarWindow::artifactPicked()
 	redraw();
 }
 
-void CAltarWindow::showAll(SDL_Surface * to)
+void CAltarWindow::showAll()
 {
-	CTradeWindow::showAll(to);
+	CTradeWindow::showAll();
 	if(mode == EMarketMode::ARTIFACT_EXP && arts && arts->commonInfo->src.art)
 	{
 		artIcon->setFrame(arts->commonInfo->src.art->artType->iconIndex);
-		artIcon->showAll(to);
+		artIcon->showAll();
 
 		int dmp, val;
 		market->getOffer(arts->commonInfo->src.art->artType->id, 0, dmp, val, EMarketMode::ARTIFACT_EXP);
-		printAtMiddleLoc(boost::lexical_cast<std::string>(val), 304, 498, FONT_SMALL, Colors::WHITE, to);
+		printAtMiddleLoc(boost::lexical_cast<std::string>(val), 304, 498, FONT_SMALL, Colors::WHITE);
 	}
 }
 
@@ -3771,11 +3771,11 @@ CTavernWindow::~CTavernWindow()
 	CCS->videoh->close();
 }
 
-void CTavernWindow::show(SDL_Surface * to)
+void CTavernWindow::show()
 {
-	CWindowObject::show(to);
+	CWindowObject::show();
 
-	CCS->videoh->update(pos.x+70, pos.y+56, to, true, false);
+	CCS->videoh->update(pos.x+70, pos.y+56, true, false);
 	if(selected >= 0)
 	{
 		HeroPortrait *sel = selected ? h2 : h1;
@@ -3790,7 +3790,7 @@ void CTavernWindow::show(SDL_Surface * to)
 			boost::algorithm::replace_first(recruit->hoverTexts[0],"%s",sel->h->type->heroClass->name);
 		}
 
-		printAtMiddleWBLoc(sel->description, 146, 395, FONT_SMALL, 200, Colors::WHITE, to);
+		printAtMiddleWBLoc(sel->description, 146, 395, FONT_SMALL, 200, Colors::WHITE);
 		CSDL_Ext::drawBorder(to,sel->pos.x-2,sel->pos.y-2,sel->pos.w+4,sel->pos.h+4,int3(247,223,123));
 	}
 }
@@ -3849,7 +3849,7 @@ void CTavernWindow::HeroPortrait::hover( bool on )
 		GH.statusbar->clear();
 }
 
-void CInGameConsole::show(SDL_Surface * to)
+void CInGameConsole::show()
 {
 	int number = 0;
 
@@ -3863,7 +3863,7 @@ void CInGameConsole::show(SDL_Surface * to)
 		{
 			leftBottomCorner = LOCPLINT->battleInt->pos.bottomLeft();
 		}
-		graphics->fonts[FONT_MEDIUM]->renderTextLeft(to, it->first, Colors::GREEN,
+		graphics->fonts[FONT_MEDIUM]->renderTextLeft(it->first, Colors::GREEN,
 		    Point(leftBottomCorner.x + 50, leftBottomCorner.y - texts.size() * 20 - 80 + number*20));
 
 		if(SDL_GetTicks() - it->second > defaultTimeout)
@@ -4421,11 +4421,11 @@ void CArtPlace::deselect ()
 	ourOwner->safeRedraw();
 }
 
-void CArtPlace::showAll(SDL_Surface * to)
+void CArtPlace::showAll()
 {
 	if (ourArt && !picked && ourArt == ourOwner->curHero->getArt(slotID, false)) //last condition is needed for disassembling -> artifact may be gone, but we don't know yet TODO: real, nice solution
 	{
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 	}
 
 	if(marked && active)
@@ -5379,7 +5379,7 @@ CPuzzleWindow::CPuzzleWindow(const int3 &GrailPos, double discoveredRatio):
 	}
 }
 
-void CPuzzleWindow::showAll(SDL_Surface * to)
+void CPuzzleWindow::showAll()
 {
 	int3 moveInt = int3(8, 9, 0);
 	Rect mapRect = genRect(544, 591, pos.x + 8, pos.y + 7);
@@ -5387,12 +5387,12 @@ void CPuzzleWindow::showAll(SDL_Surface * to)
 	CGI->mh->terrainRect
 		(grailPos - moveInt, adventureInt->anim,
 		 &LOCPLINT->cb->getVisibilityMap(), true, adventureInt->heroAnim,
-		 to, &mapRect, 0, 0, true, moveInt);
+		 &mapRect, 0, 0, true, moveInt);
 
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 }
 
-void CPuzzleWindow::show(SDL_Surface * to)
+void CPuzzleWindow::show()
 {
 	static int animSpeed = 2;
 
@@ -5410,7 +5410,7 @@ void CPuzzleWindow::show(SDL_Surface * to)
 			piece->setAlpha(currentAlpha);
 		currentAlpha -= animSpeed;
 	}
-	CWindowObject::show(to);
+	CWindowObject::show();
 }
 
 void CTransformerWindow::CItem::move()
@@ -5428,7 +5428,7 @@ void CTransformerWindow::CItem::clickLeft(tribool down, bool previousState)
 	{
 		move();
 		bufferScreen->runActivated([this](){
-			mainScreen->render(parent, true);
+			parent->showAll();
 		});
 	}
 }
@@ -5465,7 +5465,9 @@ void CTransformerWindow::addAll()
 	for (auto & elem : items)
 		if (elem->left)
 			elem->move();
-	bufferScreen->runActivated([this](){mainScreen->render(this,true);});
+	bufferScreen->runActivated([this](){
+		showAll();
+	});
 }
 
 void CTransformerWindow::updateGarrisons()
@@ -5542,7 +5544,7 @@ int CUniversityWindow::CItem::state()
 	return 2;
 }
 
-void CUniversityWindow::CItem::showAll(SDL_Surface * to)
+void CUniversityWindow::CItem::showAll()
 {
 	CPicture * bar;
 	switch (state())
@@ -5558,12 +5560,12 @@ void CUniversityWindow::CItem::showAll(SDL_Surface * to)
 	}
 	assert(bar);
 
-	blitAtLoc(bar->bg, -28, -22, to);
-	blitAtLoc(bar->bg, -28,  48, to);
-	printAtMiddleLoc  (CGI->generaltexth->skillName[ID], 22, -13, FONT_SMALL, Colors::WHITE,to);//Name
-	printAtMiddleLoc  (CGI->generaltexth->levels[0], 22, 57, FONT_SMALL, Colors::WHITE,to);//Level(always basic)
+	blitAtLoc(bar->bg, -28, -22);
+	blitAtLoc(bar->bg, -28,  48);
+	printAtMiddleLoc  (CGI->generaltexth->skillName[ID], 22, -13, FONT_SMALL, Colors::WHITE);//Name
+	printAtMiddleLoc  (CGI->generaltexth->levels[0], 22, 57, FONT_SMALL, Colors::WHITE);//Level(always basic)
 
-	CAnimImage::showAll(to);
+	CAnimImage::showAll();
 }
 
 CUniversityWindow::CItem::CItem(CUniversityWindow * _parent, int _ID, int X, int Y):
@@ -5757,9 +5759,9 @@ void CHillFortWindow::makeDeal(SlotID slot)
 	}
 }
 
-void CHillFortWindow::showAll (SDL_Surface *to)
+void CHillFortWindow::showAll()
 {
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 
 	for ( int i=0; i<slotsCount; i++)
 	{
@@ -5773,15 +5775,15 @@ void CHillFortWindow::showAll (SDL_Surface *to)
 					int val = costs[i][j];
 					if(!val) continue;
 
-					blitAtLoc(resources->ourImages[j].bitmap, 104+76*i, curY, to);
-					printToLoc(boost::lexical_cast<std::string>(val), 168+76*i, curY+16, FONT_SMALL, Colors::WHITE, to);
+					blitAtLoc(resources->ourImages[j].bitmap, 104+76*i, curY);
+					printToLoc(boost::lexical_cast<std::string>(val), 168+76*i, curY+16, FONT_SMALL, Colors::WHITE);
 					curY += 20;
 				}
 			}
 			else//free upgrade - print gold image and "Free" text
 			{
-				blitAtLoc(resources->ourImages[6].bitmap, 104+76*i, 128, to);
-				printToLoc(CGI->generaltexth->allTexts[344], 168+76*i, 144, FONT_SMALL, Colors::WHITE, to);
+				blitAtLoc(resources->ourImages[6].bitmap, 104+76*i, 128);
+				printToLoc(CGI->generaltexth->allTexts[344], 168+76*i, 144, FONT_SMALL, Colors::WHITE);
 			}
 		}
 	}
@@ -5789,8 +5791,8 @@ void CHillFortWindow::showAll (SDL_Surface *to)
 	{
 		if (totalSumm[i])//this resource is used - display it
 		{
-			blitAtLoc(resources->ourImages[i].bitmap, 104+76*i, 237, to);
-			printToLoc(boost::lexical_cast<std::string>(totalSumm[i]), 166+76*i, 253, FONT_SMALL, Colors::WHITE, to);
+			blitAtLoc(resources->ourImages[i].bitmap, 104+76*i, 237);
+			printToLoc(boost::lexical_cast<std::string>(totalSumm[i]), 166+76*i, 253, FONT_SMALL, Colors::WHITE);
 		}
 	}
 }
@@ -6234,9 +6236,9 @@ CRClickPopup::~CRClickPopup()
 {
 }
 
-void CRClickPopupInt::show(SDL_Surface * to)
+void CRClickPopupInt::show()
 {
-	inner->show(to);
+	inner->show();
 }
 
 CRClickPopupInt::CRClickPopupInt( IShowActivatable *our, bool deleteInt )
@@ -6259,7 +6261,7 @@ CRClickPopupInt::~CRClickPopupInt()
 	CCS->curh->show();
 }
 
-void CRClickPopupInt::showAll(SDL_Surface * to)
+void CRClickPopupInt::showAll()
 {
-	inner->showAll(to);
+	inner->showAll();
 }

@@ -77,11 +77,36 @@ namespace SoftRenderer
 	{
 		return surface->format;
 	}
+	
+	void SurfaceProxy::getClipRect(SDL_Rect * rect)
+	{
+		assert(rect);
+		SDL_GetClipRect(surface, rect);
+	}
+
 
 	void SurfaceProxy::saveAsBitmap(const std::string& fileName)
 	{
 		SDL_SaveBMP(surface, fileName.c_str());
 	}	
+
+
+	void SurfaceProxy::setClipRect(SDL_Rect * rect)
+	{
+		assert(rect);
+		SDL_SetClipRect(surface,rect);
+	}
+	
+	void SurfaceProxy::setSurface(SDL_Surface * newSurface)
+	{
+		clear();
+		
+		surface = newSurface;
+		
+		blitter = CSDL_Ext::getBlitterWithRotation(surface);
+		alphaBlitter = CSDL_Ext::getBlitterWithRotationAndAlpha(surface); 
+	}
+	
 
 	void SurfaceProxy::runActivated(const std::function<void(void)>& cb)
 	{
@@ -101,6 +126,17 @@ namespace SoftRenderer
 		#endif // VCMI_SDL1		
 	}	
 	
+	void SurfaceProxy::internalBlitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation)
+	{
+		blitter(what, *srcrect, surface, *dstrect, rotation);
+	}
+
+	void SurfaceProxy::internalBlitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation)
+	{
+		alphaBlitter(what, *srcrect, surface, *dstrect, rotation);
+	}
+	
+	
 	///RenderTarget
 	RenderTarget::RenderTarget(Window * owner, int width, int height):
 		SurfaceProxy(owner->getRenderer()), window(owner)
@@ -115,6 +151,20 @@ namespace SoftRenderer
 	RenderTarget::~RenderTarget()
 	{
 		
+	}
+	
+	///EffectHandle
+	EffectHandle::EffectHandle(SurfaceProxy* target, const SDL_Rect* clipRect, EffectGuard::EffectType type):
+		target(target), clipRect(*clipRect), type(type)
+	{
+		
+	}
+
+	EffectHandle::~EffectHandle()
+	{
+		///We`re applying effect here, because with OGL we enabling effect before actual rendering and here in software renderer by pixel manipulation after rendering
+		
+		CSDL_Ext::applyEffect(target->surface,&clipRect, type);
 	}
 
 	
@@ -134,14 +184,49 @@ namespace SoftRenderer
 		
 	}
 	
+	IEffectHandle * Window::applyEffect(const SDL_Rect* clipRect, EffectGuard::EffectType type)
+	{
+		return new EffectHandle(activeTarget, clipRect, type);
+	}
+	
+	
 	void Window::blit(SDL_Surface * what, int x, int y)
 	{
 		blitAt(what, x, y, activeTarget->surface);
 	}
 	
-	void Window::blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect* dstrect)
+	void Window::blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect)
 	{
 		CSDL_Ext::blitSurface(what, srcrect, activeTarget->surface, dstrect);
+	}	
+	
+	void Window::blitAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect)
+	{
+		#ifdef VCMI_SDL1
+		if(what->format->BytesPerPixel == 8)
+			CSDL_Ext::blit8bppAlphaTo24bpp(what, srcrect, activeTarget->surface, dstrect)
+		else
+		   SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);		
+		#else
+		
+		Uint8 oldBlendMode = 0;
+		SDL_GetSurfaceAlphaMod(what, &oldBlendMode);
+		SDL_SetSurfaceAlphaMod(what, SDL_BLENDMODE_BLEND);
+		
+		SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);
+		
+		SDL_SetSurfaceAlphaMod(what, oldBlendMode);		
+		#endif // VCMI_SDL1
+	}
+	
+	void Window::blitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation)
+	{
+		activeTarget->internalBlitRotation(what, srcrect, dstrect, rotation);
+	}
+
+	void Window::blitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation)
+	{
+		activeTarget->internalBlitRotationAlpha(what, srcrect, dstrect, rotation);
 	}	
 	
 	void Window::clear()
@@ -172,7 +257,7 @@ namespace SoftRenderer
 		return new RenderTarget(this, width, height);
 	}
 	
-	void Window::fillWithColor(Uint32 color, SDL_Rect * dstRect)
+	void Window::fillRect(Uint32 color, SDL_Rect * dstRect)
 	{
 		SDL_Rect newRect;
 		if (dstRect)
@@ -186,6 +271,11 @@ namespace SoftRenderer
 		SDL_FillRect(activeTarget->surface, &newRect, color);
 	}
 	
+	void Window::getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive)
+	{
+		currentActive = activeTarget;
+		activeTarget->getClipRect(rect);
+	}	
 
 	#ifndef VCMI_SDL1
 	bool Window::recreate(int w, int h, int bpp, bool fullscreen)
@@ -355,14 +445,6 @@ namespace SoftRenderer
 		//TODO: centering game window on other platforms (or does the environment do their job correctly there?)
 	}	
 	#endif
-	
-	void Window::render(IShowable * object, bool total)
-	{
-		if(total)
-			object->showAll(activeTarget->surface);
-		else
-			object->show(activeTarget->surface);
-	}
 	
 	SurfaceProxy * Window::getActiveTarget()
 	{

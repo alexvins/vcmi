@@ -55,8 +55,8 @@ public:
 	void clickRight(tribool down, bool previousState);
 	void hover(bool on);
 	void mouseMoved (const SDL_MouseMotionEvent & sEvent);
-	void show(SDL_Surface * to);
-	void showPath(const SDL_Rect * extRect, SDL_Surface * to);
+	void show();
+	void showPath(const SDL_Rect * extRect);
 	int3 whichTileIsIt(const int & x, const int & y); //x,y are cursor position
 	int3 whichTileIsIt(); //uses current cursor pos
 };
@@ -75,9 +75,9 @@ public:
 	CResDataBar(const std::string &defname, int x, int y, int offx, int offy, int resdist, int datedist);
 	~CResDataBar();
 
-	void draw(SDL_Surface * to);
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void draw();
+	void show();
+	void showAll();
 };
 
 /// That's a huge class which handles general adventure map actions and 
@@ -147,8 +147,8 @@ public:
 	void activate();
 	void deactivate();
 
-	void show(SDL_Surface * to); //redraws terrain
-	void showAll(SDL_Surface * to); //shows and activates adv. map interface
+	void show(); //redraws terrain
+	void showAll(); //shows and activates adv. map interface
 
 	void select(const CArmedInstance *sel, bool centerView = true);
 	void selectionChanged();

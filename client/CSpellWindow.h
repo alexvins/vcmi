@@ -59,7 +59,7 @@ private:
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
 		void hover(bool on);
-		void showAll(SDL_Surface * to);
+		void showAll();
 	};
 
 	SDL_Surface * leftCorner, * rightCorner;
@@ -111,8 +111,8 @@ public:
 	void keyPressed(const SDL_KeyboardEvent & key);
 	void activate();
 	void deactivate();
-	void showAll(SDL_Surface * to);
-	void show(SDL_Surface * to);
+	void showAll();
+	void show();
 
 	void teleportTo(int town, const CGHeroInstance * hero);
 };

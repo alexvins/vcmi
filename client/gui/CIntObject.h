@@ -49,10 +49,10 @@ class IShowable
 {
 public:
 	virtual void redraw()=0;
-	virtual void show(SDL_Surface * to) = 0;
-	virtual void showAll(SDL_Surface * to)
+	virtual void show() = 0;
+	virtual void showAll()
 	{
-		show(to);
+		show();
 	}
 	virtual ~IShowable(){}; //d-tor
 };
@@ -169,9 +169,10 @@ public:
 	void deactivate();
 
 	//called each frame to update screen
-	void show(SDL_Surface * to);
+	void show() override;
+	
 	//called on complete redraw only
-	void showAll(SDL_Surface * to);
+	void showAll() override;
 	//request complete redraw of this object
 	void redraw();
 
@@ -197,15 +198,15 @@ public:
 	//wrappers for CSDL_Ext methods. This versions use coordinates relative to pos
 	void drawBorderLoc(SDL_Surface * sur, const Rect &r, const int3 &color);
 	//functions for printing text. Use CLabel where possible instead
-	void printAtLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color, SDL_Surface * dst);
-	void printToLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color, SDL_Surface * dst);
-	void printAtMiddleLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color, SDL_Surface * dst);
-	void printAtMiddleLoc(const std::string & text, const Point &p, EFonts font, SDL_Color color, SDL_Surface * dst);
-	void printAtMiddleWBLoc(const std::string & text, int x, int y, EFonts font, int charsPerLine, SDL_Color color, SDL_Surface * dst);
+	void printAtLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color);
+	void printToLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color);
+	void printAtMiddleLoc(const std::string & text, int x, int y, EFonts font, SDL_Color color);
+	void printAtMiddleLoc(const std::string & text, const Point &p, EFonts font, SDL_Color color);
+	void printAtMiddleWBLoc(const std::string & text, int x, int y, EFonts font, int charsPerLine, SDL_Color color);
 
 	//image blitting. If possible use CPicture or CAnimImage instead
-	void blitAtLoc(SDL_Surface * src, int x, int y, SDL_Surface * dst);
-	void blitAtLoc(SDL_Surface * src, const Point &p, SDL_Surface * dst);
+	void blitAtLoc(SDL_Surface * src, int x, int y);
+	void blitAtLoc(SDL_Surface * src, const Point &p);
 
 	friend class CGuiHandler;
 };

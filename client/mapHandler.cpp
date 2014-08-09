@@ -416,7 +416,7 @@ void CMapHandler::init()
 // top_tile top left tile to draw. Not necessarily visible.
 // extRect, extRect = map window on screen
 // moveX, moveY: when a hero is in movement indicates how to shift the map. Range is -31 to + 31.
-void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, SDL_Surface * extSurf, const SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel ) const
+void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, const SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel ) const
 {
 	// Width and height of the portion of the map to process. Units in tiles.
 	ui32 dx = tilesW;
@@ -470,14 +470,9 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 	
 	if(!otherHeroAnim)
 		heroAnim = anim; //the same, as it should be
-
-	SDL_Rect prevClip;
-	SDL_GetClipRect(extSurf, &prevClip);
-	SDL_SetClipRect(extSurf, extRect); //preventing blitting outside of that rect
-
-	const BlitterWithRotationVal blitterWithRotation = CSDL_Ext::getBlitterWithRotation(extSurf);
-	const BlitterWithRotationVal blitterWithRotationAndAlpha = CSDL_Ext::getBlitterWithRotationAndAlpha(extSurf);
-	//const BlitterWithRotationAndAlphaVal blitterWithRotation = CSDL_Ext::getBlitterWithRotation(extSurf);
+		
+	ClipRectQuard crGuard(mainScreen, extRect);
+	EffectGuard eGuard(mainScreen, extRect, (ADVOPT.puzzleSepia ? EffectGuard::SEPIA : EffectGuard::GRAYSCALE));
 
 	// printing terrain
 	srx = srx_init;
@@ -519,15 +514,15 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 			if(tile.terbitmap)
 			{ //if custom terrain graphic - use it
 				SDL_Rect temp_rect = genRect(sr.h, sr.w, 0, 0);
-				CSDL_Ext::blitSurface(tile.terbitmap, &temp_rect, extSurf, &sr);
+				mainScreen->blit(tile.terbitmap, &temp_rect, &sr);
 			}
 			else //use default terrain graphic
 			{
-                blitterWithRotation(terrainGraphics[tinfo.terType][tinfo.terView],rtile, extSurf, sr, tinfo.extTileFlags%4);
+                mainScreen->blitRotation(terrainGraphics[tinfo.terType][tinfo.terView],&rtile, &sr, tinfo.extTileFlags%4);
 			}
             if(tinfo.riverType) //print river if present
 			{
-                blitterWithRotationAndAlpha(staticRiverDefs[tinfo.riverType-1]->ourImages[tinfo.riverDir].bitmap,rtile, extSurf, sr, (tinfo.extTileFlags>>2)%4);
+                mainScreen->blitRotationAlpha(staticRiverDefs[tinfo.riverType-1]->ourImages[tinfo.riverDir].bitmap, &rtile, &sr, (tinfo.extTileFlags>>2)%4);
 			}
 
 			//Roads are shifted by 16 pixels to bottom. We have to draw both parts separately
@@ -536,14 +531,14 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 				const TerrainTile &topTile = map->getTile(int3(pos.x, pos.y-1, pos.z));
 				Rect source(0, 16, 32, 16);
 				Rect dest(sr.x, sr.y, sr.w, sr.h/2);
-                blitterWithRotationAndAlpha(roadDefs[topTile.roadType - 1]->ourImages[topTile.roadDir].bitmap, source, extSurf, dest, (topTile.extTileFlags>>4)%4);
+				mainScreen->blitRotationAlpha(roadDefs[topTile.roadType - 1]->ourImages[topTile.roadDir].bitmap, &source, &dest, (topTile.extTileFlags>>4)%4);
 			}
 
             if(tinfo.roadType != ERoadType::NO_ROAD) //print road from this tile
 			{
 				Rect source(0, 0, 32, 32);
 				Rect dest(sr.x, sr.y+16, sr.w, sr.h/2);
-                blitterWithRotationAndAlpha(roadDefs[tinfo.roadType-1]->ourImages[tinfo.roadDir].bitmap, source, extSurf, dest, (tinfo.extTileFlags>>4)%4);
+                mainScreen->blitRotationAlpha(roadDefs[tinfo.roadType-1]->ourImages[tinfo.roadDir].bitmap, &source, &dest, (tinfo.extTileFlags>>4)%4);
 			}
 
 			//blit objects
@@ -640,12 +635,12 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 								break;
 							}
 						}
-						CSDL_Ext::blit8bppAlphaTo24bpp(tb,&pp,extSurf,&sr2);
+						mainScreen->blitAlpha(tb, &pp, &sr2);
 
 						//printing flag
 						pp.y+=IMGVAL*2-32;
 						sr2.y-=16;
-						CSDL_Ext::blitSurface((graphics->*flg)[color.getNum()]->ourImages[gg+heroAnim%IMGVAL+35].bitmap, &pp, extSurf, &sr2);
+						mainScreen->blit((graphics->*flg)[color.getNum()]->ourImages[gg+heroAnim%IMGVAL+35].bitmap, &pp, &sr2);
 					}
 					else //hero / boat stands still
 					{
@@ -658,7 +653,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 								break;
 							}
 						}
-						CSDL_Ext::blit8bppAlphaTo24bpp(tb,&pp,extSurf,&sr2);
+						mainScreen->blitAlpha(tb,&pp,&sr2);
 
 						//printing flag
 						if(flg  
@@ -671,7 +666,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 							bufr.h = 64;
 							bufr.w = 96;
 							if(bufr.x-extRect->x>-64)
-								CSDL_Ext::blitSurface((graphics->*flg)[color.getNum()]->ourImages[getHeroFrameNum(dir, false) *8+(heroAnim/4)%IMGVAL].bitmap, nullptr, extSurf, &bufr);
+								mainScreen->blit((graphics->*flg)[color.getNum()]->ourImages[getHeroFrameNum(dir, false) *8+(heroAnim/4)%IMGVAL].bitmap, nullptr, &bufr);
 						}
 					}
 				}
@@ -684,7 +679,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 					if(color < PlayerColor::PLAYER_LIMIT || color==PlayerColor::NEUTRAL)
 						CSDL_Ext::setPlayerColor(bitmap, color);
 
-					CSDL_Ext::blit8bppAlphaTo24bpp(bitmap,&pp,extSurf,&sr2);
+					mainScreen->blitAlpha(bitmap,&pp,&sr2);
 				}
 			}
 			//objects blitted
@@ -694,7 +689,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 			{
 				if(bx == grailPosRel.x && by == grailPosRel.y)
 				{
-					CSDL_Ext::blit8bppAlphaTo24bpp(graphics->heroMoveArrows->ourImages[0].bitmap, nullptr, extSurf, &sr);
+					mainScreen->blitAlpha(graphics->heroMoveArrows->ourImages[0].bitmap, nullptr, &sr);
 				}
 			}
 		}
@@ -726,7 +721,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 				SDL_Surface * src = ttiles[pos.x][pos.y][top_tile.z].terbitmap;
 				assert(src);
 
-				CSDL_Ext::blitSurface(src, &temp_rect,extSurf,&sr);
+				mainScreen->blit(src, &temp_rect,&sr);
 			}
 			else 
 			{
@@ -741,9 +736,9 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 					{
 						std::pair<SDL_Surface *, bool> hide = getVisBitmap(pos, *visibilityMap);
 						if(hide.second)
-							CSDL_Ext::blit8bppAlphaTo24bpp(hide.first, &rtile, extSurf, &sr);
+							mainScreen->blitAlpha(hide.first, &rtile, &sr);
 						else
-							CSDL_Ext::blitSurface(hide.first, &rtile, extSurf, &sr);
+							mainScreen->blit(hide.first, &rtile, &sr);
 					}
 				}
 				
@@ -765,7 +760,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 						sr.y=sry;
 						sr.h=sr.w=32;
 
-						CSDL_Ext::blitSurface(block, &tileRect, extSurf, &sr);
+						mainScreen->blit(block, &tileRect, &sr);
 					}
 				}
 				if (settings["session"]["showVisit"].Bool())
@@ -781,7 +776,7 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 						sr.x=srx;
 						sr.y=sry;
 						sr.h=sr.w=32;
-						CSDL_Ext::blitSurface(visit, &tileRect, extSurf, &sr);
+						mainScreen->blit(visit, &tileRect, &sr);
 					}
 				}
 			}
@@ -825,15 +820,6 @@ void CMapHandler::terrainRect( int3 top_tile, ui8 anim, const std::vector< std::
 		}
 	}
 	// grid
-
-	//applying sepia / gray effect
-	if(puzzleMode)
-	{
-		CSDL_Ext::applyEffect(extSurf, extRect, static_cast<int>(!ADVOPT.puzzleSepia));
-	}
-	//sepia / gray effect applied
-
-	SDL_SetClipRect(extSurf, &prevClip); //restoring clip_rect
 }
 
 std::pair<SDL_Surface *, bool> CMapHandler::getVisBitmap( const int3 & pos, const std::vector< std::vector< std::vector<ui8> > > & visibilityMap ) const

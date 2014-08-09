@@ -897,7 +897,7 @@ void CVideoPlayer::update( int x, int y, SDL_Surface *dst, bool forceRedraw, boo
 	{
 		refreshCount = refreshWait;
 		if (nextFrame())
-			show(x,y,dst,update);
+			show(x,y,update);
 		else
 		{
 			open(fname);
@@ -906,12 +906,12 @@ void CVideoPlayer::update( int x, int y, SDL_Surface *dst, bool forceRedraw, boo
 			// The y position is wrong at the first frame.
 			// Note: either the windows player or the linux player is
 			// broken. Compensate here until the bug is found.
-			show(x, y--, dst, update);
+			show(x, y--, update);
 		}
 	}
 	else
 	{
-		redraw(x, y, dst, update);
+		redraw(x, y, update);
 	}
 
 	refreshCount --;

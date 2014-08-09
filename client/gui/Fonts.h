@@ -25,7 +25,7 @@ class IFont
 {
 protected:
 	/// Internal function to render font, see renderTextLeft
-	virtual void renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const = 0;
+	virtual void renderText(const std::string & data, const SDL_Color & color, const Point & pos) const = 0;
 
 public:
 	virtual ~IFont()
@@ -45,18 +45,18 @@ public:
 	 * @param pos - position of rendered font
 	 */
 	/// pos = topleft corner of the text
-	void renderTextLeft(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextLeft(const std::string & data, const SDL_Color & color, const Point & pos) const;
 	/// pos = center of the text
-	void renderTextRight(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextRight(const std::string & data, const SDL_Color & color, const Point & pos) const;
 	/// pos = bottomright corner of the text
-	void renderTextCenter(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextCenter(const std::string & data, const SDL_Color & color, const Point & pos) const;
 
 	/// pos = topleft corner of the text
-	void renderTextLinesLeft(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextLinesLeft(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
 	/// pos = center of the text
-	void renderTextLinesRight(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextLinesRight(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
 	/// pos = bottomright corner of the text
-	void renderTextLinesCenter(SDL_Surface * surface, const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
+	void renderTextLinesCenter(const std::vector<std::string> & data, const SDL_Color & color, const Point & pos) const;
 };
 
 class CBitmapFont : public IFont
@@ -80,7 +80,7 @@ class CBitmapFont : public IFont
 
 	void renderCharacter(SDL_Surface * surface, const BitmapChar & character, const SDL_Color & color, int &posX, int &posY) const;
 
-	void renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const override;
+	void renderText(const std::string & data, const SDL_Color & color, const Point & pos) const override;
 public:
 	CBitmapFont(const std::string & filename);
 
@@ -104,7 +104,7 @@ class CBitmapHanFont : public IFont
 	size_t getCharacterIndex(ui8 first, ui8 second) const;
 
 	void renderCharacter(SDL_Surface * surface, int characterIndex, const SDL_Color & color, int &posX, int &posY) const;
-	void renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const override;
+	void renderText(const std::string & data, const SDL_Color & color, const Point & pos) const override;
 public:
 	CBitmapHanFont(const JsonNode & config);
 
@@ -123,7 +123,7 @@ class CTrueTypeFont : public IFont
 	TTF_Font * loadFont(const JsonNode & config);
 	int getFontStyle(const JsonNode & config);
 
-	void renderText(SDL_Surface * surface, const std::string & data, const SDL_Color & color, const Point & pos) const override;
+	void renderText(const std::string & data, const SDL_Color & color, const Point & pos) const override;
 public:
 	CTrueTypeFont(const JsonNode & fontConfig);
 

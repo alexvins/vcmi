@@ -33,7 +33,10 @@ namespace SoftRenderer
 		bool isActive() override;		
 		int getWidth() override;
 		int getHeight() override;
-		SDL_PixelFormat * getFormat() override;		
+		SDL_PixelFormat * getFormat() override;	
+		
+		void getClipRect(SDL_Rect * rect) override;
+		void setClipRect(SDL_Rect * rect) override;	
 		
 		Renderer * getRenderer(){return owner;};
 		
@@ -43,16 +46,25 @@ namespace SoftRenderer
 		
 		void update() override;
 		
+		///internal interface
+		
+		void internalBlitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation);
+		void internalBlitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation);		
+		
 	protected:
 		Renderer * owner;
 		SDL_Surface * surface;
 		
 		virtual void clear();
 		virtual Window * getWindow() = 0; 
-		
+		void setSurface(SDL_Surface * newSurface);
 	private:
+		
+		BlitterWithRotationVal blitter, alphaBlitter;
+		
 		friend class RenderTarget;
-		friend class Window;		
+		friend class Window;
+		friend class EffectHandle;		
 	};
 	
 	class RenderTarget : public virtual SurfaceProxy
@@ -67,6 +79,16 @@ namespace SoftRenderer
 		Window * getWindow(){return window;};
 	};
 	
+	class EffectHandle: public IEffectHandle
+	{
+	public:
+		EffectHandle(SurfaceProxy * target, const SDL_Rect * clipRect, EffectGuard::EffectType type);
+		virtual ~EffectHandle();	
+	private:
+		SurfaceProxy * target;
+		SDL_Rect clipRect;
+		EffectGuard::EffectType type;
+	};
 	
 	class Window : public IWindow, public SurfaceProxy
 	{
@@ -78,17 +100,24 @@ namespace SoftRenderer
 		void renderFrame(const std::function<void(void)> & cb) override;
 		
 		///IWindow
+		
+		IEffectHandle * applyEffect(const SDL_Rect * clipRect, EffectGuard::EffectType type) override;
+				
 		void blit(SDL_Surface * what, int x, int y) override;
 		void blit(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) override;			
+		void blitAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect) override;
+		
+		void blitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation) override;
+		void blitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation) override;
 		
 		IRenderTarget * createTarget(int width, int height) override;
+		
+		void getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive) override;
 
-		void fillWithColor(Uint32 color, SDL_Rect * dstRect) override;
+		void fillRect(Uint32 color, SDL_Rect * dstRect) override;
 		bool setFullscreen(bool enabled) override;
 		void warpMouse(int x, int y) override;		
 		
-		void render(IShowable * object, bool total);
-			
 		///internal interface
 		#ifndef VCMI_SDL1		
 		bool recreate(int w, int h, int bpp, bool fullscreen);
@@ -123,7 +152,7 @@ namespace SoftRenderer
 		friend class SurfaceProxy;		
 	};
 
-	class Renderer : public CBaseRenderer
+	class Renderer : public CBaseRendererT<Window>
 	{
 	public:
 		Renderer();

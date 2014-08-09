@@ -317,7 +317,7 @@ void CPlayerInterface::heroMoved(const TryMoveHero & details)
 		movementPxStep(details, i, hp, hero);
 		adventureInt->updateScreen = true;
 		mainScreen->runActivated([](){
-			mainScreen->render(adventureInt, false);
+			adventureInt->show();			
 		});
 		{
 			//evil returns here ...
@@ -2234,7 +2234,7 @@ void CPlayerInterface::acceptTurn()
 	adventureInt->updateNextHero(nullptr);
 	
 	mainScreen->runActivated([](){
-		mainScreen->render(adventureInt, true);
+		adventureInt->showAll();
 	});
 
 	if(settings["session"]["autoSkip"].Bool() && !LOCPLINT->shiftPressed())

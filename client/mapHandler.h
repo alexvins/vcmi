@@ -120,7 +120,7 @@ public:
 	void roadsRiverTerrainInit();
 	void prepareFOWDefs();
 
-	void terrainRect(int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, SDL_Surface * extSurf, const SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel) const;
+	void terrainRect(int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, const SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel) const;
 	void updateWater();
 	ui8 getHeroFrameNum(ui8 dir, bool isMoving) const; //terrainRect helper function
 	void validateRectTerr(SDL_Rect * val, const SDL_Rect * ext); //terrainRect helper

@@ -650,7 +650,7 @@ SDLImage::SDLImage(std::string filename, bool compressed):
 	}
 }
 
-void SDLImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 rotation) const
+void SDLImage::draw(int posX, int posY, Rect *src, ui8 rotation) const
 {
 	if (!surf)
 		return;
@@ -663,7 +663,7 @@ void SDLImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 rotat
 	Rect destRect(posX, posY, surf->w, surf->h);
 	destRect += sourceRect.topLeft();
 	sourceRect -= margins;
-	CSDL_Ext::blitSurface(surf, &sourceRect, where, &destRect);
+	mainScreen->blit(surf,&sourceRect, &destRect);	
 }
 
 void SDLImage::playerColored(PlayerColor player)
@@ -702,8 +702,11 @@ CompImage::CompImage(SDL_Surface * surf)
 	assert(0);
 }
 
-void CompImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alpha) const
+void CompImage::draw(int posX, int posY, Rect *src, ui8 alpha) const
 {
+	//todo: move CompImage to the renderer and dont use additional surface, dont use CompImage in GL
+	SDL_Surface * where = CSDL_Ext::newSurface(sprite.w, sprite.h, mainScreen->getFormat());
+	
 	int rotation = 0; //TODO
 	//rotation & 2 = horizontal rotation
 	//rotation & 4 = vertical rotation
@@ -717,7 +720,7 @@ void CompImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alph
 	sourceRect = sourceRect & Rect(0, 0, where->w, where->h);
 
 	//Starting point on SDL surface
-	Point dest(posX+sourceRect.x, posY+sourceRect.y);
+	Point dest(sourceRect.x, sourceRect.y);
 	if (rotation & 2)
 		dest.y += sourceRect.h;
 	if (rotation & 4)
@@ -771,6 +774,8 @@ void CompImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alph
 		size = sourceRect.w - currX;
 		BlitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation & 2);
 	}
+	mainScreen->blit(where, posX, posY);
+	SDL_FreeSurface(where);
 }
 
 #define CASEBPP(x,y) case x: BlitBlock<x,y>(type, size, data, dest, alpha); break
@@ -1273,16 +1278,16 @@ CAnimImage::~CAnimImage()
 	delete anim;
 }
 
-void CAnimImage::showAll(SDL_Surface * to)
+void CAnimImage::showAll()
 {
 	IImage *img;
 
 	if ( flags & CShowableAnim::BASE && frame != 0)
 		if ((img = anim->getImage(0, group)))
-			img->draw(to, pos.x, pos.y);
+			img->draw(pos.x, pos.y);
 
 	if ((img = anim->getImage(frame, group)))
-		img->draw(to, pos.x, pos.y);
+		img->draw(pos.x, pos.y);
 }
 
 void CAnimImage::setFrame(size_t Frame, size_t Group)
@@ -1400,11 +1405,11 @@ void CShowableAnim::clipRect(int posX, int posY, int width, int height)
 	pos.h = height;
 }
 
-void CShowableAnim::show(SDL_Surface * to)
+void CShowableAnim::show()
 {
 	if ( flags & BASE )// && frame != first) // FIXME: results in graphical glytch in Fortress, upgraded hydra's dwelling
-		blitImage(first, group, to);
-	blitImage(frame, group, to);
+		blitImage(first, group);
+	blitImage(frame, group);
 
 	if ((flags & PLAY_ONCE) && frame + 1 == last)
 		return;
@@ -1417,20 +1422,19 @@ void CShowableAnim::show(SDL_Surface * to)
 	}
 }
 
-void CShowableAnim::showAll(SDL_Surface * to)
+void CShowableAnim::showAll()
 {
 	if ( flags & BASE )// && frame != first)
-		blitImage(first, group, to);
-	blitImage(frame, group, to);
+		blitImage(first, group);
+	blitImage(frame, group);
 }
 
-void CShowableAnim::blitImage(size_t frame, size_t group, SDL_Surface *to)
+void CShowableAnim::blitImage(size_t frame, size_t group)
 {
-	assert(to);
 	Rect src( xOffset, yOffset, pos.w, pos.h);
 	IImage * img = anim.getImage(frame, group);
 	if (img)
-		img->draw(to, pos.x-xOffset, pos.y-yOffset, &src, alpha);
+		img->draw(pos.x-xOffset, pos.y-yOffset, &src, alpha);
 }
 
 void CShowableAnim::rotate(bool on, bool vertical)
