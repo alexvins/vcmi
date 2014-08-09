@@ -141,6 +141,13 @@ public:
      */                             	
 	virtual IRenderTarget * createTarget(int width, int height) = 0;
 
+	void drawBorder(const SDL_Rect &r, const SDL_Color &color)
+	{
+		drawBorder(r.x, r.y, r.w, r.h, color);
+	};
+	
+	virtual void drawBorder(int x, int y, int w, int h, const SDL_Color &color) = 0;	
+	
     /** @brief Fill target with specified color
      * @param color Color to will with in Target`s pixel format
      * @param dstRect Rect to will with, whole target will be used if null

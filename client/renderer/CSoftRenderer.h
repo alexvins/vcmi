@@ -112,6 +112,8 @@ namespace SoftRenderer
 		
 		IRenderTarget * createTarget(int width, int height) override;
 		
+		void drawBorder(int x, int y, int w, int h, const SDL_Color &color) override;
+		
 		void getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive) override;
 
 		void fillRect(Uint32 color, SDL_Rect * dstRect) override;

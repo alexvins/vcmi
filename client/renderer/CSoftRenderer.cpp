@@ -257,6 +257,22 @@ namespace SoftRenderer
 		return new RenderTarget(this, width, height);
 	}
 	
+	void Window::drawBorder(int x, int y, int w, int h, const SDL_Color& color)
+	{
+		SDL_Surface * sur = activeTarget->surface;
+		for(int i = 0; i < w; i++)
+		{
+		    CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+i,y,color.r,color.g,color.b);
+			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+i,y+h-1,color.r,color.g,color.b);
+		}
+		for(int i = 0; i < h; i++)
+		{
+			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x,y+i,color.r,color.g,color.b);
+			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+w-1,y+i,color.r,color.g,color.b);
+		}		
+	}
+	
+	
 	void Window::fillRect(Uint32 color, SDL_Rect * dstRect)
 	{
 		SDL_Rect newRect;

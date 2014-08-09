@@ -117,11 +117,11 @@ void CPicture::showAll()
 			SDL_Rect dstRect = srcRectCpy;
 			dstRect.x = pos.x;
 			dstRect.y = pos.y;
-
-			CSDL_Ext::blitSurface(bg, &srcRectCpy, to, &dstRect);
+			
+			mainScreen->blit(bg, &srcRectCpy, &dstRect);
 		}
 		else
-			blitAt(bg, pos, to);
+			mainScreen->blit(bg, pos.x, pos.y);
 	}
 }
 
@@ -460,11 +460,10 @@ void CAdventureMapButton::showAll()
 	
 	#ifdef VCMI_SDL1
 	if (borderEnabled && borderColor.unused == 0)
-		CSDL_Ext::drawBorder(to, pos.x-1, pos.y-1, pos.w+2, pos.h+2, int3(borderColor.r, borderColor.g, borderColor.b));	
-	#else
+	#else	
 	if (borderEnabled && borderColor.a == 0)
-		CSDL_Ext::drawBorder(to, pos.x-1, pos.y-1, pos.w+2, pos.h+2, int3(borderColor.r, borderColor.g, borderColor.b));	
-	#endif // 0
+	#endif // VCMI_SDL1
+		mainScreen->drawBorder(pos.x-1, pos.y-1, pos.w+2, pos.h+2, borderColor);	
 }
 
 void CHighlightableButton::select(bool on)
@@ -1191,7 +1190,7 @@ void CLabel::showAll()
 	CIntObject::showAll();
 
 	if(!visibleText().empty())
-		blitLine(to, pos, visibleText());
+		blitLine(pos, visibleText());
 
 }
 
@@ -1267,7 +1266,7 @@ void CMultiLineLabel::setText(const std::string &Txt)
 	CLabel::setText(Txt);
 }
 
-void CTextContainer::blitLine(SDL_Surface *to, Rect destRect, std::string what)
+void CTextContainer::blitLine(Rect destRect, std::string what)
 {
 	const IFont * f = graphics->fonts[font];
 	Point where = destRect.topLeft();
@@ -1304,9 +1303,9 @@ void CTextContainer::blitLine(SDL_Surface *to, Rect destRect, std::string what)
 			std::string toPrint = what.substr(begin, end - begin);
 
 			if (currDelimeter % 2) // Enclosed in {} text - set to yellow
-				f->renderTextLeft(to, toPrint, Colors::YELLOW, where);
+				f->renderTextLeft(toPrint, Colors::YELLOW, where);
 			else // Non-enclosed text, use default color
-				f->renderTextLeft(to, toPrint, color, where);
+				f->renderTextLeft(toPrint, color, where);
 			begin = end;
 
 			where.x += f->getStringWidth(toPrint);
@@ -1348,12 +1347,12 @@ void CMultiLineLabel::showAll()
 	Point lineStart = getTextLocation().topLeft() - visibleSize + Point(0, beginLine * f->getLineHeight());
 	Point lineSize  = Point(getTextLocation().w, f->getLineHeight());
 
-	CSDL_Ext::CClipRectGuard guard(to, getTextLocation()); // to properly trim text that is too big to fit
+	ClipRectQuard guarg(mainScreen,getTextLocation()); // to properly trim text that is too big to fit
 
 	for (int i = beginLine; i < std::min(totalLines, endLine); i++)
 	{
 		if (!lines[i].empty()) //non-empty line
-			blitLine(to, Rect(lineStart, lineSize), lines[i]);
+			blitLine(Rect(lineStart, lineSize), lines[i]);
 
 		lineStart.y += f->getLineHeight();
 	}
