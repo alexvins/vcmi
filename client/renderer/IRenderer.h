@@ -34,11 +34,11 @@ class ISprite
 	
 };
 
-class ClipRectQuard: public boost::noncopyable
+class ClipRectGuard: public boost::noncopyable
 {
 public:
-	ClipRectQuard(IWindow * window, const SDL_Rect * newClipRect);
-	virtual ~ClipRectQuard();	
+	ClipRectGuard(IWindow * window, SDL_Rect * newClipRect);
+	virtual ~ClipRectGuard();	
 private:
 	IRenderTarget * target;
 	SDL_Rect oldRect;

@@ -21,6 +21,7 @@ class CDefHandler;
 class CComponent;
 class CSelWindow;
 class ComponentResolved;
+class IRenderTarget;
 
 /// Class which draws formatted text messages and generates chat windows
 class CMessage
@@ -34,7 +35,7 @@ public:
 	static void drawBorder(PlayerColor playerColor, int w, int h, int x=0, int y=0);
 
 	/// Draw simple dialog box (borders and background only)
-	static SDL_Surface * drawDialogBox(int w, int h, PlayerColor playerColor = PlayerColor(1));
+	static IRenderTarget * drawDialogBox(int w, int h, PlayerColor playerColor = PlayerColor(1));
 
 	static void drawIWindow(CInfoWindow * ret, std::string text, PlayerColor player);
 

@@ -667,7 +667,7 @@ void CStackQueue::blitBg()
 {
 	if(bg)
 	{
-		ClipRectQuard guard(mainScreen, &pos);		
+		ClipRectGuard guard(mainScreen, &pos);		
 		CSDL_Ext::fillTexture(bg);
 	}
 }

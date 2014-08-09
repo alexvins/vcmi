@@ -55,7 +55,7 @@ struct ComponentsToBlit
 	std::vector< std::vector<ComponentResolved*> > comps;
 	int w, h;
 
-	void blitCompsOnSur(bool blitOr, int inter, int &curh, SDL_Surface *ret);
+	void blitCompsOn(bool blitOr, int inter, int &curh, IRenderTarget *ret);
 	ComponentsToBlit(std::vector<CComponent*> & SComps, int maxw, bool blitOr); //c-tor
 	~ComponentsToBlit(); //d-tor
 };
@@ -111,20 +111,23 @@ void CMessage::dispose()
 	delete cancel;
 }
 
-SDL_Surface * CMessage::drawDialogBox(int w, int h, PlayerColor playerColor)
+IRenderTarget * CMessage::drawDialogBox(int w, int h, PlayerColor playerColor)
 {
 	//prepare surface
-	SDL_Surface * ret = CSDL_Ext::newSurface(w, h, mainScreen->getFormat());
-	for (int i=0; i<w; i+=background->w)//background
-	{
-		for (int j=0; j<h; j+=background->h)
+	IRenderTarget * ret = mainScreen->createTarget(w, h);
+	ret->runActivated([&](){
+		for (int i=0; i<w; i+=background->w)//background
 		{
-			Rect srcR(0,0,background->w, background->h);
-			Rect dstR(i,j,w,h);
-			CSDL_Ext::blitSurface(background, &srcR, ret, &dstR);
+			for (int j=0; j<h; j+=background->h)
+			{
+				Rect srcR(0,0,background->w, background->h);
+				Rect dstR(i,j,w,h);
+				
+				mainScreen->blit(background, &srcR, &dstR);
+			}
 		}
-	}
-	drawBorder(playerColor, w, h);
+		drawBorder(playerColor, w, h);
+	});
 	return ret;
 }
 
@@ -270,8 +273,8 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 	vstd::amin(winSize.first, mainScreen->getWidth() - 150);
 
 	ret->bitmap = drawDialogBox (winSize.first + 2*SIDE_MARGIN, winSize.second + 2*SIDE_MARGIN, player);
-	ret->pos.h=ret->bitmap->h;
-	ret->pos.w=ret->bitmap->w;
+	ret->pos.h=ret->bitmap->getHeight();
+	ret->pos.w=ret->bitmap->getWidth();
 	ret->center();
 
 	int curh = SIDE_MARGIN;
@@ -279,8 +282,8 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 
 	if(!ret->buttons.size() && !ret->components.size()) //improvement for very small text only popups -> center text vertically
 	{
-		if(ret->bitmap->h > ret->text->pos.h + 2*SIDE_MARGIN)
-			curh = (ret->bitmap->h - ret->text->pos.h)/2;
+		if(ret->bitmap->getHeight() > ret->text->pos.h + 2*SIDE_MARGIN)
+			curh = (ret->bitmap->getHeight() - ret->text->pos.h)/2;
 	}
 
 	ret->text->moveBy(Point(xOffset, curh));
@@ -290,13 +293,13 @@ void CMessage::drawIWindow(CInfoWindow * ret, std::string text, PlayerColor play
 	if (ret->components.size())
 	{
 		curh += BEFORE_COMPONENTS;
-		comps.blitCompsOnSur (blitOr, BETWEEN_COMPS, curh, ret->bitmap);
+		comps.blitCompsOn (blitOr, BETWEEN_COMPS, curh, ret->bitmap);
 	}
 	if(ret->buttons.size())
 	{
 		// Position the buttons at the bottom of the window
-		bw = (ret->bitmap->w/2) - (bw/2);
-		curh = ret->bitmap->h - SIDE_MARGIN - ret->buttons[0]->pos.h;
+		bw = (ret->bitmap->getWidth()/2) - (bw/2);
+		curh = ret->bitmap->getHeight() - SIDE_MARGIN - ret->buttons[0]->pos.h;
 
 		for(auto & elem : ret->buttons)
 		{
@@ -456,8 +459,10 @@ ComponentsToBlit::ComponentsToBlit(std::vector<CComponent*> & SComps, int maxw, 
 	}
 }
 
-void ComponentsToBlit::blitCompsOnSur( bool blitOr, int inter, int &curh, SDL_Surface *ret )
+void ComponentsToBlit::blitCompsOn( bool blitOr, int inter, int &curh, IRenderTarget *ret )
 {
+	ret->runActivated([&,this](){
+	
 	int orWidth = graphics->fonts[FONT_MEDIUM]->getStringWidth(CGI->generaltexth->allTexts[4]);
 
 	for (auto & elem : comps)//for each row
@@ -477,7 +482,7 @@ void ComponentsToBlit::blitCompsOnSur( bool blitOr, int inter, int &curh, SDL_Su
 			totalw += (inter) * (elem.size() - 1);
 
 		int middleh = curh + maxHeight/2;//axis for image aligment
-		int curw = ret->w/2 - totalw/2;
+		int curw = ret->getWidth()/2 - totalw/2;
 
 		for(size_t j=0;j<elem.size();j++)
 		{
@@ -505,4 +510,6 @@ void ComponentsToBlit::blitCompsOnSur( bool blitOr, int inter, int &curh, SDL_Su
 		}
 		curh += maxHeight + BETWEEN_COMPS_ROWS;
 	}
+	
+	});
 }

@@ -416,7 +416,7 @@ void CMapHandler::init()
 // top_tile top left tile to draw. Not necessarily visible.
 // extRect, extRect = map window on screen
 // moveX, moveY: when a hero is in movement indicates how to shift the map. Range is -31 to + 31.
-void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, const SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel ) const
+void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::vector< std::vector<ui8> > > * visibilityMap, bool otherHeroAnim, ui8 heroAnim, SDL_Rect * extRect, int moveX, int moveY, bool puzzleMode, int3 grailPosRel ) const
 {
 	// Width and height of the portion of the map to process. Units in tiles.
 	ui32 dx = tilesW;
@@ -471,7 +471,7 @@ void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::v
 	if(!otherHeroAnim)
 		heroAnim = anim; //the same, as it should be
 		
-	ClipRectQuard crGuard(mainScreen, extRect);
+	ClipRectGuard crGuard(mainScreen, extRect);
 	EffectGuard eGuard(mainScreen, extRect, (ADVOPT.puzzleSepia ? EffectGuard::SEPIA : EffectGuard::GRAYSCALE));
 
 	// printing terrain
@@ -784,6 +784,7 @@ void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::v
 	}
 	// borders printed
 
+	#if 0 //FIXME:
 	// print grid
 	if (settings["session"]["showGrid"].Bool())
 	{
@@ -800,6 +801,8 @@ void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::v
 				sr.x=srx;
 				sr.y=sry;
 				sr.h=sr.w=32;
+				
+				
 
 				const int3 color(0x555555, 0x555555, 0x555555);
 
@@ -820,6 +823,7 @@ void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::v
 		}
 	}
 	// grid
+	#endif // 0
 }
 
 std::pair<SDL_Surface *, bool> CMapHandler::getVisBitmap( const int3 & pos, const std::vector< std::vector< std::vector<ui8> > > & visibilityMap ) const

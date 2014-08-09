@@ -195,7 +195,7 @@ CFilledTexture::~CFilledTexture()
 
 void CFilledTexture::showAll()
 {
-	ClipRectQuard guard(mainScreen, &pos);
+	ClipRectGuard guard(mainScreen, &pos);
 	CSDL_Ext::fillTexture(texture);
 }
 
@@ -1118,13 +1118,13 @@ const std::list<CIntObject *> &CListBox::getItems()
 void CSimpleWindow::show()
 {
 	if(bitmap)
-		mainScreen->blit(bitmap,pos.x,pos.y);		
+		bitmap->blitTo(nullptr, &pos);
 }
 CSimpleWindow::~CSimpleWindow()
 {
 	if (bitmap)
 	{
-		SDL_FreeSurface(bitmap);
+		delete bitmap;
 		bitmap=nullptr;
 	}
 }
@@ -1349,7 +1349,7 @@ void CMultiLineLabel::showAll()
 	
 	Rect clipRect = getTextLocation();
 	
-	ClipRectQuard guarg(mainScreen, &clipRect); // to properly trim text that is too big to fit
+	ClipRectGuard guarg(mainScreen, &clipRect); // to properly trim text that is too big to fit
 
 	for (int i = beginLine; i < std::min(totalLines, endLine); i++)
 	{

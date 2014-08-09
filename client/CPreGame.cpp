@@ -2178,32 +2178,35 @@ void InfoCard::clickRight( tribool down, bool previousState )
 
 void InfoCard::showTeamsPopup()
 {
-	SDL_Surface *bmp = CMessage::drawDialogBox(256, 90 + 50 * SEL->current->mapHeader->howManyTeams);
+	IRenderTarget * temp = CMessage::drawDialogBox(256, 90 + 50 * SEL->current->mapHeader->howManyTeams);
+	
+	temp->runActivated([this](){
+		graphics->fonts[FONT_MEDIUM]->renderTextCenter(CGI->generaltexth->allTexts[657], Colors::YELLOW, Point(128, 30));
 
-	graphics->fonts[FONT_MEDIUM]->renderTextCenter(bmp, CGI->generaltexth->allTexts[657], Colors::YELLOW, Point(128, 30));
-
-	for(int i = 0; i < SEL->current->mapHeader->howManyTeams; i++)
-	{
-		std::vector<ui8> flags;
-		std::string hlp = CGI->generaltexth->allTexts[656]; //Team %d
-		hlp.replace(hlp.find("%d"), 2, boost::lexical_cast<std::string>(i+1));
-
-		graphics->fonts[FONT_SMALL]->renderTextCenter(bmp, hlp, Colors::WHITE, Point(128, 65 + 50 * i));
-
-		for(int j = 0; j < PlayerColor::PLAYER_LIMIT_I; j++)
-			if((SEL->current->mapHeader->players[j].canHumanPlay || SEL->current->mapHeader->players[j].canComputerPlay)
-				&& SEL->current->mapHeader->players[j].team == TeamID(i))
-				flags.push_back(j);
-
-		int curx = 128 - 9*flags.size();
-		for(auto & flag : flags)
+		for(int i = 0; i < SEL->current->mapHeader->howManyTeams; i++)
 		{
-			blitAt(sFlags->ourImages[flag].bitmap, curx, 75 + 50*i, bmp);
-			curx += 18;
-		}
-	}
+			std::vector<ui8> flags;
+			std::string hlp = CGI->generaltexth->allTexts[656]; //Team %d
+			hlp.replace(hlp.find("%d"), 2, boost::lexical_cast<std::string>(i+1));
 
-	GH.pushInt(new CInfoPopup(bmp, true));
+			graphics->fonts[FONT_SMALL]->renderTextCenter(hlp, Colors::WHITE, Point(128, 65 + 50 * i));
+
+			for(int j = 0; j < PlayerColor::PLAYER_LIMIT_I; j++)
+				if((SEL->current->mapHeader->players[j].canHumanPlay || SEL->current->mapHeader->players[j].canComputerPlay)
+					&& SEL->current->mapHeader->players[j].team == TeamID(i))
+					flags.push_back(j);
+
+			int curx = 128 - 9*flags.size();
+			for(auto & flag : flags)
+			{
+				mainScreen->blit(sFlags->ourImages[flag].bitmap, curx, 75 + 50*i);
+				curx += 18;
+			}
+		}
+	});
+	GH.pushInt(new CInfoPopup(temp, true));
+	
+	
 }
 
 void InfoCard::toggleChat()

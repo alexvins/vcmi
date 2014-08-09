@@ -25,7 +25,7 @@ class CDefHandler;
 class CSimpleWindow : public CIntObject
 {
 public:
-	SDL_Surface * bitmap; //background
+	IRenderTarget * bitmap; //background
 	void show() override;
 	CSimpleWindow():bitmap(nullptr){}; //c-tor
 	virtual ~CSimpleWindow(); //d-tor

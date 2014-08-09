@@ -59,7 +59,7 @@ void CQuestIcon::clickLeft(tribool down, bool previousState)
 
 void CQuestIcon::showAll()
 {
-	ClipRectQuard guard(mainScreen, &parent->pos);
+	ClipRectGuard guard(mainScreen, &parent->pos);
 	CAnimImage::showAll();
 }
 

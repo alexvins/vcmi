@@ -3026,7 +3026,7 @@ void CBattleInterface::showAll()
 void CBattleInterface::show()
 {
 	{
-		ClipRectQuard guard(mainScreen, &pos);
+		ClipRectGuard guard(mainScreen, &pos);
 
 		++animCount;
 

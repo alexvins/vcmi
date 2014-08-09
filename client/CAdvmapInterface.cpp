@@ -190,7 +190,7 @@ void CTerrainRect::showPath(const SDL_Rect * extRect)
 			int hvx = (x+arrows->ourImages[pn].bitmap->w)-(pos.x+pos.w),
 				hvy = (y+arrows->ourImages[pn].bitmap->h)-(pos.y+pos.h);
 				
-			ClipRectQuard guard(mainScreen, extRect);//preventing blitting outside of that rect
+			ClipRectGuard guard(mainScreen, extRect);//preventing blitting outside of that rect
 
 			if(ADVOPT.smoothMove) //version for smooth hero move, with pos shifts
 			{

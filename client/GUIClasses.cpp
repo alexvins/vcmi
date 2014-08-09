@@ -776,23 +776,23 @@ void CInfoWindow::setDelComps(bool DelComps)
 	}
 }
 
-CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, int x, int y, bool Free)
+CInfoPopup::CInfoPopup(IRenderTarget * Bitmap, int x, int y, bool Free)
  :free(Free),bitmap(Bitmap)
 {
 	init(x, y);
 }
 
 
-CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, const Point &p, EAlignment alignment, bool Free/*=false*/)
+CInfoPopup::CInfoPopup(IRenderTarget * Bitmap, const Point &p, EAlignment alignment, bool Free/*=false*/)
  : free(Free),bitmap(Bitmap)
 {
 	switch(alignment)
 	{
 	case BOTTOMRIGHT:
-		init(p.x - Bitmap->w, p.y - Bitmap->h);
+		init(p.x - Bitmap->getWidth(), p.y - Bitmap->getHeight());
 		break;
 	case CENTER:
-		init(p.x - Bitmap->w/2, p.y - Bitmap->h/2);
+		init(p.x - Bitmap->getWidth()/2, p.y - Bitmap->getHeight()/2);
 		break;
 	case TOPLEFT:
 		init(p.x, p.y);
@@ -802,7 +802,7 @@ CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, const Point &p, EAlignment alignmen
 	}
 }
 
-CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
+CInfoPopup::CInfoPopup(IRenderTarget *Bitmap, bool Free)
 {
 	CCS->curh->hide();
 
@@ -811,22 +811,22 @@ CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
 
 	if(bitmap)
 	{
-		pos.x = mainScreen->getWidth()/2 - bitmap->w/2;
-		pos.y = mainScreen->getHeight()/2 - bitmap->h/2;
-		pos.h = bitmap->h;
-		pos.w = bitmap->w;
+		pos.x = mainScreen->getWidth()/2 - bitmap->getWidth()/2;
+		pos.y = mainScreen->getHeight()/2 - bitmap->getHeight()/2;
+		pos.h = bitmap->getHeight();
+		pos.w = bitmap->getWidth();
 	}
 }
 
 void CInfoPopup::close()
 {
 	if(free)
-		SDL_FreeSurface(bitmap);
+		delete bitmap;
 	GH.popIntTotally(this);
 }
 void CInfoPopup::show()
 {
-	mainScreen->blit(bitmap,pos.x,pos.y);
+	bitmap->blitTo(nullptr, &pos);
 }
 CInfoPopup::~CInfoPopup()
 {
@@ -839,14 +839,14 @@ void CInfoPopup::init(int x, int y)
 
 	pos.x = x;
 	pos.y = y;
-	pos.h = bitmap->h;
-	pos.w = bitmap->w;
+	pos.h = bitmap->getHeight();
+	pos.w = bitmap->getWidth();
 
 	// Put the window back on screen if necessary
 	vstd::amax(pos.x, 0);
 	vstd::amax(pos.y, 0);
-	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->w);
-	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->h);
+	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->getWidth());
+	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->getHeight());
 }
 
 CComponent::CComponent(Etype Type, int Subtype, int Val, ESize imageSize):
@@ -1521,11 +1521,9 @@ void CRecruitmentWindow::showAll()
 {
 	CWindowObject::showAll();
 	
-	const SDL_Color color1 = makeColor(239,215,123);
-	const SDL_Color color2 = makeColor(173,142,66);
+	static const SDL_Color color1 = {239, 215, 123, 255};
+	static const SDL_Color color2 = {173, 142,  66, 255};
 	
-	mainScreen->
-
 	// recruit\total values
 	mainScreen->drawBorder(pos.x + 172, pos.y + 222, 67, 42, color1);
 	mainScreen->drawBorder(pos.x + 246, pos.y + 222, 67, 42, color1);
@@ -2491,7 +2489,7 @@ void CTradeWindow::showAll()
 {
 	CWindowObject::showAll();
 	
-	const SDL_Color color = makeColor(255,231,148);
+	static const SDL_Color color = {255, 231, 148, 255};
 
 	if(hRight)
 		mainScreen->drawBorder(hRight->pos.x-1,hRight->pos.y-1,hRight->pos.w+2,hRight->pos.h+2,color);
