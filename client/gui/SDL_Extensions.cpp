@@ -86,7 +86,7 @@ void blitAt(SDL_Surface * src, const SDL_Rect & pos, SDL_Surface * dst)
 }
 
 // Vertical flip
-SDL_Surface * CSDL_Ext::verticalFlip(Rot)
+SDL_Surface * CSDL_Ext::verticalFlip(SDL_Surface * toRot)
 {
 	SDL_Surface * ret = SDL_ConvertSurface(toRot, toRot->format, toRot->flags);
 	const int bpp = ret->format->BytesPerPixel;
@@ -952,7 +952,7 @@ void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )
 void CSDL_Ext::fillRectBlack(SDL_Rect *dstrect)
 {
 	const Uint32 black = SDL_MapRGB(mainScreen->getFormat(),0,0,0);
-	mainScreen->fillRect(dstrect,black);
+	mainScreen->fillRect(black,dstrect);
 }
 
 void CSDL_Ext::fillTexture(SDL_Surface * src)

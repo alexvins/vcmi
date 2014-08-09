@@ -1346,8 +1346,10 @@ void CMultiLineLabel::showAll()
 	// and where they should be displayed
 	Point lineStart = getTextLocation().topLeft() - visibleSize + Point(0, beginLine * f->getLineHeight());
 	Point lineSize  = Point(getTextLocation().w, f->getLineHeight());
-
-	ClipRectQuard guarg(mainScreen,getTextLocation()); // to properly trim text that is too big to fit
+	
+	Rect clipRect = getTextLocation();
+	
+	ClipRectQuard guarg(mainScreen, &clipRect); // to properly trim text that is too big to fit
 
 	for (int i = beginLine; i < std::min(totalLines, endLine); i++)
 	{
@@ -1995,7 +1997,7 @@ void CWindowObject::showAll()
 {
 	CIntObject::showAll();
 	if ((options & BORDERED) && (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth()))
-		CMessage::drawBorder(LOCPLINT ? LOCPLINT->playerID : PlayerColor(1), to, pos.w+28, pos.h+29, pos.x-14, pos.y-15);
+		CMessage::drawBorder(LOCPLINT ? LOCPLINT->playerID : PlayerColor(1), pos.w+28, pos.h+29, pos.x-14, pos.y-15);
 }
 
 void CWindowObject::close()

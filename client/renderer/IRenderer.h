@@ -9,11 +9,15 @@
  */
 #pragma once
 
+#include <SDL_rect.h>
+
 #include <boost/noncopyable.hpp>
+
+
 
 struct SDL_Surface;
 struct SDL_PixelFormat;
-struct SDL_Rect;
+
 
 class IShowable;
 
