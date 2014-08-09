@@ -183,8 +183,10 @@ void CBitmapFont::renderText(const std::string & data, const SDL_Color & color, 
 	if (data.empty())
 		return;	
 
-	int posX = pos.x;
-	int posY = pos.y;
+	int posX = 0;
+	int posY = 0;
+	
+	SDL_Surface * buf = CSDL_Ext::newSurface(getStringWidth(data), getLineHeight(), mainScreen->getFormat());
 
 	// Should be used to detect incorrect text parsing. Disabled right now due to some old UI code (mostly pregame and battles)
 	//assert(data[0] != '{');
@@ -195,8 +197,12 @@ void CBitmapFont::renderText(const std::string & data, const SDL_Color & color, 
 		std::string localChar = Unicode::fromUnicode(data.substr(i, Unicode::getCharacterSize(data[i])));
 
 		if (localChar.size() == 1)
-			renderCharacter(surface, chars[ui8(localChar[0])], color, posX, posY);
+			renderCharacter(buf, chars[ui8(localChar[0])], color, posX, posY);
 	}
+	
+	mainScreen->blit(buf,pos.x, pos.y);
+	
+	SDL_FreeSurface(buf);
 
 }
 
@@ -281,7 +287,7 @@ void CTrueTypeFont::renderText(const std::string & data, const SDL_Color & color
 		assert(rendered);
 
 		Rect rect(pos.x, pos.y, rendered->w, rendered->h);
-		mainScreen->blit(rendered, nullptr, surface, &rect);		
+		mainScreen->blit(rendered, nullptr, &rect);		
 		SDL_FreeSurface(rendered);
 	}
 }
@@ -344,19 +350,25 @@ void CBitmapHanFont::renderCharacter(SDL_Surface * surface, int characterIndex, 
 
 void CBitmapHanFont::renderText(const std::string & data, const SDL_Color & color, const Point & pos) const
 {
-	int posX = pos.x;
-	int posY = pos.y;
+
+	int posX = 0;
+	int posY = 0;
+	
+	SDL_Surface * buf = CSDL_Ext::newSurface(getStringWidth(data), getLineHeight(), mainScreen->getFormat());	
 
 	for(size_t i=0; i<data.size(); i += Unicode::getCharacterSize(data[i]))
 	{
 		std::string localChar = Unicode::fromUnicode(data.substr(i, Unicode::getCharacterSize(data[i])));
 
 		if (localChar.size() == 1)
-			fallback->renderCharacter(surface, fallback->chars[ui8(localChar[0])], color, posX, posY);
+			fallback->renderCharacter(buf, fallback->chars[ui8(localChar[0])], color, posX, posY);
 
 		if (localChar.size() == 2)
-			renderCharacter(surface, getCharacterIndex(localChar[0], localChar[1]), color, posX, posY);
+			renderCharacter(buf, getCharacterIndex(localChar[0], localChar[1]), color, posX, posY);
 	}
+	
+	mainScreen->blit(buf,pos.x, pos.y);	
+	SDL_FreeSurface(buf);	
 }
 
 CBitmapHanFont::CBitmapHanFont(const JsonNode &config):
