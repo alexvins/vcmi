@@ -204,7 +204,7 @@ namespace SoftRenderer
 	void Window::blitAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect)
 	{
 //		#ifdef VCMI_SDL1
-		if(what->format->BytesPerPixel == 8)
+		if(what->format->BytesPerPixel == 1)
 			CSDL_Ext::blit8bppAlphaTo24bpp(what, srcrect, activeTarget->surface, dstrect);
 		else
 		   SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);		
