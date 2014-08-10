@@ -124,7 +124,7 @@ void CArtPlace::clickLeft(tribool down, bool previousState)
 	{
 		if(ourArt->artType->id == 0)
 		{
-			auto   spellWindow = new CSpellWindow(genRect(595, 620, (screen->w - 620)/2, (screen->h - 595)/2), ourOwner->curHero, LOCPLINT, LOCPLINT->battleInt);
+			auto   spellWindow = new CSpellWindow(genRect(595, 620, (mainScreen->getWidth() - 620)/2, (mainScreen->getHeight() - 595)/2), ourOwner->curHero, LOCPLINT, LOCPLINT->battleInt);
 			GH.pushInt(spellWindow);
 		}
 	}
@@ -316,28 +316,17 @@ void CArtPlace::deselect ()
 	ourOwner->safeRedraw();
 }
 
-void CArtPlace::showAll(SDL_Surface * to)
+void CArtPlace::showAll()
 {
 	if (ourArt && !picked && ourArt == ourOwner->curHero->getArt(slotID, false)) //last condition is needed for disassembling -> artifact may be gone, but we don't know yet TODO: real, nice solution
 	{
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 	}
 
 	if(marked && active)
 	{
-		// Draw vertical bars.
-		for (int i = 0; i < pos.h; ++i)
-		{
-			CSDL_Ext::SDL_PutPixelWithoutRefresh(to, pos.x,             pos.y + i, 240, 220, 120);
-			CSDL_Ext::SDL_PutPixelWithoutRefresh(to, pos.x + pos.w - 1, pos.y + i, 240, 220, 120);
-		}
-
-		// Draw horizontal bars.
-		for (int i = 0; i < pos.w; ++i)
-		{
-			CSDL_Ext::SDL_PutPixelWithoutRefresh(to, pos.x + i, pos.y,             240, 220, 120);
-			CSDL_Ext::SDL_PutPixelWithoutRefresh(to, pos.x + i, pos.y + pos.h - 1, 240, 220, 120);
-		}
+		static const SDL_Color borderColor = {240, 220, 120, 255};
+		mainScreen->drawBorder(pos.x, pos.y, pos.w, pos.h, borderColor);
 	}
 }
 

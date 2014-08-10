@@ -69,7 +69,7 @@ public:
 	void clickRight(tribool down, bool previousState);
 	void select ();
 	void deselect ();
-	void showAll(SDL_Surface * to);
+	void showAll() override;
 	bool fitsHere (const CArtifactInstance * art) const; //returns true if given artifact can be placed here
 
 	void setMeAsDest(bool backpackAsVoid = true);
