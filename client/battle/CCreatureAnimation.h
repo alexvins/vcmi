@@ -119,7 +119,7 @@ public:
 	void setType(CCreatureAnim::EAnimType type); //sets type of animation and cleares framecount
 	CCreatureAnim::EAnimType getType() const; //returns type of animation
 
-	void nextFrame(SDL_Surface * dest, bool rotate);
+	void nextFrame(bool rotate);
 
 	// should be called every frame, return true when animation was reset to beginning
 	bool incrementFrame(float timePassed);

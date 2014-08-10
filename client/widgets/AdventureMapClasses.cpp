@@ -621,11 +621,11 @@ void CMinimap::showAll()
 		};
 		
 		{
-			//FIXME: Urgent! Radar
-			#if 0
-			CSDL_Ext::CClipRectGuard guard(to, pos);
-			CSDL_Ext::drawDashedBorder(to, radar, int3(255,75,125));			
-			#endif // 0
+			mainScreen->accessActiveTarget([&,this](SDL_Surface * to){
+				CSDL_Ext::CClipRectGuard guard(to, pos);
+				CSDL_Ext::drawDashedBorder(to, radar, int3(255,75,125));			
+											
+			});
 		}
 	}
 }

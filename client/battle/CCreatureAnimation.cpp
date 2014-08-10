@@ -387,18 +387,22 @@ void CCreatureAnimation::nextFrameT(SDL_Surface * dest, bool rotate)
 	}
 }
 
-void CCreatureAnimation::nextFrame(SDL_Surface *dest, bool attacker)
+void CCreatureAnimation::nextFrame(bool attacker)
 {
-	// Note: please notice that attacker value is inversed when passed further.
-	// This is intended behavior because "attacker" actually does not needs rotation
-	switch(dest->format->BytesPerPixel)
-	{
-	case 2: return nextFrameT<2>(dest, !attacker);
-	case 3: return nextFrameT<3>(dest, !attacker);
-	case 4: return nextFrameT<4>(dest, !attacker);
-	default:
-        logGlobal->errorStream() << (int)dest->format->BitsPerPixel << " bpp is not supported!!!";
-	}
+	mainScreen->accessActiveTarget([&,this](SDL_Surface * dest){
+		// Note: please notice that attacker value is inversed when passed further.
+		// This is intended behavior because "attacker" actually does not needs rotation
+		switch(mainScreen->getFormat()->BytesPerPixel)
+		{
+		case 2: return nextFrameT<2>(dest, !attacker);
+		case 3: return nextFrameT<3>(dest, !attacker);
+		case 4: return nextFrameT<4>(dest, !attacker);
+		default:
+			logGlobal->errorStream() << (int)dest->format->BitsPerPixel << " bpp is not supported!!!";
+		}
+										
+	});
+	
 }
 
 int CCreatureAnimation::framesInGroup(CCreatureAnim::EAnimType group) const

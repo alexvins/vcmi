@@ -124,6 +124,10 @@ public:
      *
      */                             	
 	virtual IEffectHandle * applyEffect(const SDL_Rect * clipRect, EffectGuard::EffectType type) = 0;
+	
+		
+	///STUB
+	virtual void accessActiveTarget(const std::function<void(SDL_Surface *)> & cb) = 0;
 
 	///temporary, DEPRECATED. Blit surface to active target
 	virtual void blit(SDL_Surface * what, int x, int y) = 0;	
@@ -145,7 +149,7 @@ public:
      *
      */                             	
 	virtual IRenderTarget * createTarget(int width, int height) = 0;
-
+	
 	void drawBorder(const SDL_Rect &r, const SDL_Color &color)
 	{
 		drawBorder(r.x, r.y, r.w, r.h, color);

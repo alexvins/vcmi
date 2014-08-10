@@ -706,7 +706,7 @@ CompImage::CompImage(SDL_Surface * surf)
 void CompImage::draw(int posX, int posY, Rect *src, ui8 alpha) const
 {
 	//todo: move CompImage to the renderer and dont use additional surface, dont use CompImage in GL
-	SDL_Surface * where = CSDL_Ext::newSurface(sprite.w, sprite.h, mainScreen->getFormat());
+	mainScreen->accessActiveTarget([&,this](SDL_Surface * where){
 	
 	int rotation = 0; //TODO
 	//rotation & 2 = horizontal rotation
@@ -721,7 +721,8 @@ void CompImage::draw(int posX, int posY, Rect *src, ui8 alpha) const
 	sourceRect = sourceRect & Rect(0, 0, where->w, where->h);
 
 	//Starting point on SDL surface
-	Point dest(sourceRect.x, sourceRect.y);
+	Point dest(posX+sourceRect.x, posY+sourceRect.y);
+	
 	if (rotation & 2)
 		dest.y += sourceRect.h;
 	if (rotation & 4)
@@ -775,8 +776,7 @@ void CompImage::draw(int posX, int posY, Rect *src, ui8 alpha) const
 		size = sourceRect.w - currX;
 		BlitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation & 2);
 	}
-	mainScreen->blit(where, posX, posY);
-	SDL_FreeSurface(where);
+	});;
 }
 
 #define CASEBPP(x,y) case x: BlitBlock<x,y>(type, size, data, dest, alpha); break

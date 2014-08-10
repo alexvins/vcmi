@@ -43,7 +43,7 @@ namespace SoftRenderer
 		void saveAsBitmap(const std::string & fileName) override;
 		
 		void runActivated(const std::function<void(void)> & cb) override;
-		
+
 		void update() override;
 		
 		///internal interface
@@ -101,6 +101,8 @@ namespace SoftRenderer
 		
 		///IWindow
 		
+		void accessActiveTarget(const std::function<void(SDL_Surface *)> & cb) override;
+		
 		IEffectHandle * applyEffect(const SDL_Rect * clipRect, EffectGuard::EffectType type) override;
 				
 		void blit(SDL_Surface * what, int x, int y) override;
@@ -115,7 +117,7 @@ namespace SoftRenderer
 		void drawBorder(int x, int y, int w, int h, const SDL_Color &color) override;
 		
 		void getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive) override;
-
+		
 		void fillRect(Uint32 color, SDL_Rect * dstRect) override;
 		
 		void fillRect(SDL_Color color, SDL_Rect * dstRect) override;

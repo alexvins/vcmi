@@ -186,6 +186,12 @@ namespace SoftRenderer
 		
 	}
 	
+	void Window::accessActiveTarget(const std::function<void(SDL_Surface*)>& cb)
+	{
+		cb(activeTarget->surface);
+	}
+	
+	
 	IEffectHandle * Window::applyEffect(const SDL_Rect* clipRect, EffectGuard::EffectType type)
 	{
 		return new EffectHandle(activeTarget, clipRect, type);
@@ -208,7 +214,7 @@ namespace SoftRenderer
 		if(what->format->BytesPerPixel == 1)
 			CSDL_Ext::blit8bppAlphaTo24bpp(what, srcrect, activeTarget->surface, dstrect);
 		else
-		   SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);		
+		   CSDL_Ext::blitSurface(what, srcrect, activeTarget->surface, dstrect);		
 //		#else
 //		
 //		Uint8 oldBlendMode = 0;
@@ -306,7 +312,7 @@ namespace SoftRenderer
 		currentActive = activeTarget;
 		activeTarget->getClipRect(rect);
 	}	
-
+	
 	#ifndef VCMI_SDL1
 	bool Window::recreate(int w, int h, int bpp, bool fullscreen)
 	{

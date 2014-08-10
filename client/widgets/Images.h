@@ -155,8 +155,8 @@ public:
 	virtual void reset();
 
 	//show current frame and increase counter
-	void show();
-	void showAll();
+	void show() override;
+	void showAll() override;
 };
 
 /// Creature-dependend animations like attacking, moving,...
