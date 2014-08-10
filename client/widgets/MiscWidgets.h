@@ -95,8 +95,8 @@ class CMinorResDataBar : public CIntObject
 {
 public:
 	SDL_Surface *bg; //background bitmap
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	CMinorResDataBar(); //c-tor
 	~CMinorResDataBar(); //d-tor
 };

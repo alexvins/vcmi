@@ -175,18 +175,18 @@ LRClickableAreaOpenTown::LRClickableAreaOpenTown()
 {
 }
 
-void CMinorResDataBar::show(SDL_Surface * to)
+void CMinorResDataBar::show()
 {
 }
 
-void CMinorResDataBar::showAll(SDL_Surface * to)
+void CMinorResDataBar::showAll()
 {
-	blitAt(bg,pos.x,pos.y,to);
+	mainScreen->blit(bg,pos.x,pos.y);
 	for (Res::ERes i=Res::WOOD; i<=Res::GOLD; vstd::advance(i, 1))
 	{
 		std::string text = boost::lexical_cast<std::string>(LOCPLINT->cb->getResourceAmount(i));
 
-		graphics->fonts[FONT_SMALL]->renderTextCenter(to, text, Colors::WHITE, Point(pos.x + 50 + 76 * i, pos.y + pos.h/2));
+		graphics->fonts[FONT_SMALL]->renderTextCenter(text, Colors::WHITE, Point(pos.x + 50 + 76 * i, pos.y + pos.h/2));
 	}
 	std::vector<std::string> temp;
 
@@ -197,7 +197,7 @@ void CMinorResDataBar::showAll(SDL_Surface * to)
 	std::string datetext =  CGI->generaltexth->allTexts[62]+": %s, " + CGI->generaltexth->allTexts[63]
 							+ ": %s, " + CGI->generaltexth->allTexts[64] + ": %s";
 
-	graphics->fonts[FONT_SMALL]->renderTextCenter(to, CSDL_Ext::processStr(datetext,temp), Colors::WHITE, Point(pos.x+545+(pos.w-545)/2,pos.y+pos.h/2));
+	graphics->fonts[FONT_SMALL]->renderTextCenter(CSDL_Ext::processStr(datetext,temp), Colors::WHITE, Point(pos.x+545+(pos.w-545)/2,pos.y+pos.h/2));
 }
 
 CMinorResDataBar::CMinorResDataBar()
