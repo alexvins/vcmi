@@ -9,6 +9,7 @@
  */
 #include "StdInc.h"
 
+#include <SDL_endian.h>
 #include <SDL_surface.h>
 #include <SDL_video.h>
 #include <SDL_mouse.h>

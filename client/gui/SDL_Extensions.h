@@ -10,6 +10,7 @@
  
 #pragma once
 #include <SDL_version.h>
+#include <SDL_endian.h>
 
 #ifndef VCMI_SDL1
 #include <SDL_render.h>
