@@ -179,13 +179,13 @@ class CMinimap;
 class CMinimapInstance : public CIntObject
 {
 	CMinimap *parent;
-	SDL_Surface * minimap;
+	IRenderTarget * minimap;
 	int level;
 
 	//get color of selected tile on minimap
 	const SDL_Color & getTileColor(const int3 & pos);
 
-	void blitTileWithColor(const SDL_Color & color, const int3 & pos, SDL_Surface *to, int x, int y);
+	void blitTileWithColor(const SDL_Color & color, const int3 & pos, int x, int y);
 
 	//draw minimap already scaled.
 	//result is not antialiased. Will result in "missing" pixels on huge maps (>144)

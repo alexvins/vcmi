@@ -158,6 +158,8 @@ public:
      */
 	virtual void fillRect(Uint32 color, SDL_Rect * dstRect) = 0;
 	
+	virtual void fillRect(SDL_Color color, SDL_Rect * dstRect) = 0;
+	
 
     /** @brief Set window fullscreen mode
      *

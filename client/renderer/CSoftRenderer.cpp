@@ -270,8 +270,7 @@ namespace SoftRenderer
 			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x,y+i,color.r,color.g,color.b);
 			CSDL_Ext::SDL_PutPixelWithoutRefreshIfInSurf(sur,x+w-1,y+i,color.r,color.g,color.b);
 		}		
-	}
-	
+	}	
 	
 	void Window::fillRect(Uint32 color, SDL_Rect * dstRect)
 	{
@@ -286,6 +285,19 @@ namespace SoftRenderer
 		}
 		SDL_FillRect(activeTarget->surface, &newRect, color);
 	}
+	
+	void Window::fillRect(SDL_Color color, SDL_Rect* dstRect)
+	{
+		#ifndef VCMI_SDL1		
+		Uint32 formatColor = SDL_MapRGBA(surface->format, color.r, color.g, color.b, color.a);
+		#else
+		Uint32 formatColor = SDL_MapRGB(surface->format, color.r, color.g, color.b);
+		#endif
+		
+		fillRect(formatColor, dstRect);
+		
+	}
+	
 	
 	void Window::getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive)
 	{

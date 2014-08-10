@@ -120,7 +120,7 @@ void CTerrainRect::hover(bool on)
 	}
 	//Hoverable::hover(on);
 }
-void CTerrainRect::showPath(const SDL_Rect * extRect)
+void CTerrainRect::showPath(SDL_Rect * extRect)
 {
 	const static int pns[9][9] = {
 				{16, 17, 18,  7, -1, 19,  6,  5, -1},
@@ -262,8 +262,7 @@ void CTerrainRect::show()
 			 &LOCPLINT->cb->getVisibilityMap(), true, adventureInt->heroAnim,
 			 &pos, 0, 0, false, int3());
 
-	//SDL_BlitSurface(teren,&genRect(pos.h,pos.w,0,0),screen,&genRect(547,594,7,6));
-	//SDL_FreeSurface(teren);
+
 	if (currentPath/* && adventureInt->position.z==currentPath->startPos().z*/) //drawing path
 	{
 		showPath(&pos);

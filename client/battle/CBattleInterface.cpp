@@ -3342,8 +3342,11 @@ void CBattleInterface::showStacks(std::vector<const CStack *> stacks)
 {
 	for (const CStack * stack : stacks)
 	{
+		//FIXME: Urgent! Enable creature anim
+		#if 0
 		creAnims[stack->ID]->nextFrame(to, creDir[stack->ID]); // do actual blit
 		creAnims[stack->ID]->incrementFrame(float(GH.mainFPSmng->getElapsedMilliseconds()) / 1000);
+		#endif // 0
 	}
 }
 

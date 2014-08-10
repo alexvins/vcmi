@@ -117,6 +117,9 @@ namespace SoftRenderer
 		void getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive) override;
 
 		void fillRect(Uint32 color, SDL_Rect * dstRect) override;
+		
+		void fillRect(SDL_Color color, SDL_Rect * dstRect) override;
+		
 		bool setFullscreen(bool enabled) override;
 		void warpMouse(int x, int y) override;		
 		

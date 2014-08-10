@@ -386,26 +386,37 @@ void CMinimapInstance::tileToPixels (const int3 &tile, int &x, int &y, int toX, 
 	y = toY + stepY * tile.y;
 }
 
-void CMinimapInstance::blitTileWithColor(const SDL_Color &color, const int3 &tile, SDL_Surface *to, int toX, int toY)
+void CMinimapInstance::blitTileWithColor(const SDL_Color &color, const int3 &tile, int toX, int toY)
 {
 	//coordinates of rectangle on minimap representing this tile
 	// begin - first to blit, end - first NOT to blit
 	int xBegin, yBegin, xEnd, yEnd;
-	tileToPixels (tile, xBegin, yBegin, toX, toY);
-	tileToPixels (int3 (tile.x + 1, tile.y + 1, tile.z), xEnd, yEnd, toX, toY);
+//	tileToPixels (tile, xBegin, yBegin, toX, toY);
+//	tileToPixels (int3 (tile.x + 1, tile.y + 1, tile.z), xEnd, yEnd, toX, toY);
+	
+	int3 mapSizes = LOCPLINT->cb->getMapSize();
+	
+	double stepX = double(pos.w) / mapSizes.x;
+	double stepY = double(pos.h) / mapSizes.y;
+	
+	Rect tileRect(toX, toY, stepX, stepY);
+	
+	mainScreen->fillRect(color, &tileRect);
 
-	for (int y=yBegin; y<yEnd; y++)
-	{
-		Uint8 *ptr = (Uint8*)to->pixels + y * to->pitch + xBegin * minimap->format->BytesPerPixel;
-
-		for (int x=xBegin; x<xEnd; x++)
-			ColorPutter<4, 1>::PutColor(ptr, color);
-	}
+//	for (int y=yBegin; y<yEnd; y++)
+//	{
+//		Uint8 *ptr = (Uint8*)to->pixels + y * to->pitch + xBegin * minimap->format->BytesPerPixel;
+//
+//		for (int x=xBegin; x<xEnd; x++)
+//			ColorPutter<4, 1>::PutColor(ptr, color);
+//	}
 }
 
 void CMinimapInstance::refreshTile(const int3 &tile)
 {
-	blitTileWithColor(getTileColor(int3(tile.x, tile.y, level)), tile, minimap, 0, 0);
+	minimap->runActivated([&,this](){
+		blitTileWithColor(getTileColor(int3(tile.x, tile.y, level)), tile, 0, 0);
+	});	
 }
 
 void CMinimapInstance::drawScaled(int level)
@@ -417,36 +428,44 @@ void CMinimapInstance::drawScaled(int level)
 	double stepY = double(pos.h) / mapSizes.y;
 
 	double currY = 0;
-	for (int y=0; y<mapSizes.y; y++, currY += stepY)
-	{
-		double currX = 0;
-		for (int x=0; x<mapSizes.x; x++, currX += stepX)
+	minimap->runActivated([&,this](){
+		Rect tileRect(0,0,stepX,stepY);
+		for (int y=0; y<mapSizes.y; y++, currY += stepY)
 		{
-			const SDL_Color &color = getTileColor(int3(x,y,level));
-
-			//coordinates of rectangle on minimap representing this tile
-			// begin - first to blit, end - first NOT to blit
-			int xBegin = currX;
-			int yBegin = currY;
-			int xEnd = currX + stepX;
-			int yEnd = currY + stepY;
-
-			for (int y=yBegin; y<yEnd; y++)
+			double currX = 0;
+			for (int x=0; x<mapSizes.x; x++, currX += stepX)
 			{
-				Uint8 *ptr = (Uint8*)minimap->pixels + y * minimap->pitch + xBegin * minimap->format->BytesPerPixel;
-
-				for (int x=xBegin; x<xEnd; x++)
-					ColorPutter<4, 1>::PutColor(ptr, color);
+				const SDL_Color &color = getTileColor(int3(x,y,level));
+				
+				tileRect.x = currX;
+				tileRect.y = currY;
+				
+				mainScreen->fillRect(color, &tileRect);
+				
+//				//coordinates of rectangle on minimap representing this tile
+//				// begin - first to blit, end - first NOT to blit
+//				int xBegin = currX;
+//				int yBegin = currY;
+//				int xEnd = currX + stepX;
+//				int yEnd = currY + stepY;
+//				
+//				for (int y=yBegin; y<yEnd; y++)
+//				{
+//					Uint8 *ptr = (Uint8*)minimap->pixels + y * minimap->pitch + xBegin * minimap->format->BytesPerPixel;
+//
+//					for (int x=xBegin; x<xEnd; x++)
+//						ColorPutter<4, 1>::PutColor(ptr, color);
+//				}
 			}
 		}
-	}
+	});		
 }
 
 CMinimapInstance::CMinimapInstance(CMinimap *Parent, int Level):
-    parent(Parent),
-    minimap(CSDL_Ext::createSurfaceWithBpp<4>(parent->pos.w, parent->pos.h)),
+    parent(Parent),    
     level(Level)
 {
+	minimap = mainScreen->createTarget(parent->pos.w, parent->pos.h);
 	pos.w = parent->pos.w;
 	pos.h = parent->pos.h;
 	drawScaled(level);
@@ -454,12 +473,12 @@ CMinimapInstance::CMinimapInstance(CMinimap *Parent, int Level):
 
 CMinimapInstance::~CMinimapInstance()
 {
-	SDL_FreeSurface(minimap);
+	delete minimap;
 }
 
 void CMinimapInstance::showAll()
 {
-	blitAtLoc(minimap, 0, 0);
+	minimap->blitTo(nullptr, &pos);
 
 	//draw heroes
 	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false);
@@ -469,7 +488,7 @@ void CMinimapInstance::showAll()
 		if (position.z == level)
 		{
 			const SDL_Color & color = graphics->playerColors[hero->getOwner().getNum()];
-			blitTileWithColor(color, position, to, pos.x, pos.y);
+			blitTileWithColor(color, position, pos.x, pos.y);
 		}
 	}
 }
@@ -589,8 +608,11 @@ void CMinimap::showAll()
 		};
 		
 		{
+			//FIXME: Urgent! Radar
+			#if 0
 			CSDL_Ext::CClipRectGuard guard(to, pos);
 			CSDL_Ext::drawDashedBorder(to, radar, int3(255,75,125));			
+			#endif // 0
 		}
 	}
 }
