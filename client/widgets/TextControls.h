@@ -24,7 +24,7 @@ protected:
 	/// returns size of border, for left- or right-aligned text
 	virtual Point getBorderSize() = 0;
 	/// do actual blitting of line. Text "what" will be placed at "where" and aligned according to alignment
-	void blitLine(SDL_Surface * to, Rect where, std::string what);
+	void blitLine(Rect where, std::string what);
 
 	CTextContainer(EAlignment alignment, EFonts font, SDL_Color color);
 
@@ -45,14 +45,14 @@ protected:
 public:
 
 	std::string text;
-	bool autoRedraw;  //whether control will redraw itself on setTxt
+	bool autoRedraw;  //whether control will redraw itself on setText
 
 	std::string getText();
 	virtual void setText(const std::string &Txt);
 
 	CLabel(int x=0, int y=0, EFonts Font = FONT_SMALL, EAlignment Align = TOPLEFT,
 	       const SDL_Color &Color = Colors::WHITE, const std::string &Text =  "");
-	void showAll(SDL_Surface * to); //shows statusbar (with current text)
+	void showAll() override;
 };
 
 /// Small helper class to manage group of similar labels
@@ -86,7 +86,7 @@ public:
 	CMultiLineLabel(Rect position, EFonts Font = FONT_SMALL, EAlignment Align = TOPLEFT, const SDL_Color &Color = Colors::WHITE, const std::string &Text =  "");
 
 	void setText(const std::string &Txt);
-	void showAll(SDL_Surface * to);
+	void showAll() override;
 
 	void setVisibleSize(Rect visibleSize);
 	// scrolls text visible in widget. Positive value will move text up
@@ -125,7 +125,7 @@ public:
 	void clear();//clears statusbar and refreshes
 	void setText(const std::string & Text) override; //prints text and refreshes statusbar
 
-	void show(SDL_Surface * to); //shows statusbar (with current text)
+	void show() override; //shows statusbar (with current text)
 
 	CGStatusBar(CPicture *BG, EFonts Font = FONT_SMALL, EAlignment Align = CENTER, const SDL_Color &Color = Colors::WHITE); //given CPicture will be captured by created sbar and it's pos will be used as pos for sbar
 	CGStatusBar(int x, int y, std::string name, int maxw=-1);

@@ -24,12 +24,12 @@ std::string CLabel::visibleText()
 	return text;
 }
 
-void CLabel::showAll(SDL_Surface * to)
+void CLabel::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	if(!visibleText().empty())
-		blitLine(to, pos, visibleText());
+		blitLine(pos, visibleText());
 
 }
 
@@ -105,7 +105,7 @@ void CMultiLineLabel::setText(const std::string &Txt)
 	CLabel::setText(Txt);
 }
 
-void CTextContainer::blitLine(SDL_Surface *to, Rect destRect, std::string what)
+void CTextContainer::blitLine(Rect destRect, std::string what)
 {
 	const IFont * f = graphics->fonts[font];
 	Point where = destRect.topLeft();
@@ -142,9 +142,9 @@ void CTextContainer::blitLine(SDL_Surface *to, Rect destRect, std::string what)
 			std::string toPrint = what.substr(begin, end - begin);
 
 			if (currDelimeter % 2) // Enclosed in {} text - set to yellow
-				f->renderTextLeft(to, toPrint, Colors::YELLOW, where);
+				f->renderTextLeft(toPrint, Colors::YELLOW, where);
 			else // Non-enclosed text, use default color
-				f->renderTextLeft(to, toPrint, color, where);
+				f->renderTextLeft(toPrint, color, where);
 			begin = end;
 
 			where.x += f->getStringWidth(toPrint);
@@ -160,9 +160,9 @@ CTextContainer::CTextContainer(EAlignment alignment, EFonts font, SDL_Color colo
 	color(color)
 {}
 
-void CMultiLineLabel::showAll(SDL_Surface * to)
+void CMultiLineLabel::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 
 	const IFont * f = graphics->fonts[font];
 
@@ -185,13 +185,15 @@ void CMultiLineLabel::showAll(SDL_Surface * to)
 	// and where they should be displayed
 	Point lineStart = getTextLocation().topLeft() - visibleSize + Point(0, beginLine * f->getLineHeight());
 	Point lineSize  = Point(getTextLocation().w, f->getLineHeight());
+	
+	Rect clipRect = getTextLocation();
 
-	CSDL_Ext::CClipRectGuard guard(to, getTextLocation()); // to properly trim text that is too big to fit
+	ClipRectGuard guard(mainScreen, &clipRect); // to properly trim text that is too big to fit
 
 	for (int i = beginLine; i < std::min(totalLines, endLine); i++)
 	{
 		if (!lines[i].empty()) //non-empty line
-			blitLine(to, Rect(lineStart, lineSize), lines[i]);
+			blitLine(Rect(lineStart, lineSize), lines[i]);
 
 		lineStart.y += f->getLineHeight();
 	}
@@ -343,9 +345,9 @@ CGStatusBar::~CGStatusBar()
 	GH.statusbar = oldStatusBar;
 }
 
-void CGStatusBar::show(SDL_Surface * to)
+void CGStatusBar::show()
 {
-    showAll(to);
+    showAll();
 }
 
 void CGStatusBar::init()
