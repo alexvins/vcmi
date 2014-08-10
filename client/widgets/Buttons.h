@@ -118,7 +118,7 @@ public:
 	void clickRight(tribool down, bool previousState) override;
 	void clickLeft(tribool down, bool previousState) override;
 	void hover (bool on) override;
-	void showAll(SDL_Surface * to) override;
+	void showAll() override;
 
 	/// generates tooltip that can be passed into constructor
 	static std::pair<std::string, std::string> tooltip();
@@ -192,8 +192,8 @@ public:
 	/// Changes selection to specific value. Will select toggle with this ID, if present
 	void setSelected(int id);
 
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 };
 
 /// A typical slider which can be orientated horizontally/vertically.
@@ -245,7 +245,7 @@ public:
 	void wheelScrolled(bool down, bool in);
 	void clickLeft(tribool down, bool previousState);
 	void mouseMoved (const SDL_MouseMotionEvent & sEvent);
-	void showAll(SDL_Surface * to);	
+	void showAll() override;	
 
 	/**
 	 * @param position, coordinates of slider

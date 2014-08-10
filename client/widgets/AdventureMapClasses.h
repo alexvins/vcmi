@@ -15,6 +15,8 @@ struct InfoAboutArmy;
 struct InfoAboutHero;
 struct InfoAboutTown;
 
+class IRenderTarget;
+
 /*
  * CAdventureMapClasses.h, part of VCMI engine
  *
@@ -195,7 +197,7 @@ public:
 	CMinimapInstance(CMinimap * parent, int level);
 	~CMinimapInstance();
 
-	void showAll();
+	void showAll() override;
 	void tileToPixels (const int3 &tile, int &x, int &y,int toX = 0, int toY = 0);
 
 	void refreshTile(const int3 &pos);
@@ -232,7 +234,7 @@ public:
 	void setLevel(int level);
 	void setAIRadar(bool on);
 
-	void showAll();
+	void showAll() override;
 
 	void hideTile(const int3 &pos); //puts FoW
 	void showTile(const int3 &pos); //removes FoW
@@ -326,7 +328,7 @@ private:
 	int maxDisplayedTexts; //hiw many texts can be displayed simultaneously
 public:
 	std::string enteredText;
-	void show(SDL_Surface * to);
+	void show() override;
 	void print(const std::string &txt);
 	void keyPressed (const SDL_KeyboardEvent & key); //call-in
 

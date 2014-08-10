@@ -64,7 +64,7 @@ class CFilledTexture : CIntObject
 public:
 	CFilledTexture(std::string imageName, Rect position);
 	~CFilledTexture();
-	void showAll(SDL_Surface *to);
+	void showAll();
 };
 
 /// Class for displaying one image from animation
@@ -94,7 +94,7 @@ public:
 	//makes image player-colored
 	void playerColored(PlayerColor player);
 
-	void showAll(SDL_Surface * to);
+	void showAll();
 };
 
 /// Base class for displaying animation, used as superclass for different animations

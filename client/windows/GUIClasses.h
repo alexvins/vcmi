@@ -44,7 +44,7 @@ class CRecruitmentWindow : public CWindowObject
 
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
-		void showAll(SDL_Surface *to);
+		void showAll() override; 
 	public:
 		const CCreature * creature;
 		si32 amount;
@@ -87,7 +87,7 @@ class CRecruitmentWindow : public CWindowObject
 	void buy();
 	void sliderMoved(int to);
 
-	void showAll(SDL_Surface *to);
+	void showAll() override;
 public:
 	const CGDwelling * const dwelling;
 	CRecruitmentWindow(const CGDwelling *Dwelling, int Level, const CArmedInstance *Dst, const std::function<void(CreatureID,int)> & Recruit, int y_offset = 0); //creatures - pairs<creature_ID,amount> //c-tor
@@ -266,7 +266,7 @@ public:
 
 	void recruitb();
 	void thievesguildb();
-	void show(SDL_Surface * to);
+	void show();
 };
 
 class CExchangeWindow : public CWindowObject, public CWindowWithGarrison, public CWindowWithArtifacts
@@ -330,8 +330,8 @@ private:
 	ui8 currentAlpha;
 
 public:
-	void showAll(SDL_Surface * to);
-	void show(SDL_Surface * to);
+	void showAll() override;
+	void show() override;
 
 	CPuzzleWindow(const int3 &grailPos, double discoveredRatio);
 };
@@ -376,7 +376,7 @@ class CUniversityWindow : public CWindowObject
 		int ID;//id of selected skill
 		CUniversityWindow * parent;
 
-		void showAll(SDL_Surface * to);
+		void showAll() override;
 		void clickLeft(tribool down, bool previousState);
 		void clickRight(tribool down, bool previousState);
 		void hover(bool on);

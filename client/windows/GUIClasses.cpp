@@ -102,13 +102,14 @@ void CRecruitmentWindow::CCreatureCard::clickRight(tribool down, bool previousSt
 		GH.pushInt(new CStackWindow(creature, true));
 }
 
-void CRecruitmentWindow::CCreatureCard::showAll(SDL_Surface * to)
+void CRecruitmentWindow::CCreatureCard::showAll()
 {
-	CIntObject::showAll(to);
-	if (selected)
-		drawBorder(to, pos, int3(248, 0, 0));
-	else
-		drawBorder(to, pos, int3(232, 212, 120));
+	CIntObject::showAll();
+	
+	static const SDL_Color selectedColor = {248, 0, 0, 255};
+	static const SDL_Color normalColor = {232, 212, 120, 255};
+	
+	mainScreen->drawBorder(pos, (selected ? selectedColor : normalColor ));
 }
 
 CRecruitmentWindow::CCostBox::CCostBox(Rect position, std::string title)
@@ -230,22 +231,25 @@ void CRecruitmentWindow::buy()
 		close();
 }
 
-void CRecruitmentWindow::showAll(SDL_Surface * to)
+void CRecruitmentWindow::showAll()
 {
-	CWindowObject::showAll(to);
-
+	CWindowObject::showAll();
+	
+	static const SDL_Color color1 = {239, 215, 123, 0};
+	static const SDL_Color color2 = {173, 142,  66, 0};
+	
 	// recruit\total values
-	drawBorder(to, pos.x + 172, pos.y + 222, 67, 42, int3(239,215,123));
-	drawBorder(to, pos.x + 246, pos.y + 222, 67, 42, int3(239,215,123));
+	mainScreen->drawBorder(pos.x + 172, pos.y + 222, 67, 42, color1);
+	mainScreen->drawBorder(pos.x + 246, pos.y + 222, 67, 42, color1);
 
 	//cost boxes
-	drawBorder(to, pos.x + 64,  pos.y + 222, 99, 76, int3(239,215,123));
-	drawBorder(to, pos.x + 322, pos.y + 222, 99, 76, int3(239,215,123));
+	mainScreen->drawBorder(pos.x + 64,  pos.y + 222, 99, 76, color1);
+	mainScreen->drawBorder(pos.x + 322, pos.y + 222, 99, 76, color1);
 
 	//buttons borders
-	drawBorder(to, pos.x + 133, pos.y + 312, 66, 34, int3(173,142,66));
-	drawBorder(to, pos.x + 211, pos.y + 312, 66, 34, int3(173,142,66));
-	drawBorder(to, pos.x + 289, pos.y + 312, 66, 34, int3(173,142,66));
+	mainScreen->drawBorder(pos.x + 133, pos.y + 312, 66, 34, color2);
+	mainScreen->drawBorder(pos.x + 211, pos.y + 312, 66, 34, color2);
+	mainScreen->drawBorder(pos.x + 289, pos.y + 312, 66, 34, color2);
 }
 
 CRecruitmentWindow::CRecruitmentWindow(const CGDwelling *Dwelling, int Level, const CArmedInstance *Dst, const std::function<void(CreatureID,int)> &Recruit, int y_offset):
@@ -799,11 +803,11 @@ CTavernWindow::~CTavernWindow()
 	CCS->videoh->close();
 }
 
-void CTavernWindow::show(SDL_Surface * to)
+void CTavernWindow::show()
 {
-	CWindowObject::show(to);
+	CWindowObject::show();
 
-	CCS->videoh->update(pos.x+70, pos.y+56, to, true, false);
+	CCS->videoh->update(pos.x+70, pos.y+56, true, false);
 	if(selected >= 0)
 	{
 		HeroPortrait *sel = selected ? h2 : h1;
@@ -817,8 +821,9 @@ void CTavernWindow::show(SDL_Surface * to)
 			recruit->addHoverText(CButton::NORMAL, boost::str(boost::format(CGI->generaltexth->tavernInfo[3]) % sel->h->name % sel->h->type->heroClass->name));
 		}
 
-		printAtMiddleWBLoc(sel->description, 146, 395, FONT_SMALL, 200, Colors::WHITE, to);
-		CSDL_Ext::drawBorder(to,sel->pos.x-2,sel->pos.y-2,sel->pos.w+4,sel->pos.h+4,int3(247,223,123));
+		printAtMiddleWBLoc(sel->description, 146, 395, FONT_SMALL, 200, Colors::WHITE);
+		static const SDL_Color borderColor = {247,223,123,0};
+		mainScreen->drawBorder(sel->pos.x-2,sel->pos.y-2,sel->pos.w+4,sel->pos.h+4,borderColor);
 	}
 }
 

@@ -403,7 +403,7 @@ void CMinimapInstance::blitTileWithColor(const SDL_Color &color, const int3 &til
 {
 	//coordinates of rectangle on minimap representing this tile
 	// begin - first to blit, end - first NOT to blit
-	int xBegin, yBegin, xEnd, yEnd;
+//	int xBegin, yBegin, xEnd, yEnd;
 //	tileToPixels (tile, xBegin, yBegin, toX, toY);
 //	tileToPixels (int3 (tile.x + 1, tile.y + 1, tile.z), xEnd, yEnd, toX, toY);
 	
@@ -985,7 +985,7 @@ void CInfoBar::showGameStatus()
 	redraw();
 }
 
-void CInGameConsole::show(SDL_Surface * to)
+void CInGameConsole::show()
 {
 	int number = 0;
 
@@ -994,12 +994,12 @@ void CInGameConsole::show(SDL_Surface * to)
 	boost::unique_lock<boost::mutex> lock(texts_mx);
 	for(auto it = texts.begin(); it != texts.end(); ++it, ++number)
 	{
-		Point leftBottomCorner(0, screen->h);
+		Point leftBottomCorner(0, mainScreen->getHeight());
 		if(LOCPLINT->battleInt)
 		{
 			leftBottomCorner = LOCPLINT->battleInt->pos.bottomLeft();
 		}
-		graphics->fonts[FONT_MEDIUM]->renderTextLeft(to, it->first, Colors::GREEN,
+		graphics->fonts[FONT_MEDIUM]->renderTextLeft(it->first, Colors::GREEN,
 			Point(leftBottomCorner.x + 50, leftBottomCorner.y - texts.size() * 20 - 80 + number*20));
 
 		if(SDL_GetTicks() - it->second > defaultTimeout)

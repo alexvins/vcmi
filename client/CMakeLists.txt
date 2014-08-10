@@ -44,6 +44,14 @@ set(client_SRCS
 		windows/InfoWindows.cpp
 		windows/GUIClasses.cpp
 
+                renderer/CAcceleratedRenderer.cpp
+                renderer/CBaseRenderer.cpp
+                # TODO: OpenGLESRenderer for mobile platforms, OpenGLRenderer for desktop platforms
+                # renderer/COpenGLESRenderer.cpp
+                # renderer/COpenGLRenderer.cpp
+                renderer/CSoftRenderer.cpp
+                renderer/IRenderer.cpp
+
 		CBitmapHandler.cpp
 		CDefHandler.cpp
 		CGameInfo.cpp

@@ -290,17 +290,16 @@ void CButton::setPlayerColor(PlayerColor player)
 		image->playerColored(player);
 }
 
-void CButton::showAll(SDL_Surface * to)
+void CButton::showAll()
 {
-	CIntObject::showAll(to);
+	CIntObject::showAll();
 	
 	#ifdef VCMI_SDL1
 	if (borderColor && borderColor->unused == 0)
-		CSDL_Ext::drawBorder(to, pos.x-1, pos.y-1, pos.w+2, pos.h+2, int3(borderColor->r, borderColor->g, borderColor->b));
-	#else
+	#else	
 	if (borderColor && borderColor->a == 0)
-		CSDL_Ext::drawBorder(to, pos.x-1, pos.y-1, pos.w+2, pos.h+2, int3(borderColor->r, borderColor->g, borderColor->b));
-	#endif // 0
+	#endif // VCMI_SDL1
+		mainScreen->drawBorder(pos.x-1, pos.y-1, pos.w+2, pos.h+2, *borderColor);			
 }
 
 std::pair<std::string, std::string> CButton::tooltip()
@@ -451,26 +450,26 @@ void CToggleGroup::selectionChanged(int to)
 		parent->redraw();
 }
 
-void CToggleGroup::show(SDL_Surface * to)
+void CToggleGroup::show()
 {
 	if (musicLike)
 	{
 		if (auto intObj = dynamic_cast<CIntObject*>(buttons[selectedID])) // hack-ish workagound to avoid diamond problem with inheritance
-			intObj->show(to);
+			intObj->show();
 	}
 	else
-		CIntObject::show(to);
+		CIntObject::show();
 }
 
-void CToggleGroup::showAll(SDL_Surface * to)
+void CToggleGroup::showAll()
 {
 	if (musicLike)
 	{
 		if (auto intObj = dynamic_cast<CIntObject*>(buttons[selectedID])) // hack-ish workagound to avoid diamond problem with inheritance
-			intObj->showAll(to);
+			intObj->showAll();
 	}
 	else
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 }
 
 void CSlider::sliderClicked()
@@ -689,10 +688,10 @@ void CSlider::setAmount( int to )
 	vstd::amax(positions, 0);
 }
 
-void CSlider::showAll(SDL_Surface * to)
+void CSlider::showAll()
 {
-	CSDL_Ext::fillRectBlack(to, &pos);
-	CIntObject::showAll(to);
+	mainScreen->fillRect(0, &pos);
+	CIntObject::showAll();
 }
 
 void CSlider::wheelScrolled(bool down, bool in)
