@@ -235,8 +235,8 @@ void CRecruitmentWindow::showAll()
 {
 	CWindowObject::showAll();
 	
-	static const SDL_Color color1 = {239, 215, 123, 0};
-	static const SDL_Color color2 = {173, 142,  66, 0};
+	static const SDL_Color color1 = {239, 215, 123, 255};
+	static const SDL_Color color2 = {173, 142,  66, 255};
 	
 	// recruit\total values
 	mainScreen->drawBorder(pos.x + 172, pos.y + 222, 67, 42, color1);
@@ -822,7 +822,7 @@ void CTavernWindow::show()
 		}
 
 		printAtMiddleWBLoc(sel->description, 146, 395, FONT_SMALL, 200, Colors::WHITE);
-		static const SDL_Color borderColor = {247,223,123,0};
+		static const SDL_Color borderColor = {247,223,123,255};
 		mainScreen->drawBorder(sel->pos.x-2,sel->pos.y-2,sel->pos.w+4,sel->pos.h+4,borderColor);
 	}
 }

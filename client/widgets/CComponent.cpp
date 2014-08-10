@@ -258,12 +258,13 @@ void CSelectableComponent::select(bool on)
 	}
 }
 
-void CSelectableComponent::showAll(SDL_Surface * to)
+void CSelectableComponent::showAll()
 {
-	CComponent::showAll(to);
+	CComponent::showAll();
 	if(selected)
 	{
-		CSDL_Ext::drawBorder(to, Rect::around(image->pos), int3(239,215,123));
+		static const SDL_Color borderColor = {239,215,123,255};
+		mainScreen->drawBorder(Rect::around(image->pos), borderColor);
 	}
 }
 
