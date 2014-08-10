@@ -117,13 +117,13 @@ void CPicture::init()
 	srcRect = nullptr;
 }
 
-void CPicture::show(SDL_Surface * to)
+void CPicture::show()
 {
 	if (needRefresh)
-		showAll(to);
+		showAll();
 }
 
-void CPicture::showAll(SDL_Surface * to)
+void CPicture::showAll()
 {
 	if(bg)
 	{
@@ -133,18 +133,18 @@ void CPicture::showAll(SDL_Surface * to)
 			SDL_Rect dstRect = srcRectCpy;
 			dstRect.x = pos.x;
 			dstRect.y = pos.y;
-
-			CSDL_Ext::blitSurface(bg, &srcRectCpy, to, &dstRect);
+			
+			mainScreen->blit(bg, &srcRectCpy, &dstRect);
 		}
 		else
-			blitAt(bg, pos, to);
+			mainScreen->blit(bg, nullptr, &pos);
 	}
 }
 
 void CPicture::convertToScreenBPP()
 {
 	SDL_Surface *hlp = bg;
-	bg = SDL_ConvertSurface(hlp,screen->format,0);
+	bg = SDL_ConvertSurface(hlp,mainScreen->getFormat(),0);
 	CSDL_Ext::setDefaultColorKey(bg);	
 	SDL_FreeSurface(hlp);
 }
@@ -175,7 +175,7 @@ void CPicture::createSimpleRect(const Rect &r, bool screenFormat, ui32 color)
 	pos.w = r.w;
 	pos.h = r.h;
 	if(screenFormat)
-		bg = CSDL_Ext::newSurface(r.w, r.h);
+		bg = CSDL_Ext::newSurface(r.w, r.h, mainScreen->getFormat());
 	else
 		bg = SDL_CreateRGBSurface(SDL_SWSURFACE, r.w, r.h, 8, 0, 0, 0, 0);
 
@@ -209,10 +209,10 @@ CFilledTexture::~CFilledTexture()
 	SDL_FreeSurface(texture);
 }
 
-void CFilledTexture::showAll(SDL_Surface *to)
+void CFilledTexture::showAll()
 {
-	CSDL_Ext::CClipRectGuard guard(to, pos);
-	CSDL_Ext::fillTexture(to, texture);
+	ClipRectGuard guard(mainScreen, &pos);
+	CSDL_Ext::fillTexture(texture);
 }
 
 CAnimImage::CAnimImage(std::string name, size_t Frame, size_t Group, int x, int y, ui8 Flags):
@@ -266,16 +266,16 @@ CAnimImage::~CAnimImage()
 	delete anim;
 }
 
-void CAnimImage::showAll(SDL_Surface * to)
+void CAnimImage::showAll()
 {
 	IImage *img;
 
 	if ( flags & CShowableAnim::BASE && frame != 0)
 		if ((img = anim->getImage(0, group)))
-			img->draw(to, pos.x, pos.y);
+			img->draw(pos.x, pos.y);
 
 	if ((img = anim->getImage(frame, group)))
-		img->draw(to, pos.x, pos.y);
+		img->draw(pos.x, pos.y);
 }
 
 void CAnimImage::setFrame(size_t Frame, size_t Group)
@@ -394,11 +394,11 @@ void CShowableAnim::clipRect(int posX, int posY, int width, int height)
 	pos.h = height;
 }
 
-void CShowableAnim::show(SDL_Surface * to)
+void CShowableAnim::show()
 {
 	if ( flags & BASE )// && frame != first) // FIXME: results in graphical glytch in Fortress, upgraded hydra's dwelling
-		blitImage(first, group, to);
-	blitImage(frame, group, to);
+		blitImage(first, group);
+	blitImage(frame, group);
 
 	if ((flags & PLAY_ONCE) && frame + 1 == last)
 		return;
@@ -411,20 +411,19 @@ void CShowableAnim::show(SDL_Surface * to)
 	}
 }
 
-void CShowableAnim::showAll(SDL_Surface * to)
+void CShowableAnim::showAll()
 {
 	if ( flags & BASE )// && frame != first)
-		blitImage(first, group, to);
-	blitImage(frame, group, to);
+		blitImage(first, group);
+	blitImage(frame, group);
 }
 
-void CShowableAnim::blitImage(size_t frame, size_t group, SDL_Surface *to)
+void CShowableAnim::blitImage(size_t frame, size_t group)
 {
-	assert(to);
 	Rect src( xOffset, yOffset, pos.w, pos.h);
 	IImage * img = anim->getImage(frame, group);
 	if (img)
-		img->draw(to, pos.x-xOffset, pos.y-yOffset, &src, alpha);
+		img->draw(pos.x-xOffset, pos.y-yOffset, &src, alpha);
 }
 
 void CShowableAnim::rotate(bool on, bool vertical)

@@ -49,8 +49,8 @@ public:
 
 	void scaleTo(Point size);
 	void createSimpleRect(const Rect &r, bool screenFormat, ui32 color);
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show();
+	void showAll();
 	void convertToScreenBPP();
 	void colorizeAndConvert(PlayerColor player);
 	void colorize(PlayerColor player);
@@ -124,7 +124,7 @@ protected:
 	ui8 flags;//Flags from EFlags enum
 
 	//blit image with optional rotation, fitting into rect, etc
-	void blitImage(size_t frame, size_t group, SDL_Surface *to);
+	void blitImage(size_t frame, size_t group);
 
 	//For clipping in rect, offsets of picture coordinates
 	int xOffset, yOffset;
@@ -155,8 +155,8 @@ public:
 	virtual void reset();
 
 	//show current frame and increase counter
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show();
+	void showAll();
 };
 
 /// Creature-dependend animations like attacking, moving,...
