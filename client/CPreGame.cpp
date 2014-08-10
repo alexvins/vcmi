@@ -3182,12 +3182,11 @@ void CBonusSelection::init()
 
 		SDL_Surface * panel = BitmapHandler::loadBitmap("CAMPBRF.BMP");		
 		mainScreen->blit(panel, 456, 6);
-		SDL_FreeSurface(panel);		
+		SDL_FreeSurface(panel);
 
-
-	startB   = new CButton(Point(475, 536), "CBBEGIB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::startMap, this), SDLK_RETURN);
-	restartB = new CButton(Point(475, 536), "CBRESTB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::restartMap, this), SDLK_RETURN);
-	backB    = new CButton(Point(624, 536), "CBCANCB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::goBack, this), SDLK_ESCAPE);
+		startB   = new CButton(Point(475, 536), "CBBEGIB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::startMap, this), SDLK_RETURN);
+		restartB = new CButton(Point(475, 536), "CBRESTB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::restartMap, this), SDLK_RETURN);
+		backB    = new CButton(Point(624, 536), "CBCANCB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::goBack, this), SDLK_ESCAPE);
 
 		//map size icon
 		sizes = CDefHandler::giveDef("SCNRMPSZ.DEF");
@@ -3202,35 +3201,32 @@ void CBonusSelection::init()
 
 		//bonus choosing
 		graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
-		bonuses = new CHighlightableButtonsGroup(bind(&CBonusSelection::selectBonus, this, _1));
+		bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
 
-	//bonus choosing
-	graphics->fonts[FONT_MEDIUM]->renderTextLeft(background, CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
-	bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
-
-	//set left part of window
-	bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
-	for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
-	{
-		if(ourCampaign->camp->conquerable(g))
+		//set left part of window
+		bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
+		for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
 		{
 			if(ourCampaign->camp->conquerable(g))
 			{
-				regions.push_back(new CRegion(this, true, true, g));
-				regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
-				if(highlightedRegion == nullptr)
+				if(ourCampaign->camp->conquerable(g))
 				{
-					if(!isCurrentMapConquerable || (isCurrentMapConquerable && g == *ourCampaign->currentMap))
+					regions.push_back(new CRegion(this, true, true, g));
+					regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
+					if(highlightedRegion == nullptr)
 					{
-						highlightedRegion = regions.back();
-						selectMap(g, true);
+						if(!isCurrentMapConquerable || (isCurrentMapConquerable && g == *ourCampaign->currentMap))
+						{
+							highlightedRegion = regions.back();
+							selectMap(g, true);
+						}
 					}
 				}
-			}
-			else if (ourCampaign->camp->scenarios[g].conquered) //display as striped
-			{
-				regions.push_back(new CRegion(this, false, false, g));
-				regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
+				else if (ourCampaign->camp->scenarios[g].conquered) //display as striped
+				{
+					regions.push_back(new CRegion(this, false, false, g));
+					regions[regions.size()-1]->rclickText = ourCampaign->camp->scenarios[g].regionText;
+				}
 			}
 		}
 

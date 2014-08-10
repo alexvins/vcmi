@@ -68,7 +68,7 @@ CWindowObject::CWindowObject(int options_, std::string imageName):
 	if (background)
 		pos = background->center();
 	else
-		center(Point(screen->w/2, screen->h/2));
+		center(Point(mainScreen->getWidth()/2, mainScreen->getHeight()/2));
 
 	if (!(options & SHADOW_DISABLED))
 		setShadow(true);
@@ -223,11 +223,11 @@ void CWindowObject::setShadow(bool on)
 	}
 }
 
-void CWindowObject::showAll(SDL_Surface *to)
+void CWindowObject::showAll()
 {
-	CIntObject::showAll(to);
-	if ((options & BORDERED) && (pos.h != to->h || pos.w != to->w))
-		CMessage::drawBorder(LOCPLINT ? LOCPLINT->playerID : PlayerColor(1), to, pos.w+28, pos.h+29, pos.x-14, pos.y-15);
+	CIntObject::showAll();
+	if ((options & BORDERED) && (pos.h != mainScreen->getHeight() || pos.w != mainScreen->getWidth()))
+		CMessage::drawBorder(LOCPLINT ? LOCPLINT->playerID : PlayerColor(1), pos.w+28, pos.h+29, pos.x-14, pos.y-15);
 }
 
 void CWindowObject::close()

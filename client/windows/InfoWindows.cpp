@@ -240,23 +240,23 @@ void CInfoWindow::setDelComps(bool DelComps)
 	}
 }
 
-CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, int x, int y, bool Free)
+CInfoPopup::CInfoPopup(IRenderTarget * Bitmap, int x, int y, bool Free)
  :free(Free),bitmap(Bitmap)
 {
 	init(x, y);
 }
 
 
-CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, const Point &p, EAlignment alignment, bool Free/*=false*/)
+CInfoPopup::CInfoPopup(IRenderTarget * Bitmap, const Point &p, EAlignment alignment, bool Free/*=false*/)
  : free(Free),bitmap(Bitmap)
 {
 	switch(alignment)
 	{
 	case BOTTOMRIGHT:
-		init(p.x - Bitmap->w, p.y - Bitmap->h);
+		init(p.x - Bitmap->getWidth(), p.y - Bitmap->getHeight());
 		break;
 	case CENTER:
-		init(p.x - Bitmap->w/2, p.y - Bitmap->h/2);
+		init(p.x - Bitmap->getWidth()/2, p.y - Bitmap->getHeight()/2);
 		break;
 	case TOPLEFT:
 		init(p.x, p.y);
@@ -266,7 +266,7 @@ CInfoPopup::CInfoPopup(SDL_Surface * Bitmap, const Point &p, EAlignment alignmen
 	}
 }
 
-CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
+CInfoPopup::CInfoPopup(IRenderTarget *Bitmap, bool Free)
 {
 	CCS->curh->hide();
 
@@ -275,23 +275,23 @@ CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
 
 	if(bitmap)
 	{
-		pos.x = mainScreen->getWidth()/2 - bitmap->w/2;
-		pos.y = mainScreen->getHeight()/2 - bitmap->h/2;
-		pos.h = bitmap->h;
-		pos.w = bitmap->w;
+		pos.x = mainScreen->getWidth()/2 - bitmap->getWidth()/2;
+		pos.y = mainScreen->getHeight()/2 - bitmap->getHeight()/2;
+		pos.h = bitmap->getHeight();
+		pos.w = bitmap->getWidth();
 	}
 }
 
 void CInfoPopup::close()
 {
 	if(free)
-		SDL_FreeSurface(bitmap);
+		delete bitmap;
 	GH.popIntTotally(this);
 }
 
-void CInfoPopup::show(SDL_Surface * to)
+void CInfoPopup::show()
 {
-	blitAt(bitmap,pos.x,pos.y,to);
+	bitmap->blitTo(nullptr, &pos);
 }
 
 CInfoPopup::~CInfoPopup()
@@ -305,14 +305,14 @@ void CInfoPopup::init(int x, int y)
 
 	pos.x = x;
 	pos.y = y;
-	pos.h = bitmap->h;
-	pos.w = bitmap->w;
+	pos.h = bitmap->getHeight();
+	pos.w = bitmap->getWidth();
 
 	// Put the window back on screen if necessary
 	vstd::amax(pos.x, 0);
 	vstd::amax(pos.y, 0);
-	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->w);
-	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->h);
+	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->getWidth());
+	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->getHeight());
 }
 
 

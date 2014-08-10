@@ -38,6 +38,7 @@ class CToggleGroup;
 class CTabbedInt;
 class CButton;
 class CSlider;
+class IRenderTarget;
 
 namespace boost{ class thread; class recursive_mutex;}
 

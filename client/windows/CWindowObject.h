@@ -41,7 +41,7 @@ protected:
 	//Used only if RCLICK_POPUP was set
 	void clickRight(tribool down, bool previousState);
 	//To display border
-	void showAll(SDL_Surface *to);
+	void showAll() override;
 	//change or set background image
 	void setBackground(std::string filename);
 	void updateShadow();
