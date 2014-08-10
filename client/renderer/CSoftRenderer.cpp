@@ -105,6 +105,11 @@ namespace SoftRenderer
 		
 		blitter = CSDL_Ext::getBlitterWithRotation(surface);
 		alphaBlitter = CSDL_Ext::getBlitterWithRotationAndAlpha(surface); 
+		
+		#ifndef VCMI_SDL1
+		//No blending for targets themselves 
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);	
+		#endif // VCMI_SDL1			
 	}
 	
 
@@ -141,11 +146,7 @@ namespace SoftRenderer
 	RenderTarget::RenderTarget(Window * owner, int width, int height):
 		SurfaceProxy(owner->getRenderer()), window(owner)
 	{
-		surface = CSDL_Ext::newSurface(width, height, owner->surface);
-		#ifndef VCMI_SDL1
-		//No blending for targets themselves 
-		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);	
-		#endif // VCMI_SDL1		
+		setSurface(CSDL_Ext::newSurface(width, height, owner->surface));	
 	}
 
 	RenderTarget::~RenderTarget()
@@ -202,21 +203,21 @@ namespace SoftRenderer
 	
 	void Window::blitAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect)
 	{
-		#ifdef VCMI_SDL1
+//		#ifdef VCMI_SDL1
 		if(what->format->BytesPerPixel == 8)
-			CSDL_Ext::blit8bppAlphaTo24bpp(what, srcrect, activeTarget->surface, dstrect)
+			CSDL_Ext::blit8bppAlphaTo24bpp(what, srcrect, activeTarget->surface, dstrect);
 		else
 		   SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);		
-		#else
-		
-		Uint8 oldBlendMode = 0;
-		SDL_GetSurfaceAlphaMod(what, &oldBlendMode);
-		SDL_SetSurfaceAlphaMod(what, SDL_BLENDMODE_BLEND);
-		
-		SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);
-		
-		SDL_SetSurfaceAlphaMod(what, oldBlendMode);		
-		#endif // VCMI_SDL1
+//		#else
+//		
+//		Uint8 oldBlendMode = 0;
+//		SDL_GetSurfaceAlphaMod(what, &oldBlendMode);
+//		SDL_SetSurfaceAlphaMod(what, SDL_BLENDMODE_BLEND);
+//		
+//		SDL_BlitSurface(what, srcrect, activeTarget->surface, dstrect);
+//		
+//		SDL_SetSurfaceAlphaMod(what, oldBlendMode);		
+//		#endif // VCMI_SDL1
 	}
 	
 	void Window::blitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation)
@@ -338,7 +339,29 @@ namespace SoftRenderer
 			return false;
 		}	
 			
-		clear();		
+		#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+			int bmask = 0xff000000;
+			int gmask = 0x00ff0000;
+			int rmask = 0x0000ff00;
+			int amask = 0x000000ff;
+		#else
+			int bmask = 0x000000ff;
+			int gmask = 0x0000ff00;
+			int rmask = 0x00ff0000;
+			int amask = 0xFF000000;
+		#endif
+
+		SDL_Surface * tmpSurface = SDL_CreateRGBSurface(0,w,h,bpp,rmask,gmask,bmask,amask);
+		if(nullptr == tmpSurface)
+		{
+			logGlobal->errorStream() << "Unable to create surface";
+			logGlobal->errorStream() << w << " "<<  h << " "<< bpp;
+			
+			logGlobal->errorStream() << SDL_GetError();
+			throw std::runtime_error("Unable to create surface");
+		}	
+		
+		setSurface(tmpSurface);
 		
 		if(fullscreen)
 		{
@@ -366,29 +389,7 @@ namespace SoftRenderer
 		
 		SDL_RenderSetViewport(sdlRenderer, nullptr);
 		
-		#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
-			int bmask = 0xff000000;
-			int gmask = 0x00ff0000;
-			int rmask = 0x0000ff00;
-			int amask = 0x000000ff;
-		#else
-			int bmask = 0x000000ff;
-			int gmask = 0x0000ff00;
-			int rmask = 0x00ff0000;
-			int amask = 0xFF000000;
-		#endif
 
-		surface = SDL_CreateRGBSurface(0,w,h,bpp,rmask,gmask,bmask,amask);
-		if(nullptr == surface)
-		{
-			logGlobal->errorStream() << "Unable to create surface";
-			logGlobal->errorStream() << w << " "<<  h << " "<< bpp;
-			
-			logGlobal->errorStream() << SDL_GetError();
-			throw std::runtime_error("Unable to create surface");
-		}	
-		//No blending for screen itself. Required for proper cursor rendering.
-		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
 		
 		screenTexture = SDL_CreateTexture(sdlRenderer,
 												SDL_PIXELFORMAT_ARGB8888,

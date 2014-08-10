@@ -55,6 +55,7 @@ class EffectGuard: public boost::noncopyable
 public:
 	enum EffectType 
 	{
+		NO_EFFECT = -1,
 		SEPIA = 0,
 		GRAYSCALE = 1
 	};

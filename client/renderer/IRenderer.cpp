@@ -24,10 +24,12 @@ ClipRectGuard::~ClipRectGuard()
 
 EffectGuard::EffectGuard(IWindow * window, const SDL_Rect * clipRect, EffectType type)
 {
-	handle = window->applyEffect(clipRect, type); 
+	handle = nullptr;
+	if(type!=NO_EFFECT)
+		handle = window->applyEffect(clipRect, type); 
 };
 EffectGuard::~EffectGuard()
-{
+{	
 	delete handle;
 };
 

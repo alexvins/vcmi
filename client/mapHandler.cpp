@@ -472,7 +472,7 @@ void CMapHandler::terrainRect(int3 top_tile, ui8 anim, const std::vector< std::v
 		heroAnim = anim; //the same, as it should be
 		
 	ClipRectGuard crGuard(mainScreen, extRect);
-	EffectGuard eGuard(mainScreen, extRect, (ADVOPT.puzzleSepia ? EffectGuard::SEPIA : EffectGuard::GRAYSCALE));
+	EffectGuard eGuard(mainScreen, extRect, puzzleMode ? (ADVOPT.puzzleSepia ? EffectGuard::SEPIA : EffectGuard::GRAYSCALE) : EffectGuard::NO_EFFECT);
 
 	// printing terrain
 	srx = srx_init;
