@@ -2,15 +2,15 @@
 <CodeBlocks_workspace_file>
 	<Workspace title="vcmi">
 		<Project filename="lib/minizip/minizip.cbp" />
-		<Project filename="client/VCMI_client.cbp">
-			<Depends filename="lib/VCMI_lib.cbp" />
-			<Depends filename="server/VCMI_server.cbp" />
-		</Project>
 		<Project filename="lib/VCMI_lib.cbp">
 			<Depends filename="lib/minizip/minizip.cbp" />
 		</Project>
 		<Project filename="server/VCMI_server.cbp">
 			<Depends filename="lib/VCMI_lib.cbp" />
+		</Project>
+		<Project filename="client/VCMI_client.cbp">
+			<Depends filename="lib/VCMI_lib.cbp" />
+			<Depends filename="server/VCMI_server.cbp" />
 		</Project>
 		<Project filename="AI/FuzzyLite/FuzzyLite.cbp" />
 		<Project filename="AI/EmptyAI/EmptyAI.cbp">

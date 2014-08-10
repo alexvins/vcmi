@@ -40,16 +40,16 @@
  *
  */
 
-void CSimpleWindow::show(SDL_Surface * to)
+void CSimpleWindow::show()
 {
 	if(bitmap)
-		blitAt(bitmap,pos.x,pos.y,to);
+		bitmap->blitTo(nullptr,&pos);
 }
 CSimpleWindow::~CSimpleWindow()
 {
 	if (bitmap)
 	{
-		SDL_FreeSurface(bitmap);
+		delete bitmap;
 		bitmap=nullptr;
 	}
 }
@@ -164,9 +164,9 @@ void CInfoWindow::close()
 		LOCPLINT->showingDialog->setn(false);
 }
 
-void CInfoWindow::show(SDL_Surface * to)
+void CInfoWindow::show()
 {
-	CIntObject::show(to);
+	CIntObject::show();
 }
 
 CInfoWindow::~CInfoWindow()
@@ -178,10 +178,10 @@ CInfoWindow::~CInfoWindow()
 	}
 }
 
-void CInfoWindow::showAll(SDL_Surface * to)
+void CInfoWindow::showAll()
 {
-	CSimpleWindow::show(to);
-	CIntObject::showAll(to);
+	CSimpleWindow::show();
+	CIntObject::showAll();
 }
 
 void CInfoWindow::showInfoDialog(const std::string &text, const std::vector<CComponent *> *components, bool DelComps, PlayerColor player)
@@ -275,8 +275,8 @@ CInfoPopup::CInfoPopup(SDL_Surface *Bitmap, bool Free)
 
 	if(bitmap)
 	{
-		pos.x = screen->w/2 - bitmap->w/2;
-		pos.y = screen->h/2 - bitmap->h/2;
+		pos.x = mainScreen->getWidth()/2 - bitmap->w/2;
+		pos.y = mainScreen->getHeight()/2 - bitmap->h/2;
 		pos.h = bitmap->h;
 		pos.w = bitmap->w;
 	}
@@ -311,8 +311,8 @@ void CInfoPopup::init(int x, int y)
 	// Put the window back on screen if necessary
 	vstd::amax(pos.x, 0);
 	vstd::amax(pos.y, 0);
-	vstd::amin(pos.x, screen->w - bitmap->w);
-	vstd::amin(pos.y, screen->h - bitmap->h);
+	vstd::amin(pos.x, mainScreen->getWidth() - bitmap->w);
+	vstd::amin(pos.y, mainScreen->getHeight() - bitmap->h);
 }
 
 
@@ -370,9 +370,9 @@ CRClickPopup::~CRClickPopup()
 {
 }
 
-void CRClickPopupInt::show(SDL_Surface * to)
+void CRClickPopupInt::show()
 {
-	inner->show(to);
+	inner->show();
 }
 
 CRClickPopupInt::CRClickPopupInt( IShowActivatable *our, bool deleteInt )
@@ -390,9 +390,9 @@ CRClickPopupInt::~CRClickPopupInt()
 	CCS->curh->show();
 }
 
-void CRClickPopupInt::showAll(SDL_Surface * to)
+void CRClickPopupInt::showAll()
 {
-	inner->showAll(to);
+	inner->showAll();
 }
 
 Point CInfoBoxPopup::toScreen(Point p)

@@ -16,6 +16,7 @@ class CGGarrison;
 class CTextBox;
 class CButton;
 class CSlider;
+class IRenderTarget;
 
 /*
  * InfoWindows.h, part of VCMI engine
@@ -30,8 +31,8 @@ class CSlider;
 class CSimpleWindow : public CIntObject
 {
 public:
-	SDL_Surface * bitmap; //background
-	virtual void show(SDL_Surface * to);
+	IRenderTarget * bitmap; //background
+	virtual void show();
 	CSimpleWindow():bitmap(nullptr){}; //c-tor
 	virtual ~CSimpleWindow(); //d-tor
 };
@@ -53,8 +54,8 @@ public:
 	void setDelComps(bool DelComps);
 	virtual void close();
 
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	void sliderMoved(int to);
 
 	CInfoWindow(std::string Text, PlayerColor player, const TCompsInfo &comps = TCompsInfo(), const TButtonsInfo &Buttons = TButtonsInfo(), bool delComps = true); //c-tor
@@ -94,8 +95,8 @@ public:
 	IShowActivatable *inner;
 	bool delInner;
 
-	void show(SDL_Surface * to);
-	void showAll(SDL_Surface * to);
+	void show() override;
+	void showAll() override;
 	CRClickPopupInt(IShowActivatable *our, bool deleteInt); //c-tor
 	virtual ~CRClickPopupInt(); //d-tor
 };
