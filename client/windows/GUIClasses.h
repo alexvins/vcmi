@@ -266,7 +266,7 @@ public:
 
 	void recruitb();
 	void thievesguildb();
-	void show();
+	void show() override;
 };
 
 class CExchangeWindow : public CWindowObject, public CWindowWithGarrison, public CWindowWithArtifacts
@@ -430,7 +430,7 @@ public:
 
 	CHillFortWindow(const CGHeroInstance *visitor, const CGObjectInstance *object); //c-tor
 
-	void showAll (SDL_Surface *to);
+	void showAll() override;
 	std::string getDefForSlot(SlotID slot);//return def name for this slot
 	std::string getTextForSlot(SlotID slot);//return hover text for this slot
 	void makeDeal(SlotID slot);//-1 for upgrading all creatures

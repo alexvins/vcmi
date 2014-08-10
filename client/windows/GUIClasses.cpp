@@ -1128,7 +1128,7 @@ CPuzzleWindow::CPuzzleWindow(const int3 &GrailPos, double discoveredRatio):
 	}
 }
 
-void CPuzzleWindow::showAll(SDL_Surface * to)
+void CPuzzleWindow::showAll()
 {
 	int3 moveInt = int3(8, 9, 0);
 	Rect mapRect = genRect(544, 591, pos.x + 8, pos.y + 7);
@@ -1136,12 +1136,12 @@ void CPuzzleWindow::showAll(SDL_Surface * to)
 	CGI->mh->terrainRect
 		(grailPos - moveInt, adventureInt->anim,
 		 &LOCPLINT->cb->getVisibilityMap(), true, adventureInt->heroAnim,
-		 to, &mapRect, 0, 0, true, moveInt);
+		 &mapRect, 0, 0, true, moveInt);
 
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 }
 
-void CPuzzleWindow::show(SDL_Surface * to)
+void CPuzzleWindow::show()
 {
 	static int animSpeed = 2;
 
@@ -1159,7 +1159,7 @@ void CPuzzleWindow::show(SDL_Surface * to)
 			piece->setAlpha(currentAlpha);
 		currentAlpha -= animSpeed;
 	}
-	CWindowObject::show(to);
+	CWindowObject::show();
 }
 
 void CTransformerWindow::CItem::move()
@@ -1176,7 +1176,10 @@ void CTransformerWindow::CItem::clickLeft(tribool down, bool previousState)
 	if(previousState && (!down))
 	{
 		move();
-		parent->showAll(screen2);
+		bufferScreen->runActivated([this](){
+			parent->showAll();
+		});
+		
 	}
 }
 
@@ -1212,7 +1215,9 @@ void CTransformerWindow::addAll()
 	for (auto & elem : items)
 		if (elem->left)
 			elem->move();
-	showAll(screen2);
+	bufferScreen->runActivated([this](){			
+		showAll();
+	});	
 }
 
 void CTransformerWindow::updateGarrisons()
@@ -1289,7 +1294,7 @@ int CUniversityWindow::CItem::state()
 	return 2;
 }
 
-void CUniversityWindow::CItem::showAll(SDL_Surface * to)
+void CUniversityWindow::CItem::showAll()
 {
 	CPicture * bar;
 	switch (state())
@@ -1305,12 +1310,12 @@ void CUniversityWindow::CItem::showAll(SDL_Surface * to)
 	}
 	assert(bar);
 
-	blitAtLoc(bar->bg, -28, -22, to);
-	blitAtLoc(bar->bg, -28,  48, to);
-	printAtMiddleLoc  (CGI->generaltexth->skillName[ID], 22, -13, FONT_SMALL, Colors::WHITE,to);//Name
-	printAtMiddleLoc  (CGI->generaltexth->levels[0], 22, 57, FONT_SMALL, Colors::WHITE,to);//Level(always basic)
+	blitAtLoc(bar->bg, -28, -22);
+	blitAtLoc(bar->bg, -28,  48);
+	printAtMiddleLoc  (CGI->generaltexth->skillName[ID], 22, -13, FONT_SMALL, Colors::WHITE);//Name
+	printAtMiddleLoc  (CGI->generaltexth->levels[0], 22, 57, FONT_SMALL, Colors::WHITE);//Level(always basic)
 
-	CAnimImage::showAll(to);
+	CAnimImage::showAll();
 }
 
 CUniversityWindow::CItem::CItem(CUniversityWindow * _parent, int _ID, int X, int Y):
@@ -1501,9 +1506,9 @@ void CHillFortWindow::makeDeal(SlotID slot)
 	}
 }
 
-void CHillFortWindow::showAll (SDL_Surface *to)
+void CHillFortWindow::showAll()
 {
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
 
 	for ( int i=0; i<slotsCount; i++)
 	{
@@ -1517,15 +1522,15 @@ void CHillFortWindow::showAll (SDL_Surface *to)
 					int val = costs[i][j];
 					if(!val) continue;
 
-					blitAtLoc(resources->ourImages[j].bitmap, 104+76*i, curY, to);
-					printToLoc(boost::lexical_cast<std::string>(val), 168+76*i, curY+16, FONT_SMALL, Colors::WHITE, to);
+					blitAtLoc(resources->ourImages[j].bitmap, 104+76*i, curY);
+					printToLoc(boost::lexical_cast<std::string>(val), 168+76*i, curY+16, FONT_SMALL, Colors::WHITE);
 					curY += 20;
 				}
 			}
 			else//free upgrade - print gold image and "Free" text
 			{
-				blitAtLoc(resources->ourImages[6].bitmap, 104+76*i, 128, to);
-				printToLoc(CGI->generaltexth->allTexts[344], 168+76*i, 144, FONT_SMALL, Colors::WHITE, to);
+				blitAtLoc(resources->ourImages[6].bitmap, 104+76*i, 128);
+				printToLoc(CGI->generaltexth->allTexts[344], 168+76*i, 144, FONT_SMALL, Colors::WHITE);
 			}
 		}
 	}
@@ -1533,8 +1538,8 @@ void CHillFortWindow::showAll (SDL_Surface *to)
 	{
 		if (totalSumm[i])//this resource is used - display it
 		{
-			blitAtLoc(resources->ourImages[i].bitmap, 104+76*i, 237, to);
-			printToLoc(boost::lexical_cast<std::string>(totalSumm[i]), 166+76*i, 253, FONT_SMALL, Colors::WHITE, to);
+			blitAtLoc(resources->ourImages[i].bitmap, 104+76*i, 237);
+			printToLoc(boost::lexical_cast<std::string>(totalSumm[i]), 166+76*i, 253, FONT_SMALL, Colors::WHITE);
 		}
 	}
 }

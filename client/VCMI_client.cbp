@@ -159,6 +159,8 @@
 		<Unit filename="battle/CBattleInterfaceClasses.h" />
 		<Unit filename="battle/CCreatureAnimation.cpp" />
 		<Unit filename="battle/CCreatureAnimation.h" />
+		<Unit filename="gui/CAnimation.cpp" />
+		<Unit filename="gui/CAnimation.h" />
 		<Unit filename="gui/CCursorHandler.cpp" />
 		<Unit filename="gui/CCursorHandler.h" />
 		<Unit filename="gui/CGuiHandler.cpp" />

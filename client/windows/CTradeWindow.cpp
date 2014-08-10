@@ -123,7 +123,7 @@ int CTradeWindow::CTradeableItem::getIndex()
 	}
 }
 
-void CTradeWindow::CTradeableItem::showAll(SDL_Surface * to)
+void CTradeWindow::CTradeableItem::showAll()
 {
 	Point posToBitmap;
 	Point posToSubCenter;
@@ -157,10 +157,10 @@ void CTradeWindow::CTradeableItem::showAll(SDL_Surface * to)
 	if (image)
 	{
 		image->moveTo(pos.topLeft() + posToBitmap);
-		CIntObject::showAll(to);
+		CIntObject::showAll();
 	}
 
-	printAtMiddleLoc(subtitle, posToSubCenter, FONT_SMALL, Colors::WHITE, to);
+	printAtMiddleLoc(subtitle, posToSubCenter, FONT_SMALL, Colors::WHITE);
 }
 
 void CTradeWindow::CTradeableItem::clickLeft(tribool down, bool previousState)
@@ -214,7 +214,7 @@ void CTradeWindow::CTradeableItem::clickLeft(tribool down, bool previousState)
 	}
 }
 
-void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::string &customSub, SDL_Surface * to)
+void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::string &customSub)
 {
 	Rect oldPos = pos;
 	std::string oldSub = subtitle;
@@ -222,7 +222,7 @@ void CTradeWindow::CTradeableItem::showAllAt(const Point &dstPos, const std::str
 
 	moveTo(dstPos);
 	subtitle = customSub;
-	showAll(to);
+	showAll();
 
 	downSelection = false;
 	moveTo(oldPos.topLeft());
@@ -554,19 +554,21 @@ void CTradeWindow::initSubs(bool Left)
 	}
 }
 
-void CTradeWindow::showAll(SDL_Surface * to)
+void CTradeWindow::showAll()
 {
-	CWindowObject::showAll(to);
+	CWindowObject::showAll();
+
+	static const SDL_Color borderColor = {255 ,231, 148, 255};
 
 	if(hRight)
-		CSDL_Ext::drawBorder(to,hRight->pos.x-1,hRight->pos.y-1,hRight->pos.w+2,hRight->pos.h+2,int3(255,231,148));
+		mainScreen->drawBorder(hRight->pos.x-1,hRight->pos.y-1,hRight->pos.w+2,hRight->pos.h+2,borderColor);
 	if(hLeft && hLeft->type != ARTIFACT_INSTANCE)
-		CSDL_Ext::drawBorder(to,hLeft->pos.x-1,hLeft->pos.y-1,hLeft->pos.w+2,hLeft->pos.h+2,int3(255,231,148));
+		mainScreen->drawBorder(hLeft->pos.x-1,hLeft->pos.y-1,hLeft->pos.w+2,hLeft->pos.h+2,borderColor);
 
 	if(readyToTrade)
 	{
-		hLeft->showAllAt(pos.topLeft() + selectionOffset(true), selectionSubtitle(true), to);
-		hRight->showAllAt(pos.topLeft() + selectionOffset(false), selectionSubtitle(false), to);
+		hLeft->showAllAt(pos.topLeft() + selectionOffset(true), selectionSubtitle(true));
+		hRight->showAllAt(pos.topLeft() + selectionOffset(false), selectionSubtitle(false));
 	}
 }
 
@@ -1440,17 +1442,17 @@ void CAltarWindow::artifactPicked()
 	redraw();
 }
 
-void CAltarWindow::showAll(SDL_Surface * to)
+void CAltarWindow::showAll()
 {
-	CTradeWindow::showAll(to);
+	CTradeWindow::showAll();
 	if(mode == EMarketMode::ARTIFACT_EXP && arts && arts->commonInfo->src.art)
 	{
 		artIcon->setFrame(arts->commonInfo->src.art->artType->iconIndex);
-		artIcon->showAll(to);
+		artIcon->showAll();
 
 		int dmp, val;
 		market->getOffer(arts->commonInfo->src.art->artType->id, 0, dmp, val, EMarketMode::ARTIFACT_EXP);
-		printAtMiddleLoc(boost::lexical_cast<std::string>(val), 304, 498, FONT_SMALL, Colors::WHITE, to);
+		printAtMiddleLoc(boost::lexical_cast<std::string>(val), 304, 498, FONT_SMALL, Colors::WHITE);
 	}
 }
 
