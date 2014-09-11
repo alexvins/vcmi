@@ -672,10 +672,14 @@ bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos)
 		}
 	}
 	ui32 desiredValue = gen->rand.nextInt(minValue, maxValue);
+	//quantize value to let objects with value equal to max spawn too
+	ui32 diff = maxValue - minValue;
+	float quant = (float)diff / 4.f;
+	desiredValue = (boost::math::round((float)(desiredValue - minValue) / quant)) * quant + minValue;
 
 	int currentValue = 0;
 	CGObjectInstance * object = nullptr;
-	while (currentValue < desiredValue)
+	while (currentValue < minValue) //we don't want to spawn worthless items for greater piles when their value gets low, so abort earlier 
 	{
 		treasures[info.nextTreasurePos] = nullptr;
 
@@ -1086,8 +1090,12 @@ bool CRmgTemplateZone::createRequiredObjects(CMapGenerator* gen)
 
 void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 {
+	//treasure density is proportional to map siz,e but must be scaled bakc to map size
+	//also, normalize it to zone count - higher count means relative smaller zones
+
 	//this is squared distance for optimization purposes
-	const double minDistance = std::max<float>(200.f / totalDensity, 4);
+	const double minDistance = std::max<float>((600.f * size * size * gen->getZones().size()) /
+		(gen->mapGenOptions->getWidth() * gen->mapGenOptions->getHeight() * totalDensity), 2);
 	//distance lower than 2 causes objects to overlap and crash
 
 	do {

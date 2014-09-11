@@ -18,13 +18,21 @@ bfs::path IVCMIDirs::userSavePath() const { return userDataPath() / "Saves"; }
 void IVCMIDirs::init()
 {
 	// TODO: Log errors
-	bfs::create_directory(userDataPath());
-	bfs::create_directory(userCachePath());
-	bfs::create_directory(userConfigPath());
-	bfs::create_directory(userSavePath());
+	bfs::create_directories(userDataPath());
+	bfs::create_directories(userCachePath());
+	bfs::create_directories(userConfigPath());
+	bfs::create_directories(userSavePath());
 }
 
 #ifdef VCMI_WINDOWS
+
+#ifdef __MINGW32__
+    #define _WIN32_IE 0x0500
+
+	#ifndef CSIDL_MYDOCUMENTS
+	#define CSIDL_MYDOCUMENTS CSIDL_PERSONAL
+	#endif    
+#endif // __MINGW32__
 
 #include <Windows.h>
 #include <Shlobj.h>
@@ -150,7 +158,7 @@ void VCMIDirsWIN32::init()
 		{
 			// IVCMIDirs::init() should create all destination directories.
 			// TODO: Log fact, that we shouldn't be here.
-			bfs::create_directory(to);
+			bfs::create_directories(to);
 		}
 
 		// Why the hell path strings should be end with double null :/
@@ -394,7 +402,7 @@ void VCMIDirsOSX::init()
 		{
 			// IVCMIDirs::init() should create all destination directories.
 			// TODO: Log fact, that we shouldn't be here.
-			bfs::create_directory(to);
+			bfs::create_directories(to);
 		}
 
 		for (bfs::directory_iterator file(from); file != bfs::directory_iterator(); ++file)
