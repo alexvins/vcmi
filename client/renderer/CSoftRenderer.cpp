@@ -19,13 +19,21 @@
 #include <SDL_hints.h>
 #endif // VCMI_SDL1
 
+#include "CSoftRenderer.h"
+
 #include "../../lib/CConfigHandler.h"
 #include "../gui/CIntObject.h"
 #include "../gui/SDL_Extensions.h"
 #include "../gui/Geometries.h"
 
 
-#include "CSoftRenderer.h"
+
+#ifndef DISABLE_VIDEO
+	extern "C" {
+	#include <libavformat/avformat.h>
+	#include <libswscale/swscale.h>
+	}
+#endif // DISABLE_VIDEO
 
 namespace SoftRenderer
 {
@@ -169,6 +177,60 @@ namespace SoftRenderer
 		CSDL_Ext::applyEffect(target->surface,&clipRect, type);
 	}
 
+#ifndef DISABLE_VIDEO
+
+	///VideoOverlay
+	VideoOverlay::VideoOverlay(Window * owner, int width, int height):
+		owner(owner), width(width), height(height)		
+	{		
+	#ifdef VCMI_SDL1
+		overlay = SDL_CreateYUVOverlay(width, height, SDL_YV12_OVERLAY, owner->surface);
+	#else
+		overlay = SDL_CreateTexture(owner->sdlRenderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STATIC, width, height);
+	#endif		
+	}
+
+	void VideoOverlay::showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext)
+	{
+		AVPicture pict;		
+	#ifdef VCMI_SDL1
+		SDL_LockYUVOverlay(overlay);
+
+		pict.data[0] = overlay->pixels[0];
+		pict.data[1] = overlay->pixels[2];
+		pict.data[2] = overlay->pixels[1];
+
+		pict.linesize[0] = overlay->pitches[0];
+		pict.linesize[1] = overlay->pitches[2];
+		pict.linesize[2] = overlay->pitches[1];
+
+		sws_scale(sws, frame->data, frame->linesize,
+				  0, codecContext->height, pict.data, pict.linesize);
+
+		SDL_UnlockYUVOverlay(overlay);
+	#else
+		avpicture_alloc(&pict, AV_PIX_FMT_YUV420P, width, height);
+
+		sws_scale(sws, frame->data, frame->linesize,
+				  0, codecContext->height, pict.data, pict.linesize);
+
+		SDL_UpdateYUVTexture(overlay, NULL, pict.data[0], pict.linesize[0],
+				pict.data[1], pict.linesize[1],
+				pict.data[2], pict.linesize[2]);
+		avpicture_free(&pict);
+	#endif	
+	}
+	
+	void VideoOverlay::presentFrame(SDL_Rect * pos)
+	{
+	#ifdef VCMI_SDL1
+		SDL_DisplayYUVOverlay(overlay, pos);
+	#else
+		SDL_RenderCopy(owner->sdlRenderer, overlay, NULL, pos);
+		SDL_RenderPresent(owner->sdlRenderer);
+	#endif		
+	}	
+#endif//DISABLE_VIDEO
 	
 	///Window
 	Window::Window(Renderer * owner, const std::string & name):
@@ -264,6 +326,13 @@ namespace SoftRenderer
 	{
 		return new RenderTarget(this, width, height);
 	}
+
+#ifndef DISABLE_VIDEO	
+	IVideoOverlay * Window::createOverlay(int width, int height)
+	{
+		return new VideoOverlay(this, width, height);
+	}
+#endif // DISABLE_VIDEO
 	
 	void Window::drawBorder(int x, int y, int w, int h, const SDL_Color& color)
 	{

@@ -13,8 +13,11 @@
 
 #include "CBaseRenderer.h"
 
-struct SDL_Surface;
+#include "../gui/SDL_Extensions.h"
 
+struct SDL_Surface;
+struct SDL_Overlay;
+struct SDL_Texture;
 
 namespace SoftRenderer
 {
@@ -90,6 +93,27 @@ namespace SoftRenderer
 		EffectGuard::EffectType type;
 	};
 	
+#ifndef DISABLE_VIDEO		
+	
+	class VideoOverlay: public IVideoOverlay
+	{
+	public:
+		VideoOverlay(Window * owner, int width, int height);
+		void showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext) override;
+		void presentFrame(SDL_Rect * pos) override;
+	private:
+		Window * owner;
+		
+	#ifdef VCMI_SDL1
+		SDL_Overlay * overlay;
+	#else
+		SDL_Texture * overlay;
+	#endif
+		int width, height;
+	};
+	
+#endif //DISABLE_VIDEO	
+	
 	class Window : public IWindow, public SurfaceProxy
 	{
 	public:
@@ -113,6 +137,9 @@ namespace SoftRenderer
 		void blitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation) override;
 		
 		IRenderTarget * createTarget(int width, int height) override;
+		#ifndef DISABLE_VIDEO
+		IVideoOverlay * createOverlay(int width, int height) override;
+		#endif		
 		
 		void drawBorder(int x, int y, int w, int h, const SDL_Color &color) override;
 		
@@ -156,7 +183,8 @@ namespace SoftRenderer
 
 		std::string name;
 		
-		friend class SurfaceProxy;		
+		friend class SurfaceProxy;
+		friend class VideoOverlay;				
 	};
 
 	class Renderer : public CBaseRendererT<Window>

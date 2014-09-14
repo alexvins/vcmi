@@ -101,7 +101,6 @@
 			<Add option="-fpermissive" />
 			<Add option="-DBOOST_THREAD_USE_LIB" />
 			<Add option="-D_WIN32_WINNT=0x0501" />
-			<Add option="-DDISABLE_VIDEO" />
 			<Add directory="$(#boost.include)" />
 			<Add directory="../include" />
 			<Add directory="../client" />

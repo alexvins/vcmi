@@ -527,15 +527,15 @@ void CSpellWindow::deactivate()
 }
 
 void CSpellWindow::turnPageLeft()
-{
-//	if (settings["video"]["spellbookAnimation"].Bool())
-//		CCS->videoh->openAndPlayVideo("PGTRNLFT.SMK", pos.x+13, pos.y+15, screen);
+{	
+	if (settings["video"]["spellbookAnimation"].Bool())
+		CCS->videoh->openAndPlayVideo("PGTRNLFT.SMK", pos.x+13, pos.y+15);
 }
 
 void CSpellWindow::turnPageRight()
 {
-//	if (settings["video"]["spellbookAnimation"].Bool())
-//		CCS->videoh->openAndPlayVideo("PGTRNRGH.SMK", pos.x+13, pos.y+15, screen);
+	if (settings["video"]["spellbookAnimation"].Bool())
+		CCS->videoh->openAndPlayVideo("PGTRNRGH.SMK", pos.x+13, pos.y+15);
 }
 
 void CSpellWindow::keyPressed(const SDL_KeyboardEvent & key)

@@ -107,6 +107,19 @@ public:
 	virtual void update() = 0;	
 };
 
+class AVFrame;
+struct SwsContext;
+class AVCodecContext;
+
+class IVideoOverlay: public boost::noncopyable
+{
+public:
+	///draw to internal buffer
+	virtual void showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext) = 0;
+	///show overlay content on screen
+	virtual void presentFrame(SDL_Rect * pos) = 0;
+};
+
 ///OS window (with attached OGL context if applicable)
 class IWindow: public virtual IRenderTarget
 {
@@ -127,7 +140,7 @@ public:
 	
 		
 	///STUB
-	virtual void accessActiveTarget(const std::function<void(SDL_Surface *)> & cb) = 0;
+	virtual void accessActiveTarget(const std::function<void(SDL_Surface *)> & cb) = 0;	
 
 	///temporary, DEPRECATED. Blit surface to active target
 	virtual void blit(SDL_Surface * what, int x, int y) = 0;	
@@ -149,6 +162,9 @@ public:
      *
      */                             	
 	virtual IRenderTarget * createTarget(int width, int height) = 0;
+	
+	//TODO: target-specific overlays?
+	virtual IVideoOverlay * createOverlay(int width, int height) = 0;
 	
 	void drawBorder(const SDL_Rect &r, const SDL_Color &color)
 	{
@@ -181,7 +197,7 @@ public:
      */                             	
 	virtual void renderFrame(const std::function<void(void)> & cb) = 0;	
 	
-	virtual void warpMouse(int x, int y) = 0;		
+	virtual void warpMouse(int x, int y) = 0;
 };
 
 ///Class for managing shared data and global initialization

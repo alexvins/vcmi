@@ -6,10 +6,12 @@
 #include "gui/SDL_Extensions.h"
 #include "CPlayerInterface.h"
 #include "../lib/filesystem/Filesystem.h"
+#include "renderer/IRenderer.h"
 
 extern CGuiHandler GH; //global gui handler
 
 #ifndef DISABLE_VIDEO
+
 //reads events and returns true on key down
 static bool keyDown()
 {
@@ -53,11 +55,9 @@ CVideoPlayer::CVideoPlayer()
 	frame = nullptr;
 	codec = nullptr;
 	sws = nullptr;
-#ifdef VCMI_SDL1
+
 	overlay = nullptr;
-#else
-	texture = nullptr;
-#endif
+
 	dest = nullptr;
 	context = nullptr;
 
@@ -161,8 +161,8 @@ bool CVideoPlayer::open(std::string fname, bool loop, bool useOverlay, bool scal
 	
 	if(scale)
 	{
-		pos.w = screen->w;		
-		pos.h = screen->h;
+		pos.w = mainScreen->getWidth();		
+		pos.h = mainScreen->getHeight();
 	}
 	else
 	{
@@ -173,32 +173,20 @@ bool CVideoPlayer::open(std::string fname, bool loop, bool useOverlay, bool scal
 	// Allocate a place to put our YUV image on that screen
 	if (useOverlay)
 	{
-#ifdef VCMI_SDL1
-		overlay = SDL_CreateYUVOverlay(pos.w, pos.h,
-									   SDL_YV12_OVERLAY, screen);
-#else
-		texture = SDL_CreateTexture( mainRenderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STATIC, pos.w, pos.h);
-#endif
-
+		overlay = mainScreen->createOverlay(pos.w, pos.h);
 	}
 	else
 	{
-		dest = CSDL_Ext::newSurface(pos.w, pos.h);
+		dest = CSDL_Ext::newSurface(pos.w, pos.h, mainScreen->getFormat());
 		destRect.x = destRect.y = 0;
 		destRect.w = pos.w;
 		destRect.h = pos.h;
 	}
-#ifdef VCMI_SDL1
+
 	if (overlay == nullptr && dest == nullptr)
 		return false;
 
 	if (overlay)
-#else
-	if (texture == nullptr && dest == nullptr)
-		return false;
-
-	if (texture)
-#endif
 	{ // Convert the image into YUV format that SDL uses
 		sws = sws_getContext(codecContext->width, codecContext->height, codecContext->pix_fmt, 
 							 pos.w, pos.h, PIX_FMT_YUV420P, 
@@ -208,10 +196,10 @@ bool CVideoPlayer::open(std::string fname, bool loop, bool useOverlay, bool scal
 	{
 
 		PixelFormat screenFormat = PIX_FMT_NONE;
-		if (screen->format->Bshift > screen->format->Rshift)
+		if (mainScreen->getFormat()->Bshift > mainScreen->getFormat()->Rshift)
 		{
 			// this a BGR surface
-			switch (screen->format->BytesPerPixel)
+			switch (mainScreen->getFormat()->BytesPerPixel)
 			{
 				case 2: screenFormat = PIX_FMT_BGR565; break;
 				case 3: screenFormat = PIX_FMT_BGR24; break;
@@ -222,7 +210,7 @@ bool CVideoPlayer::open(std::string fname, bool loop, bool useOverlay, bool scal
 		else
 		{
 			// this a RGB surface
-			switch (screen->format->BytesPerPixel)
+			switch (mainScreen->getFormat()->BytesPerPixel)
 			{
 				case 2: screenFormat = PIX_FMT_RGB565; break;
 				case 3: screenFormat = PIX_FMT_RGB24; break;
@@ -282,39 +270,11 @@ bool CVideoPlayer::nextFrame()
 				// Did we get a video frame?
 				if (frameFinished)
 				{
-					AVPicture pict;
-
-#ifdef VCMI_SDL1
-					if (overlay) {
-						SDL_LockYUVOverlay(overlay);
-
-						pict.data[0] = overlay->pixels[0];
-						pict.data[1] = overlay->pixels[2];
-						pict.data[2] = overlay->pixels[1];
-
-						pict.linesize[0] = overlay->pitches[0];
-						pict.linesize[1] = overlay->pitches[2];
-						pict.linesize[2] = overlay->pitches[1];
-
-						sws_scale(sws, frame->data, frame->linesize,
-								  0, codecContext->height, pict.data, pict.linesize);
-
-						SDL_UnlockYUVOverlay(overlay);
-#else
-					if (texture) {
-						avpicture_alloc(&pict, AV_PIX_FMT_YUV420P, pos.w, pos.h);
-
-						sws_scale(sws, frame->data, frame->linesize,
-								  0, codecContext->height, pict.data, pict.linesize);
-
-						SDL_UpdateYUVTexture(texture, NULL, pict.data[0], pict.linesize[0],
-								pict.data[1], pict.linesize[1],
-								pict.data[2], pict.linesize[2]);
-						avpicture_free(&pict);
-#endif
-					}
+					if (overlay)
+						overlay->showFrame(frame, sws, codecContext);
 					else
 					{
+						AVPicture pict;
 						pict.data[0] = (ui8 *)dest->pixels;
 						pict.linesize[0] = dest->pitch;
 
@@ -331,25 +291,26 @@ bool CVideoPlayer::nextFrame()
 	return frameFinished != 0;
 }
 
-void CVideoPlayer::show( int x, int y, SDL_Surface *dst, bool update )
+void CVideoPlayer::show(int x, int y, bool update)
 {
 	if (sws == nullptr)
 		return;
 
 	pos.x = x;
 	pos.y = y;
-	CSDL_Ext::blitSurface(dest, &destRect, dst, &pos);
+	
+	mainScreen->blit(dest, &destRect, &pos);
 
 	if (update)
-		SDL_UpdateRect(dst, pos.x, pos.y, pos.w, pos.h);
+		mainScreen->update();
 }
 
-void CVideoPlayer::redraw( int x, int y, SDL_Surface *dst, bool update )
+void CVideoPlayer::redraw(int x, int y, bool update)
 {
-	show(x, y, dst, update);
+	show(x, y, update);
 }
 
-void CVideoPlayer::update( int x, int y, SDL_Surface *dst, bool forceRedraw, bool update )
+void CVideoPlayer::update(int x, int y, bool forceRedraw, bool update)
 {
 	if (sws == nullptr)
 		return;
@@ -387,21 +348,8 @@ void CVideoPlayer::close()
 		sws = nullptr;
 	}
 
-#ifdef VCMI_SDL1
 	if (overlay)
-	{
-		SDL_FreeYUVOverlay(overlay);
-		overlay = nullptr;
-	}
-#else
-	if (texture)
-	{
-		SDL_DestroyTexture(texture);
-		texture = nullptr;
-	}
-
-#endif
-
+		delete overlay;
 
 	if (dest)
 	{
@@ -440,8 +388,9 @@ void CVideoPlayer::close()
 }
 
 // Plays a video. Only works for overlays.
-bool CVideoPlayer::playVideo(int x, int y, SDL_Surface *dst, bool stopOnKey)
+bool CVideoPlayer::playVideo(int x, int y, bool stopOnKey)
 {
+	assert(overlay);
 	// Note: either the windows player or the linux player is
 	// broken. Compensate here until the bug is found.
 	y--;
@@ -454,14 +403,8 @@ bool CVideoPlayer::playVideo(int x, int y, SDL_Surface *dst, bool stopOnKey)
 
 		if(stopOnKey && keyDown())
 			return false;
-
-#ifdef VCMI_SDL1
-		SDL_DisplayYUVOverlay(overlay, &pos);
-#else
-		SDL_RenderCopy(mainRenderer, texture, NULL, &pos);
-		SDL_RenderPresent(mainRenderer);
-#endif
-
+			
+		overlay->presentFrame(&pos);
 
 		// Wait 3 frames
 		GH.mainFPSmng->framerateDelay();
@@ -472,10 +415,10 @@ bool CVideoPlayer::playVideo(int x, int y, SDL_Surface *dst, bool stopOnKey)
 	return true;
 }
 
-bool CVideoPlayer::openAndPlayVideo(std::string name, int x, int y, SDL_Surface *dst, bool stopOnKey, bool scale/* = false*/)
+bool CVideoPlayer::openAndPlayVideo(std::string name, int x, int y, bool stopOnKey, bool scale/* = false*/)
 {
 	open(name, false, true, scale);
-	bool ret = playVideo(x, y, dst, stopOnKey);
+	bool ret = playVideo(x, y, stopOnKey);
 	close();
 	return ret;
 }
