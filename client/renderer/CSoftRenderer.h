@@ -31,6 +31,7 @@ namespace SoftRenderer
 		SurfaceProxy(Renderer * owner);
 		virtual ~SurfaceProxy();
 		
+		///IRenderTarget
 		void activate() override;		
 		void blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect) override;
 		bool isActive() override;		
@@ -49,8 +50,7 @@ namespace SoftRenderer
 
 		void update() override;
 		
-		///internal interface
-		
+		///internal interface		
 		void internalBlitRotation(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation);
 		void internalBlitRotationAlpha(SDL_Surface * what, SDL_Rect * srcrect, SDL_Rect * dstrect, ui8 rotation);		
 		
@@ -61,8 +61,8 @@ namespace SoftRenderer
 		virtual void clear();
 		virtual Window * getWindow() = 0; 
 		void setSurface(SDL_Surface * newSurface);
-	private:
 		
+	private:		
 		BlitterWithRotationVal blitter, alphaBlitter;
 		
 		friend class RenderTarget;
@@ -76,17 +76,18 @@ namespace SoftRenderer
 		RenderTarget(Window * owner, int width, int height);
 		virtual ~RenderTarget();
 	
-	protected:
-		Window * window;
-		
+	protected:		
 		Window * getWindow(){return window;};
+	private:
+		Window * window;
 	};
 	
 	class EffectHandle: public IEffectHandle
 	{
 	public:
 		EffectHandle(SurfaceProxy * target, const SDL_Rect * clipRect, EffectGuard::EffectType type);
-		virtual ~EffectHandle();	
+		virtual ~EffectHandle();
+			
 	private:
 		SurfaceProxy * target;
 		SDL_Rect clipRect;
@@ -99,8 +100,11 @@ namespace SoftRenderer
 	{
 	public:
 		VideoOverlay(Window * owner, int width, int height);
+		virtual ~VideoOverlay();
+		
 		void showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext) override;
 		void presentFrame(SDL_Rect * pos) override;
+		
 	private:
 		Window * owner;
 		
@@ -123,8 +127,7 @@ namespace SoftRenderer
 		///IRenderTarget
 		void renderFrame(const std::function<void(void)> & cb) override;
 		
-		///IWindow
-		
+		///IWindow		
 		void accessActiveTarget(const std::function<void(SDL_Surface *)> & cb) override;
 		
 		IEffectHandle * applyEffect(const SDL_Rect * clipRect, EffectGuard::EffectType type) override;

@@ -187,11 +187,23 @@ namespace SoftRenderer
 		overlay = SDL_CreateYUVOverlay(width, height, SDL_YV12_OVERLAY, owner->surface);
 	#else
 		overlay = SDL_CreateTexture(owner->sdlRenderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STATIC, width, height);
-	#endif		
+	#endif			
 	}
+	
+	VideoOverlay::~VideoOverlay()
+	{		
+	#ifdef VCMI_SDL1
+		SDL_FreeYUVOverlay(overlay);
+	#else
+		SDL_DestroyTexture(overlay);
+	#endif			
+	}
+	
 
 	void VideoOverlay::showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext)
 	{
+		assert(overlay);
+		
 		AVPicture pict;		
 	#ifdef VCMI_SDL1
 		SDL_LockYUVOverlay(overlay);
