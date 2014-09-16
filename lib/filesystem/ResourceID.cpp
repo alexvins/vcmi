@@ -121,7 +121,8 @@ EResType::Type EResTypeHelper::getTypeFromExtension(std::string extension)
 			(".VSGM1", EResType::SERVER_SAVEGAME)
 			(".ERM",   EResType::ERM)
 			(".ERT",   EResType::ERT)
-			(".ERS",   EResType::ERS);
+			(".ERS",   EResType::ERS)
+			(".GLSL",  EResType::SHADER);
 
 	auto iter = stringToRes.find(extension);
 	if (iter == stringToRes.end())
