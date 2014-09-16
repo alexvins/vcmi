@@ -27,11 +27,22 @@ class IWindow;
 
 /** @brief Single image, icon set or animation 
  *
- * In single texture atlas
  */
 class ISprite
 {
+public:
+	virtual ~ISprite(){};	
+};
+
+class SpriteRef: public std::shared_ptr<ISprite>
+{
 	
+};
+
+class IImageCache
+{
+public:
+	virtual SpriteRef getSprite(const std::string & resourceName) = 0; 
 };
 
 class ClipRectGuard: public boost::noncopyable
@@ -107,6 +118,8 @@ public:
 	virtual void update() = 0;	
 };
 
+#ifndef DISABLE_VIDEO	
+
 class AVFrame;
 struct SwsContext;
 class AVCodecContext;
@@ -119,6 +132,8 @@ public:
 	///show overlay content on screen
 	virtual void presentFrame(SDL_Rect * pos) = 0;
 };
+
+#endif // DISABLE_VIDEO
 
 ///OS window (with attached OGL context if applicable)
 class IWindow: public virtual IRenderTarget
@@ -163,8 +178,10 @@ public:
      */                             	
 	virtual IRenderTarget * createTarget(int width, int height) = 0;
 	
+#ifndef DISABLE_VIDEO		
 	//TODO: target-specific overlays?
 	virtual IVideoOverlay * createOverlay(int width, int height) = 0;
+#endif // DISABLE_VIDEO
 	
 	void drawBorder(const SDL_Rect &r, const SDL_Color &color)
 	{
@@ -188,7 +205,7 @@ public:
      */    	
 	virtual bool setFullscreen(bool enabled) = 0;	
 	
-	///get clip rect for active target and itself
+	///get clip rect for active target and target itself
 	virtual void getClipRect(SDL_Rect * rect, IRenderTarget *& currentActive) = 0;
     
     /** @brief perform rendering of one frame
@@ -197,6 +214,10 @@ public:
      */                             	
 	virtual void renderFrame(const std::function<void(void)> & cb) = 0;	
 	
+    /** @brief Instantly move mouse to specific position
+     *
+     * @param x,y window-related coordinates in pixels
+     */
 	virtual void warpMouse(int x, int y) = 0;
 };
 
