@@ -73,8 +73,16 @@ bool CGameInfoCallback::isAllowed( int type, int id )
 const PlayerState * CGameInfoCallback::getPlayer(PlayerColor color, bool verbose) const
 {
 	ERROR_VERBOSE_OR_NOT_RET_VAL_IF(!hasAccess(color), verbose, "Cannot access player " << color << "info!", nullptr);
+	//if (!vstd::contains(gs->players, color))
+	//{
+	//	logGlobal->errorStream() << "Cannot access player " << color << "info!";
+	//	return nullptr; //macros are not really useful when debugging :?
+	//}
+	//else
+	//{
 	ERROR_VERBOSE_OR_NOT_RET_VAL_IF(!vstd::contains(gs->players,color), verbose, "Cannot find player " << color << "info!", nullptr);
 	return &gs->players[color];
+	//}
 }
 
 const CTown * CGameInfoCallback::getNativeTown(PlayerColor color) const
@@ -383,7 +391,7 @@ EBuildingState::EBuildingState CGameInfoCallback::canBuildStructure( const CGTow
 
 	if(ID == BuildingID::CAPITOL)
 	{
-		const PlayerState *ps = getPlayer(t->tempOwner);
+		const PlayerState *ps = getPlayer(t->tempOwner, false);
 		if(ps)
 		{
 			for(const CGTownInstance *t : ps->towns)

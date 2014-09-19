@@ -761,6 +761,7 @@ void CAdvMapInt::selectionChanged()
 	if (selection != to)
 		select(to);
 }
+
 void CAdvMapInt::centerOn(int3 on)
 {
 	bool switchedLevels = on.z != position.z;
@@ -776,6 +777,7 @@ void CAdvMapInt::centerOn(int3 on)
 	underground->redraw();
 	if (switchedLevels)
 		minimap.setLevel(position.z);
+	minimap.redraw();
 }
 
 void CAdvMapInt::centerOn(const CGObjectInstance *obj)

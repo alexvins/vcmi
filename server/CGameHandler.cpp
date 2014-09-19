@@ -4757,9 +4757,12 @@ void CGameHandler::handleTimeEvents()
 	while(gs->map->events.size() && gs->map->events.front().firstOccurence+1 == gs->day)
 	{
 		CMapEvent ev = gs->map->events.front();
-		for(int player = 0; player < PlayerColor::PLAYER_LIMIT_I; player++)
+		
+		for (int player = 0; player < PlayerColor::PLAYER_LIMIT_I; player++)
 		{
-			PlayerState *pinfo = gs->getPlayer(PlayerColor(player));
+			auto color = PlayerColor(player);
+
+			PlayerState *pinfo = gs->getPlayer(color, false); //do not output error if player does not exist
 
 			if( pinfo  //player exists
 				&& (ev.players & 1<<player) //event is enabled to this player
@@ -4770,12 +4773,12 @@ void CGameHandler::handleTimeEvents()
 			{
 				//give resources
 				SetResources sr;
-				sr.player = PlayerColor(player);
+				sr.player = color;
 				sr.res = pinfo->resources + ev.resources;
 
 				//prepare dialog
 				InfoWindow iw;
-				iw.player = PlayerColor(player);
+				iw.player = color;
 				iw.text << ev.message;
 
 				for (int i=0; i<ev.resources.size(); i++)
@@ -4823,7 +4826,7 @@ void CGameHandler::handleTownEvents(CGTownInstance * town, NewTurn &n)
 	{
 		PlayerColor player = town->tempOwner;
 		CCastleEvent ev = town->events.front();
-		PlayerState *pinfo = gs->getPlayer(player);
+		PlayerState *pinfo = gs->getPlayer(player, false);
 
 		if( pinfo  //player exists
 			&& (ev.players & 1<<player.getNum()) //event is enabled to this player
@@ -5079,7 +5082,7 @@ void CGameHandler::checkVictoryLossConditions(const std::set<PlayerColor> & play
 {
 	for(auto playerColor : playerColors)
 	{
-		if(gs->getPlayer(playerColor))
+		if(gs->getPlayer(playerColor, false))
 			checkVictoryLossConditionsForPlayer(playerColor);
 	}
 }

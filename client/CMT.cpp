@@ -340,8 +340,30 @@ int main(int argc, char** argv)
 		renderEngine = new SoftRenderer::Renderer();//todo: use other backends
 		renderEngine->init();
 		
+
+		config::CConfigHandler::GuiOptionsMap::key_type resPair(res["width"].Float(), res["height"].Float());
+		if (conf.guiOptions.count(resPair) == 0)
+		{
+			// selected resolution was not found - complain & fallback to something that we do have.
+			logGlobal->errorStream() << "Selected resolution " << resPair.first << "x" << resPair.second << " was not found!";
+			if (conf.guiOptions.empty())
+			{
+				logGlobal->errorStream() << "Unable to continue - no valid resolutions found! Please reinstall VCMI to fix this";
+				exit(1);
+			}
+			else
+			{
+				Settings newRes = settings.write["video"]["screenRes"];
+				newRes["width"].Float()  = conf.guiOptions.begin()->first.first;
+				newRes["height"].Float() = conf.guiOptions.begin()->first.second;
+				conf.SetResolution(newRes["width"].Float(), newRes["height"].Float());
+
+				logGlobal->errorStream() << "Falling back to " << newRes["width"].Float() << "x" << newRes["height"].Float();
+			}
+		}
+
 		mainScreen = renderEngine->createWindow(NAME, res["width"].Float(), res["height"].Float(), video["bitsPerPixel"].Float(), video["fullscreen"].Bool());
-		
+
 		bufferScreen = mainScreen->createTarget(mainScreen->getWidth(), mainScreen->getHeight());
 
 		logGlobal->infoStream() <<"\tInitializing screen: "<<pomtime.getDiff();
