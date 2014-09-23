@@ -151,7 +151,7 @@ public:
 
 	void addRequiredObject(CGObjectInstance * obj, si32 guardStrength=0);
 	bool addMonster(CMapGenerator* gen, int3 &pos, si32 strength, bool clearSurroundingTiles = true, bool zoneGuard = false);
-	bool createTreasurePile (CMapGenerator* gen, int3 &pos);
+	bool createTreasurePile(CMapGenerator* gen, int3 &pos, float minDistance);
 	bool fill (CMapGenerator* gen);
 	bool placeMines (CMapGenerator* gen);
 	void initTownType (CMapGenerator* gen);
@@ -173,7 +173,7 @@ public:
 	std::vector<CTreasureInfo> getTreasureInfo();
 	std::set<int3>* getFreePaths();
 
-	ObjectInfo getRandomObject (CMapGenerator* gen, CTreasurePileInfo &info, ui32 remaining);
+	ObjectInfo getRandomObject (CMapGenerator* gen, CTreasurePileInfo &info, ui32 desiredValue, ui32 maxValue, ui32 currentValue);
 
 	void placeAndGuardObject(CMapGenerator* gen, CGObjectInstance* object, const int3 &pos, si32 str, bool zoneGuard = false);
 

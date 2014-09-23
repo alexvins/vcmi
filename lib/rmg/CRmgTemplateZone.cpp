@@ -643,7 +643,7 @@ bool CRmgTemplateZone::addMonster(CMapGenerator* gen, int3 &pos, si32 strength, 
 	return true;
 }
 
-bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos)
+bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos, float minDistance)
 {
 	CTreasurePileInfo info;
 
@@ -673,13 +673,10 @@ bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos)
 	}
 	ui32 desiredValue = gen->rand.nextInt(minValue, maxValue);
 	//quantize value to let objects with value equal to max spawn too
-	ui32 diff = maxValue - minValue;
-	float quant = (float)diff / 4.f;
-	desiredValue = (boost::math::round((float)(desiredValue - minValue) / quant)) * quant + minValue;
 
 	int currentValue = 0;
 	CGObjectInstance * object = nullptr;
-	while (currentValue < minValue) //we don't want to spawn worthless items for greater piles when their value gets low, so abort earlier 
+	while (currentValue < desiredValue)
 	{
 		treasures[info.nextTreasurePos] = nullptr;
 
@@ -703,7 +700,7 @@ bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos)
 				break;
 		}
 
-		ObjectInfo oi = getRandomObject(gen, info, desiredValue - currentValue);
+		ObjectInfo oi = getRandomObject(gen, info, desiredValue, maxValue, currentValue);
 		if (!oi.value) //0 value indicates no object
 		{
 			vstd::erase_if_present(treasures, info.nextTreasurePos);
@@ -754,9 +751,9 @@ bool CRmgTemplateZone::createTreasurePile (CMapGenerator* gen, int3 &pos)
 				if (gen->isPossible(tile)) //we can place new treasure only on possible tile
 				{
 					bool here = true;
-					gen->foreach_neighbour (tile, [gen, &here](int3 pos)
+					gen->foreach_neighbour (tile, [gen, &here, minDistance](int3 pos)
 					{
-						if (!(gen->isBlocked(pos) || gen->isPossible(pos)))
+						if (!(gen->isBlocked(pos) || gen->isPossible(pos)) || gen->getNearestObjectDistance(pos) < minDistance)
 							here = false;
 					});
 					if (here)
@@ -1111,13 +1108,34 @@ void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 		{
 			break;
 		}
-		createTreasurePile (gen, pos);
+		createTreasurePile (gen, pos, minDistance);
 
 	} while(true);
 }
 
 void CRmgTemplateZone::createObstacles(CMapGenerator* gen)
 { 
+	//tighten obstacles to improve visuals
+	for (auto tile : tileinfo)
+	{
+		if (!gen->isPossible(tile)) //only possible tiles can change
+			continue;
+
+		int blockedNeighbours = 0;
+		int freeNeighbours = 0;
+		gen->foreach_neighbour(tile, [gen, &blockedNeighbours, &freeNeighbours](int3 &pos)
+		{
+			if (gen->isBlocked(pos))
+				blockedNeighbours++;
+			if (gen->isFree(pos))
+				freeNeighbours++;
+		});
+		if (blockedNeighbours > 4)
+			gen->setOccupied(tile, ETileType::BLOCKED);
+		else if (freeNeighbours > 4)
+			gen->setOccupied(tile, ETileType::FREE);
+	}
+
 	if (pos.z) //underground
 	{
 		std::vector<int3> rockTiles;
@@ -1140,15 +1158,15 @@ void CRmgTemplateZone::createObstacles(CMapGenerator* gen)
 		}
 		gen->editManager->getTerrainSelection().setSelection(rockTiles);
 		gen->editManager->drawTerrain(ETerrainType::ROCK, &gen->rand);
-		//for (auto tile : rockTiles)
-		//{
-		//	gen->setOccupied (tile, ETileType::USED);
-		//	gen->foreach_neighbour (tile, [gen](int3 &pos)
-		//	{
-		//		if (!gen->isUsed(pos))
-		//			gen->setOccupied (pos, ETileType::BLOCKED);
-		//	});
-		//}
+		for (auto tile : rockTiles)
+		{
+			gen->setOccupied (tile, ETileType::USED); //don't place obstacles in a rock
+			//gen->foreach_neighbour (tile, [gen](int3 &pos)
+			//{
+			//	if (!gen->isUsed(pos))
+			//		gen->setOccupied (pos, ETileType::BLOCKED);
+			//});
+		}
 	}
 	typedef std::vector<ObjectTemplate> obstacleVector;
 	//obstacleVector possibleObstacles;
@@ -1241,7 +1259,7 @@ bool CRmgTemplateZone::findPlaceForTreasurePile(CMapGenerator* gen, float min_di
 	//logGlobal->infoStream() << boost::format("Min dist for density %f is %d") % density % min_dist;
 	for(auto tile : possibleTiles)
 	{
-		auto dist = gen->getTile(tile).getNearestObjectDistance();
+		auto dist = gen->getNearestObjectDistance(tile);
 
 		if ((dist >= min_dist) && (dist > best_distance))
 		{
@@ -1393,7 +1411,6 @@ void CRmgTemplateZone::checkAndPlaceObject(CMapGenerator* gen, CGObjectInstance*
 		object->appearance = templates.front();
 	}
 
-	gen->map->addBlockVisTiles(object);
 	gen->editManager->insertObject(object, pos);
 	//logGlobal->traceStream() << boost::format ("Successfully inserted object (%d,%d) at pos %s") %object->ID %object->subID %pos();
 }
@@ -1506,7 +1523,7 @@ bool CRmgTemplateZone::guardObject(CMapGenerator* gen, CGObjectInstance* object,
 	return true;
 }
 
-ObjectInfo CRmgTemplateZone::getRandomObject (CMapGenerator* gen, CTreasurePileInfo &info, ui32 remaining)
+ObjectInfo CRmgTemplateZone::getRandomObject(CMapGenerator* gen, CTreasurePileInfo &info, ui32 desiredValue, ui32 maxValue, ui32 currentValue)
 {
 	//int objectsVisitableFromBottom = 0; //for debug
 
@@ -1514,12 +1531,13 @@ ObjectInfo CRmgTemplateZone::getRandomObject (CMapGenerator* gen, CTreasurePileI
 	ui32 total = 0;
 
 	//calculate actual treasure value range based on remaining value
-	ui32 minValue = 0.25f * remaining;
+	ui32 maxVal = maxValue - currentValue;
+	ui32 minValue = 0.25f * (desiredValue - currentValue);
 
 	//roulette wheel
 	for (ObjectInfo &oi : possibleObjects) //copy constructor turned out to be costly
 	{
-		if (oi.value >= minValue && oi.value <= remaining && oi.maxPerZone > 0)
+		if (oi.value >= minValue && oi.value <= maxVal && oi.maxPerZone > 0)
 		{
 			int3 newVisitableOffset = oi.templ.getVisitableOffset(); //visitablePos assumes object will be shifter by visitableOffset
 			int3 newVisitablePos = info.nextTreasurePos;
@@ -1697,12 +1715,12 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 
 	//prisons
 	//levels 1, 5, 10, 20, 30
-    //static int prisonExp[] = {0, 5000, 15000, 90000, 500000};
+    static int prisonExp[] = {0, 5000, 15000, 90000, 500000};
 	static int prisonValues[] = {2500, 5000, 10000, 20000, 30000};
 
 	for (int i = 0; i < 5; i++)
 	{
-		oi.generateObject = [i, gen]() -> CGObjectInstance *
+		oi.generateObject = [i, gen, this]() -> CGObjectInstance *
 		{
 			auto obj = new CGHeroInstance;
 			obj->ID = Obj::PRISON;
@@ -1715,13 +1733,13 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 			}
 
 			auto hid = *RandomGeneratorUtil::nextItem(possibleHeroes, gen->rand);
-			obj->initHero (HeroTypeID(hid));
-			obj->subID = 0; //initHero overrides it :?
-			//obj->exp = prisonExp[i]; //game crashes at hero level up
-			obj->exp = 0;
+			obj->subID = hid; //will be initialized later
+			obj->exp = prisonExp[i]; //game crashes at hero level up
+			//obj->exp = 0;
 			obj->setOwner(PlayerColor::NEUTRAL);
 			gen->map->allowedHeroes[hid] = false; //ban this hero
 			gen->decreasePrisonsRemaining();
+			obj->appearance = VLC->objtypeh->getHandlerFor(Obj::PRISON, 0)->getTemplates(terrainType).front(); //can't init template with hero subID
 
 			return obj;
 		};
