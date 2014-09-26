@@ -22,6 +22,7 @@ struct SDL_Texture;
 namespace SoftRenderer
 {
 	class Window;
+	class RenderTarget;
 	class Renderer;
 	class RenderTarget;
 	
@@ -69,19 +70,7 @@ namespace SoftRenderer
 		friend class Window;
 		friend class EffectHandle;		
 	};
-	
-	class RenderTarget : public virtual SurfaceProxy
-	{
-	public:
-		RenderTarget(Window * owner, int width, int height);
-		virtual ~RenderTarget();
-	
-	protected:		
-		Window * getWindow(){return window;};
-	private:
-		Window * window;
-	};
-	
+
 	class EffectHandle: public IEffectHandle
 	{
 	public:
@@ -189,8 +178,19 @@ namespace SoftRenderer
 		friend class SurfaceProxy;
 		friend class VideoOverlay;				
 	};
+	
+	
+	class RenderTarget : public virtual SurfaceProxy, public virtual CRenderTargetBaseT<Window>
+	{
+	public:
+		RenderTarget(Window * owner, int width, int height);
+		virtual ~RenderTarget();
+	protected:
+		Window * getWindow() override{return CRenderTargetBaseT::getWindow();};
+	};
+		
 
-	class Renderer : public CBaseRendererT<Window>
+	class Renderer : public CBaseRenderer, public CWindowHolder<Window>
 	{
 	public:
 		Renderer();

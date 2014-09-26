@@ -20,13 +20,24 @@ protected:
 private:
 };
 
-
 template <typename _WindowImpl>
-class CBaseRendererT : public CBaseRenderer
+class CRenderTargetBaseT
 {
 public:
-	CBaseRendererT(){};
-	virtual ~CBaseRendererT(){};
+	CRenderTargetBaseT(_WindowImpl * owner){window = owner;};
+
+protected:		
+	_WindowImpl * getWindow(){return window;};
+private:
+	_WindowImpl * window;	
+};
+
+template <typename _WindowImpl>
+class CWindowHolder
+{
+public:
+	CWindowHolder(){};
+	virtual ~CWindowHolder(){};
 protected:
 	void setCurrentWindow(_WindowImpl * newCurrentWindow)
 	{

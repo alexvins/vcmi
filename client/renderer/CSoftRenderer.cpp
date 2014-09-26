@@ -153,7 +153,7 @@ namespace SoftRenderer
 	
 	///RenderTarget
 	RenderTarget::RenderTarget(Window * owner, int width, int height):
-		SurfaceProxy(owner->getRenderer()), window(owner)
+		SurfaceProxy(owner->getRenderer()), CRenderTargetBaseT(owner)
 	{
 		setSurface(CSDL_Ext::newSurface(width, height, owner->surface));	
 	}

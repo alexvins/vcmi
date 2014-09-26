@@ -11,12 +11,39 @@
  
 #include "CAcceleratedRenderer.h"
 
-
-class COpenGLRenderer : public CAcceleratedRenderer
+namespace OpenGLRenderer
 {
+	class Window;
+	
+	class RenderTarget : public IRenderTarget
+	{
 	public:
-		COpenGLRenderer();
-		virtual ~COpenGLRenderer();
+		RenderTarget(Window * owner, int width, int height);
+		virtual ~RenderTarget();
+	
+	protected:		
+		Window * getWindow(){return window;};
+	private:
+		Window * window;
+	};	
+	
+	class Window : public IWindow
+	{
+		
+	};
+
+
+	class Renderer : public CAcceleratedRenderer, public CWindowHolder<Window>
+	{
+	public:
+		Renderer();
+		virtual ~Renderer();
+		
+		///IRenderer
+		IWindow * createWindow(const std::string & name, int w, int h, int bpp, bool fullscreen) override;	
+		void init() override;	
 	protected:
 	private:
-};
+	};
+
+}

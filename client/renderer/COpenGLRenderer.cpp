@@ -11,12 +11,26 @@
 
 #include "COpenGLRenderer.h"
 
-COpenGLRenderer::COpenGLRenderer()
+namespace OpenGLRenderer
 {
-	//ctor
-}
 
-COpenGLRenderer::~COpenGLRenderer()
-{
-	//dtor
-}
+	Renderer::Renderer()
+	{
+		//ctor
+	}
+
+	Renderer::~Renderer()
+	{
+		//dtor
+	}
+
+	IWindow * Renderer::createWindow(const std::string & name, int w, int h, int bpp, bool fullscreen)
+	{
+		
+	}
+
+	void Renderer::init()
+	{
+		
+	}
+}//namespace OpenGLRenderer
