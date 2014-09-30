@@ -406,6 +406,11 @@ void CRmgTemplateZone::createBorder(CMapGenerator* gen)
 
 void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 {
+	for (auto tile : tileinfo)
+	{
+		if (gen->isFree(tile))
+			freePaths.insert(tile);
+	}
 	std::vector<int3> clearedTiles (freePaths.begin(), freePaths.end());
 	std::set<int3> possibleTiles;
 	std::set<int3> tilesToClear; //will be set clear
@@ -550,16 +555,45 @@ do not leave zone border
 								end = true;
 								result = true;
 							}
-							else
-								throw rmgException(boost::to_string(boost::format("Tile %s of uknown type found on path") % pos()));
 						}
 					}
 				}
 			}
 		});
-		if (!(result || distance < lastDistance)) //we do not advance, use more avdnaced pathfinding algorithm?
+
+		int3 anotherPos(-1, -1, -1);
+
+		if (!(result || distance < lastDistance)) //we do not advance, use more advaced pathfinding algorithm?
 		{
-			logGlobal->warnStream() << boost::format ("No tile closer than %s found on path from %s to %s") %currentPos %src %dst;
+			//try any nearby tiles, even if its not closer than current
+			float lastDistance = 2 * distance; //start with significantly larger value
+			gen->foreach_neighbour(currentPos, [this, gen, &currentPos, dst, &lastDistance, &anotherPos, &end, clearedTiles](int3 &pos)
+			{
+				if (currentPos.dist2dSQ(dst) < lastDistance) //try closest tiles from all surrounding unused tiles
+				{
+					if (vstd::contains(tileinfo, pos))
+					{
+						if (gen->isPossible(pos))
+						{
+							if (clearedTiles)
+								clearedTiles->insert(pos);
+							anotherPos = pos;
+							lastDistance = currentPos.dist2dSQ(dst);
+						}
+					}
+				}
+			});
+			if (anotherPos.valid())
+			{
+				if (clearedTiles)
+					clearedTiles->insert(anotherPos);
+				gen->setOccupied(anotherPos, ETileType::FREE);
+				currentPos = anotherPos;
+			}
+		}
+		if (!(result || distance < lastDistance || anotherPos.valid()))
+		{
+			logGlobal->warnStream() << boost::format("No tile closer than %s found on path from %s to %s") % currentPos %src %dst;
 			break;
 		}
 	}
@@ -888,11 +922,26 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 	//FIXME: handle case that this player is not present -> towns should be set to neutral
 	int totalTowns = 0;
 
-	auto addNewTowns = [&totalTowns, gen, this](int count, bool hasFort, PlayerColor player)
+	auto cutPathAroundTown = [gen, this](const CGTownInstance * town)
+	{
+		//cut contour around town in case it was placed in a middle of path. TODO: find better solution
+		for (auto tile : town->getBlockedPos())
+		{
+			gen->foreach_neighbour(tile, [gen, &tile](int3& pos)
+			{
+				if (gen->isPossible(pos))
+				{
+					gen->setOccupied(pos, ETileType::FREE);
+				}
+			});
+		}
+	};
+
+	auto addNewTowns = [&totalTowns, gen, this, &cutPathAroundTown](int count, bool hasFort, PlayerColor player)
 	{
 		for (int i = 0; i < count; i++)
 		{
-			auto  town = new CGTownInstance();
+			auto town = new CGTownInstance();
 			town->ID = Obj::TOWN;
 
 			if (this->townsAreSameType)
@@ -913,6 +962,7 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 				gen->registerZone(town->subID);
 				//first town in zone goes in the middle
 				placeAndGuardObject(gen, town, getPos() + town->getVisitableOffset(), 0);
+				cutPathAroundTown(town);
 			}
 			else
 				addRequiredObject (town);
@@ -944,6 +994,7 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 			town->builtBuildings.insert(BuildingID::DEFAULT);
 			//towns are big objects and should be centered around visitable position
 			placeAndGuardObject(gen, town, getPos() + town->getVisitableOffset(), 0); //generate no guards, but free path to entrance
+			cutPathAroundTown(town);
 
 			totalTowns++;
 			//register MAIN town of zone only
@@ -1114,26 +1165,40 @@ void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 }
 
 void CRmgTemplateZone::createObstacles(CMapGenerator* gen)
-{ 
+{
 	//tighten obstacles to improve visuals
-	for (auto tile : tileinfo)
-	{
-		if (!gen->isPossible(tile)) //only possible tiles can change
-			continue;
 
-		int blockedNeighbours = 0;
-		int freeNeighbours = 0;
-		gen->foreach_neighbour(tile, [gen, &blockedNeighbours, &freeNeighbours](int3 &pos)
+	for (int i = 0; i < 3; ++i)
+	{
+		int blockedTiles = 0;
+		int freeTiles = 0;
+
+		for (auto tile : tileinfo)
 		{
-			if (gen->isBlocked(pos))
-				blockedNeighbours++;
-			if (gen->isFree(pos))
-				freeNeighbours++;
-		});
-		if (blockedNeighbours > 4)
-			gen->setOccupied(tile, ETileType::BLOCKED);
-		else if (freeNeighbours > 4)
-			gen->setOccupied(tile, ETileType::FREE);
+			if (!gen->isPossible(tile)) //only possible tiles can change
+				continue;
+
+			int blockedNeighbours = 0;
+			int freeNeighbours = 0;
+			gen->foreach_neighbour(tile, [gen, &blockedNeighbours, &freeNeighbours](int3 &pos)
+			{
+				if (gen->isBlocked(pos))
+					blockedNeighbours++;
+				if (gen->isFree(pos))
+					freeNeighbours++;
+			});
+			if (blockedNeighbours > 4)
+			{
+				gen->setOccupied(tile, ETileType::BLOCKED);
+				blockedTiles++;
+			}
+			else if (freeNeighbours > 4)
+			{
+				gen->setOccupied(tile, ETileType::FREE);
+				freeTiles++;
+			}
+		}
+		logGlobal->infoStream() << boost::format("Set %d tiles to BLOCKED and %d tiles to FREE") % blockedTiles % freeTiles;
 	}
 
 	if (pos.z) //underground
