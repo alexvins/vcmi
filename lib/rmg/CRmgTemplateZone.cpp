@@ -429,7 +429,11 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 
 	while (possibleTiles.size())
 	{
-		for (auto tileToMakePath : possibleTiles)
+		//link tiles in random order
+		std::vector<int3> tilesToMakePath(possibleTiles.begin(), possibleTiles.end());
+		RandomGeneratorUtil::randomShuffle(tilesToMakePath, gen->rand);
+
+		for (auto tileToMakePath : tilesToMakePath)
 		{
 			//find closest free tile
 			float currentDistance = 1e10;
@@ -1143,7 +1147,7 @@ void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 
 	//this is squared distance for optimization purposes
 	const double minDistance = std::max<float>((600.f * size * size * gen->getZones().size()) /
-		(gen->mapGenOptions->getWidth() * gen->mapGenOptions->getHeight() * totalDensity), 2);
+		(gen->mapGenOptions->getWidth() * gen->mapGenOptions->getHeight() * totalDensity * (gen->map->twoLevel ? 2 : 1)), 2);
 	//distance lower than 2 causes objects to overlap and crash
 
 	do {
