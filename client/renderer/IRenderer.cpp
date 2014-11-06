@@ -33,7 +33,7 @@ EffectGuard::~EffectGuard()
 	delete handle;
 };
 
-///
+///IRenderTarget
 IRenderTarget::IRenderTarget()
 {
 	
@@ -44,6 +44,29 @@ IRenderTarget::~IRenderTarget()
 	
 }
 
+void IRenderTarget::runActivated(const std::function<void(void)> & cb)
+{
+	ActivateGuard guard(this);
+	cb();
+}
+
+
+///ActivateGuard
+ActivateGuard::ActivateGuard(IRenderTarget * newActiveTarget)
+{
+	previousActive = newActiveTarget->activateEx();
+}
+
+ActivateGuard::~ActivateGuard()
+{
+	if (nullptr == previousActive)
+		logGlobal->errorStream() << "ActivateGuard: no previous active target";
+	else		
+		previousActive->activate();
+}
+
+
+///IWindow
 IWindow::IWindow()
 {
 	

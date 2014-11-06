@@ -117,19 +117,20 @@ IRenderTarget * CMessage::drawDialogBox(int w, int h, PlayerColor playerColor)
 {
 	//prepare surface
 	IRenderTarget * ret = mainScreen->createTarget(w, h);
-	ret->runActivated([&](){
-		for (int i=0; i<w; i+=background->w)//background
+	ActivateGuard guard(ret);
+
+	for (int i=0; i<w; i+=background->w)//background
+	{
+		for (int j=0; j<h; j+=background->h)
 		{
-			for (int j=0; j<h; j+=background->h)
-			{
-				Rect srcR(0,0,background->w, background->h);
-				Rect dstR(i,j,w,h);
-				
-				mainScreen->blit(background, &srcR, &dstR);
-			}
+			Rect srcR(0,0,background->w, background->h);
+			Rect dstR(i,j,w,h);
+			
+			mainScreen->blit(background, &srcR, &dstR);
 		}
-		drawBorder(playerColor, w, h);
-	});
+	}
+	drawBorder(playerColor, w, h);
+
 	return ret;
 }
 
@@ -463,7 +464,7 @@ ComponentsToBlit::ComponentsToBlit(std::vector<CComponent*> & SComps, int maxw, 
 
 void ComponentsToBlit::blitCompsOn( bool blitOr, int inter, int &curh, IRenderTarget *ret )
 {
-	ret->runActivated([&,this](){
+	ActivateGuard guard(ret);
 	
 	int orWidth = graphics->fonts[FONT_MEDIUM]->getStringWidth(CGI->generaltexth->allTexts[4]);
 
@@ -512,6 +513,4 @@ void ComponentsToBlit::blitCompsOn( bool blitOr, int inter, int &curh, IRenderTa
 		}
 		curh += maxHeight + BETWEEN_COMPS_ROWS;
 	}
-	
-	});
 }

@@ -3174,33 +3174,34 @@ void CBonusSelection::init()
 	background = mainScreen->createTarget(pos.w, pos.h);
 	
 	background->runActivated([&,this](){
-		mainScreen->blit(backgroundPicture,0,0);
-		SDL_FreeSurface(backgroundPicture);
-		
-		center();
+							
+	mainScreen->blit(backgroundPicture,0,0);
+	SDL_FreeSurface(backgroundPicture);
+	
+	center();
 
-		SDL_Surface * panel = BitmapHandler::loadBitmap("CAMPBRF.BMP");		
-		mainScreen->blit(panel, 456, 6);
-		SDL_FreeSurface(panel);
+	SDL_Surface * panel = BitmapHandler::loadBitmap("CAMPBRF.BMP");		
+	mainScreen->blit(panel, 456, 6);
+	SDL_FreeSurface(panel);
 
-		startB   = new CButton(Point(475, 536), "CBBEGIB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::startMap, this), SDLK_RETURN);
-		restartB = new CButton(Point(475, 536), "CBRESTB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::restartMap, this), SDLK_RETURN);
-		backB    = new CButton(Point(624, 536), "CBCANCB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::goBack, this), SDLK_ESCAPE);
+	startB   = new CButton(Point(475, 536), "CBBEGIB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::startMap, this), SDLK_RETURN);
+	restartB = new CButton(Point(475, 536), "CBRESTB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::restartMap, this), SDLK_RETURN);
+	backB    = new CButton(Point(624, 536), "CBCANCB.DEF", CButton::tooltip(), std::bind(&CBonusSelection::goBack, this), SDLK_ESCAPE);
 
-		//map size icon
-		sizes = CDefHandler::giveDef("SCNRMPSZ.DEF");
+	//map size icon
+	sizes = CDefHandler::giveDef("SCNRMPSZ.DEF");
 
-		//campaign description
-		graphics->fonts[FONT_SMALL]->renderTextLeft(CGI->generaltexth->allTexts[38], Colors::YELLOW, Point(481, 63));
+	//campaign description
+	graphics->fonts[FONT_SMALL]->renderTextLeft(CGI->generaltexth->allTexts[38], Colors::YELLOW, Point(481, 63));
 
-		campaignDescription = new CTextBox(ourCampaign->camp->header.description, Rect(480, 86, 286, 117), 1);
+	campaignDescription = new CTextBox(ourCampaign->camp->header.description, Rect(480, 86, 286, 117), 1);
 
-		//map description
-		mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
+	//map description
+	mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
 
-		//bonus choosing
-		graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
-		bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
+	//bonus choosing
+	graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
+	bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
 
 	//map description
 	mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
@@ -3249,6 +3250,7 @@ void CBonusSelection::init()
 		boost::split(difficulty, CGI->generaltexth->allTexts[492], boost::is_any_of(" "));
 		graphics->fonts[FONT_MEDIUM]->renderTextLeft(difficulty.back(), Colors::WHITE, Point(689, 432));
 
+	}
 	}); //end of drawing to background
 
 	//difficulty pics

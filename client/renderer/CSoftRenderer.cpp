@@ -53,6 +53,14 @@ namespace SoftRenderer
 		getWindow()->setActiveTarget(this);
 	}
 	
+	IRenderTarget * SurfaceProxy::activateEx()
+	{
+		IRenderTarget * res = getWindow()->activeTarget;
+		activate();
+		return res;
+	}
+	
+	
 	void SurfaceProxy::blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect)
 	{
 		getWindow()->blit(surface, srcRect, dstRect);
@@ -120,15 +128,6 @@ namespace SoftRenderer
 		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);	
 		#endif // VCMI_SDL1			
 	}
-	
-
-	void SurfaceProxy::runActivated(const std::function<void(void)>& cb)
-	{
-		getWindow()->pushActiveTarget();
-		activate();
-		cb();
-		getWindow()->popActiveTarget();		
-	}	
 	
 	void SurfaceProxy::update()
 	{
@@ -246,10 +245,10 @@ namespace SoftRenderer
 	
 	///Window
 	Window::Window(Renderer * owner, const std::string & name):
-		SurfaceProxy(owner),
+		SurfaceProxy(owner), activeTarget(nullptr),
 		#ifndef VCMI_SDL1
 		screenTexture(nullptr), sdlWindow(nullptr), sdlRenderer(nullptr), 
-		#endif // VCMI_SDL1 
+		#endif // VCMI_SDL1 		
 		name(name)
 	{
 		
@@ -573,26 +572,6 @@ namespace SoftRenderer
 		activeTarget = target;
 	};
 
-	void Window::pushActiveTarget()
-	{
-		if(activeTarget != nullptr)
-			targetStack.push(activeTarget);
-		else
-			logGlobal->errorStream() << "Window::pushActiveTarget() no active target";
-	}
-
-	void Window::popActiveTarget()
-	{
-		if(!targetStack.empty())
-		{
-			activeTarget = targetStack.top();
-			targetStack.pop();
-		}
-		else
-			logGlobal->errorStream() << "Window::popActiveTarget() no target to pop up";	
-	}
-	
-		
 	void Window::renderFrame(const std::function<void(void)>& cb)
 	{
 		cb();

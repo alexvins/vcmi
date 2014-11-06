@@ -90,7 +90,14 @@ public:
      *
      * Only one rendering target can be active in window
      */
-	virtual void activate() = 0; 
+	virtual void activate() = 0;
+
+    /** @brief direct all rendering to this target
+     *
+     * Only one rendering target can be active in window
+     * @return previous active target
+     */	
+	virtual IRenderTarget * activateEx() = 0;
 		
     /** @brief Blit content of this target to active target
      *
@@ -109,13 +116,22 @@ public:
 	
 	virtual SDL_PixelFormat * getFormat() = 0;
 
-	virtual void runActivated(const std::function<void(void)> & cb) = 0;
+	void runActivated(const std::function<void(void)> & cb);
 
 	virtual void saveAsBitmap(const std::string & fileName) = 0;
 	
 	virtual void setClipRect(SDL_Rect * rect) = 0;	
 		
 	virtual void update() = 0;	
+};
+
+class ActivateGuard
+{	
+public:	
+	ActivateGuard(IRenderTarget * newActiveTarget);
+	virtual ~ActivateGuard();
+private:
+	IRenderTarget * previousActive;
 };
 
 #ifndef DISABLE_VIDEO	
@@ -127,6 +143,7 @@ class AVCodecContext;
 class IVideoOverlay: public boost::noncopyable
 {
 public:
+	virtual ~IVideoOverlay(){} 
 	///draw to internal buffer
 	virtual void showFrame(AVFrame * frame, struct SwsContext * sws, AVCodecContext * codecContext) = 0;
 	///show overlay content on screen

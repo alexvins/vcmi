@@ -445,20 +445,22 @@ void CMinimapInstance::drawScaled(int level)
 	double stepY = double(pos.h) / mapSizes.y;
 
 	double currY = 0;
-	minimap->runActivated([&,this](){
-		Rect tileRect(0,0,stepX,stepY);
-		for (int y=0; y<mapSizes.y; y++, currY += stepY)
+	
+	ActivateGuard guard(minimap);
+
+	Rect tileRect(0,0,stepX,stepY);
+	for (int y=0; y<mapSizes.y; y++, currY += stepY)
+	{
+		double currX = 0;
+		for (int x=0; x<mapSizes.x; x++, currX += stepX)
 		{
-			double currX = 0;
-			for (int x=0; x<mapSizes.x; x++, currX += stepX)
-			{
-				const SDL_Color &color = getTileColor(int3(x,y,level));
-				
-				tileRect.x = currX;
-				tileRect.y = currY;
-				
-				mainScreen->fillRect(color, &tileRect);
-				
+			const SDL_Color &color = getTileColor(int3(x,y,level));
+			
+			tileRect.x = currX;
+			tileRect.y = currY;
+			
+			mainScreen->fillRect(color, &tileRect);
+			
 //				//coordinates of rectangle on minimap representing this tile
 //				// begin - first to blit, end - first NOT to blit
 //				int xBegin = currX;
@@ -473,9 +475,9 @@ void CMinimapInstance::drawScaled(int level)
 //					for (int x=xBegin; x<xEnd; x++)
 //						ColorPutter<4, 1>::PutColor(ptr, color);
 //				}
-			}
 		}
-	});		
+	}
+	
 }
 
 CMinimapInstance::CMinimapInstance(CMinimap *Parent, int Level):

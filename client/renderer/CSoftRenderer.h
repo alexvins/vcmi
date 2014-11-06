@@ -33,7 +33,8 @@ namespace SoftRenderer
 		virtual ~SurfaceProxy();
 		
 		///IRenderTarget
-		void activate() override;		
+		void activate() override;
+		IRenderTarget * activateEx() override;
 		void blitTo(SDL_Rect * srcRect, SDL_Rect * dstRect) override;
 		bool isActive() override;		
 		int getWidth() override;
@@ -47,8 +48,6 @@ namespace SoftRenderer
 		
 		void saveAsBitmap(const std::string & fileName) override;
 		
-		void runActivated(const std::function<void(void)> & cb) override;
-
 		void update() override;
 		
 		///internal interface		
@@ -153,17 +152,12 @@ namespace SoftRenderer
 
 		SurfaceProxy * getActiveTarget();		
 		void setActiveTarget(SurfaceProxy * target);
-		
-		void pushActiveTarget();
-		void popActiveTarget();		
 
 	protected:
 		void clear() override;	
 		Window * getWindow(){return this;};
 		
 	private:		
-		std::stack<SurfaceProxy *> targetStack;
-		
 		SurfaceProxy * activeTarget;
 		
 		#ifndef VCMI_SDL1		
