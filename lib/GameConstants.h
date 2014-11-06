@@ -14,7 +14,7 @@
 
 namespace GameConstants
 {
-	const std::string VCMI_VERSION = "VCMI 0.96b";
+	const std::string VCMI_VERSION = "VCMI 0.97b";
 
 	const int BFIELD_WIDTH = 17;
 	const int BFIELD_HEIGHT = 11;
@@ -299,7 +299,7 @@ namespace ETownType
 	enum ETownType
 	{
 		ANY = -1,
-		CASTLE, RAMPART, TOWER, INFERNO, NECROPOLIS, DUNGEON, STRONGHOLD, FORTRESS, CONFLUX
+		CASTLE, RAMPART, TOWER, INFERNO, NECROPOLIS, DUNGEON, STRONGHOLD, FORTRESS, CONFLUX, NEUTRAL
 	};
 }
 

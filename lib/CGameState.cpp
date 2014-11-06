@@ -659,23 +659,23 @@ void CGameState::randomizeObject(CGObjectInstance *cur)
 	{
 		if(cur->ID==Obj::TOWN)
 			cur->setType(cur->ID, cur->subID); // update def, if necessary
-		return;
 	}
 	else if(ran.first==Obj::HERO)//special code for hero
 	{
 		CGHeroInstance *h = dynamic_cast<CGHeroInstance *>(cur);
 		cur->setType(ran.first, ran.second);
 		map->heroesOnMap.push_back(h);
-		return;
 	}
 	else if(ran.first==Obj::TOWN)//special code for town
 	{
 		CGTownInstance *t = dynamic_cast<CGTownInstance*>(cur);
 		cur->setType(ran.first, ran.second);
 		map->towns.push_back(t);
-		return;
 	}
-	cur->setType(ran.first, ran.second);
+	else
+	{
+		cur->setType(ran.first, ran.second);	
+	}	
 }
 
 int CGameState::getDate(Date::EDateType mode) const
@@ -1796,7 +1796,6 @@ void CGameState::initTowns()
 				}
 		}
 		//init spells
-		logGlobal->debugStream() << "\t\tTown init spells";
 		vti->spells.resize(GameConstants::SPELL_LEVELS);
 
 		for(ui32 z=0; z<vti->obligatorySpells.size();z++)
@@ -1805,7 +1804,6 @@ void CGameState::initTowns()
 			vti->spells[s->level-1].push_back(s->id);
 			vti->possibleSpells -= s->id;
 		}
-		logGlobal->debugStream() << "\t\tTown init spells2";
 		while(vti->possibleSpells.size())
 		{
 			ui32 total=0;
@@ -1837,7 +1835,6 @@ void CGameState::initTowns()
 		vti->possibleSpells.clear();
 		if(vti->getOwner() != PlayerColor::NEUTRAL)
 			getPlayer(vti->getOwner())->towns.push_back(vti);
-        logGlobal->debugStream() << "\t\tTown init spells3";
 
 	}
 }

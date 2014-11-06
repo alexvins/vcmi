@@ -136,12 +136,11 @@ CRmgTemplateZone::CRmgTemplateZone() :
 	size(1),
 	townsAreSameType(false),
 	matchTerrainToTown(true),
-	townType(0),
+	townType(ETownType::NEUTRAL),
 	terrainType (ETerrainType::GRASS),
 	zoneMonsterStrength(EMonsterStrength::ZONE_NORMAL),
 	totalDensity(0)
 {
-	townTypes = getDefaultTownTypes();
 	terrainTypes = getDefaultTerrainTypes();
 }
 
@@ -228,6 +227,10 @@ const std::set<TFaction> & CRmgTemplateZone::getTownTypes() const
 void CRmgTemplateZone::setTownTypes(const std::set<TFaction> & value)
 {
 	townTypes = value;
+}
+void CRmgTemplateZone::setMonsterTypes(const std::set<TFaction> & value)
+{
+	monsterTypes = value;
 }
 
 std::set<TFaction> CRmgTemplateZone::getDefaultTownTypes() const
@@ -507,7 +510,7 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 		}
 	}
 
-	logGlobal->infoStream() << boost::format ("Zone %d subdivided fractally") %id;
+	//logGlobal->infoStream() << boost::format ("Zone %d subdivided fractally") %id;
 }
 
 bool CRmgTemplateZone::crunchPath (CMapGenerator* gen, const int3 &src, const int3 &dst, TRmgTemplateZoneId zone, std::set<int3>* clearedTiles)
@@ -635,6 +638,8 @@ bool CRmgTemplateZone::addMonster(CMapGenerator* gen, int3 &pos, si32 strength, 
 	for (auto cre : VLC->creh->creatures)
 	{
 		if (cre->special)
+			continue;
+		if (!vstd::contains(monsterTypes, cre->faction))
 			continue;
 		if ((cre->AIValue * (cre->ammMin + cre->ammMax) / 2 < strength) && (strength < cre->AIValue * 100)) //at least one full monster. size between minimum size of given stack and 100
 		{
@@ -951,12 +956,23 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 			if (this->townsAreSameType)
 				town->subID = townType;
 			else
-				town->subID = *RandomGeneratorUtil::nextItem(VLC->townh->getAllowedFactions(), gen->rand); //TODO: check allowed town types for this zone
+			{
+				if (townTypes.size())
+					town->subID = *RandomGeneratorUtil::nextItem(townTypes, gen->rand);
+				else
+					town->subID = *RandomGeneratorUtil::nextItem(getDefaultTownTypes(), gen->rand); //it is possible to have zone with no towns allowed
+			}
 
 			town->tempOwner = player;
 			if (hasFort)
 				town->builtBuildings.insert(BuildingID::FORT);
 			town->builtBuildings.insert(BuildingID::DEFAULT);
+
+			for (auto spell : VLC->spellh->objects) //add all regular spells to town
+			{
+				if (!spell->isSpecialSpell() && !spell->isCreatureAbility())
+					town->possibleSpells.push_back(spell->id);
+			}
 
 			if (!totalTowns) 
 			{
@@ -986,8 +1002,13 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 			PlayerColor player(player_id);
 			townType = gen->mapGenOptions->getPlayersSettings().find(player)->second.getStartingTown();
 
-			if(townType == CMapGenOptions::CPlayerSettings::RANDOM_TOWN)
-				townType = *RandomGeneratorUtil::nextItem(VLC->townh->getAllowedFactions(), gen->rand); // all possible towns, skip neutral
+			if (townType == CMapGenOptions::CPlayerSettings::RANDOM_TOWN)
+			{
+				if (townTypes.size())
+					townType = *RandomGeneratorUtil::nextItem(townTypes, gen->rand);
+				else
+					townType = *RandomGeneratorUtil::nextItem(getDefaultTownTypes(), gen->rand); //it is possible to have zone with no towns allowed
+			}
 			
 			auto  town = new CGTownInstance();
 			town->ID = Obj::TOWN;
@@ -996,6 +1017,12 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 			town->tempOwner = player;
 			town->builtBuildings.insert(BuildingID::FORT);
 			town->builtBuildings.insert(BuildingID::DEFAULT);
+
+			for (auto spell : VLC->spellh->objects) //add all regular spells to town
+			{
+				if (!spell->isSpecialSpell() && !spell->isCreatureAbility())
+					town->possibleSpells.push_back(spell->id);
+			}
 			//towns are big objects and should be centered around visitable position
 			placeAndGuardObject(gen, town, getPos() + town->getVisitableOffset(), 0); //generate no guards, but free path to entrance
 			cutPathAroundTown(town);
@@ -1022,23 +1049,45 @@ void CRmgTemplateZone::initTownType (CMapGenerator* gen)
 		else
 		{			
 			type = ETemplateZoneType::TREASURE;
-			townType = *RandomGeneratorUtil::nextItem(VLC->townh->getAllowedFactions(), gen->rand);
-			logGlobal->infoStream() << "Skipping this zone cause no player";
+			if (townTypes.size())
+				townType = *RandomGeneratorUtil::nextItem(townTypes, gen->rand);
+			else
+				townType = *RandomGeneratorUtil::nextItem(getDefaultTownTypes(), gen->rand); //it is possible to have zone with no towns allowed
 		}
 	}
 	else //no player
 	{
-		townType = *RandomGeneratorUtil::nextItem(VLC->townh->getAllowedFactions(), gen->rand);
+		if (townTypes.size())
+			townType = *RandomGeneratorUtil::nextItem(townTypes, gen->rand);
+		else
+			townType = *RandomGeneratorUtil::nextItem(getDefaultTownTypes(), gen->rand); //it is possible to have zone with no towns allowed
 	}
 
 	addNewTowns (neutralTowns.getCastleCount(), true, PlayerColor::NEUTRAL);
 	addNewTowns (neutralTowns.getTownCount(), false, PlayerColor::NEUTRAL);
+
+	if (!totalTowns) //if there's no town present, get random faction for dwellings and pandoras
+	{
+		//25% chance for neutral
+		if (gen->rand.nextInt(1, 100) <= 25)
+		{
+			townType = ETownType::NEUTRAL;
+		}
+		else
+		{
+			if (townTypes.size())
+				townType = *RandomGeneratorUtil::nextItem(townTypes, gen->rand);
+			else if (monsterTypes.size())
+				townType = *RandomGeneratorUtil::nextItem(monsterTypes, gen->rand); //this happens in Clash of Dragons in treasure zones, where all towns are banned
+		}
+
+	}
 }
 
 void CRmgTemplateZone::initTerrainType (CMapGenerator* gen)
 {
 
-	if (matchTerrainToTown)
+	if (matchTerrainToTown && townType != ETownType::NEUTRAL)
 		terrainType = VLC->townh->factions[townType]->nativeTerrain;
 	else
 		terrainType = *RandomGeneratorUtil::nextItem(terrainTypes, gen->rand);
@@ -1120,18 +1169,16 @@ bool CRmgTemplateZone::placeMines (CMapGenerator* gen)
 
 bool CRmgTemplateZone::createRequiredObjects(CMapGenerator* gen)
 {
-	logGlobal->infoStream() << "Creating required objects";
+	logGlobal->traceStream() << "Creating required objects";
 	for(const auto &obj : requiredObjects)
 	{
 		int3 pos;
-		logGlobal->traceStream() << "Looking for place";
 		if ( ! findPlaceForObject(gen, obj.first, 3, pos))		
 		{
 			logGlobal->errorStream() << boost::format("Failed to fill zone %d due to lack of space") %id;
 			//TODO CLEANUP!
 			return false;
 		}
-		logGlobal->traceStream() << "Place found";
 
 		placeObject (gen, obj.first, pos);
 		guardObject (gen, obj.first, obj.second, (obj.first->ID == Obj::MONOLITH_TWO_WAY), true);
@@ -1202,10 +1249,11 @@ void CRmgTemplateZone::createObstacles(CMapGenerator* gen)
 				freeTiles++;
 			}
 		}
-		logGlobal->infoStream() << boost::format("Set %d tiles to BLOCKED and %d tiles to FREE") % blockedTiles % freeTiles;
+		logGlobal->traceStream() << boost::format("Set %d tiles to BLOCKED and %d tiles to FREE") % blockedTiles % freeTiles;
 	}
 
-	if (pos.z) //underground
+	#define MAKE_COOL_UNDERGROUND_TUNNELS false
+	if (pos.z && MAKE_COOL_UNDERGROUND_TUNNELS) //underground
 	{
 		std::vector<int3> rockTiles;
 
@@ -1553,7 +1601,7 @@ bool CRmgTemplateZone::guardObject(CMapGenerator* gen, CGObjectInstance* object,
 
 	for (auto tile : tiles)
 	{
-		//crunching path may fail if center of teh zone is dirrectly over wide object
+		//crunching path may fail if center of the zone is directly over wide object
 		//make sure object is accessible before surrounding it with blocked tiles
 		if (crunchPath (gen, tile, findClosestTile(freePaths, tile), id, addToFreePaths ? &freePaths : nullptr))
 		{
@@ -1934,12 +1982,15 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 
 	for (auto creature : VLC->creh->creatures)
 	{
-		if (!creature->special && VLC->townh->factions[creature->faction]->nativeTerrain == terrainType)
+		if (!creature->special && creature->faction == townType)
 		{
 			int actualTier = creature->level > 7 ? 6 : creature->level-1;
-			int creaturesAmount = tierValues[actualTier] / creature->AIValue;
+			float creaturesAmount = tierValues[actualTier] / creature->AIValue;
 			if (creaturesAmount <= 5)
 			{
+				creaturesAmount = boost::math::round(creaturesAmount); //allow single monsters
+				if (creaturesAmount < 1)
+					continue;
 			}
 			else if (creaturesAmount <= 12)
 			{
@@ -1947,11 +1998,11 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 			}
 			else if (creaturesAmount <= 50)
 			{
-				creaturesAmount = boost::math::round((float)creaturesAmount / 5) * 5;
+				creaturesAmount = boost::math::round(creaturesAmount / 5) * 5;
 			}
 			else if (creaturesAmount <= 12)
 			{
-				creaturesAmount = boost::math::round((float)creaturesAmount / 10) * 10;
+				creaturesAmount = boost::math::round(creaturesAmount / 10) * 10;
 			}
 
 			oi.generateObject = [creature, creaturesAmount]() -> CGObjectInstance *

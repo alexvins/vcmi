@@ -3202,9 +3202,18 @@ void CBonusSelection::init()
 		graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
 		bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
 
-		//set left part of window
-		bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
-		for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
+	//map description
+	mapDescription = new CTextBox("", Rect(480, 280, 286, 117), 1);
+
+	//bonus choosing
+	graphics->fonts[FONT_MEDIUM]->renderTextLeft(CGI->generaltexth->allTexts[71], Colors::WHITE, Point(511, 432));
+	bonuses = new CToggleGroup(std::bind(&CBonusSelection::selectBonus, this, _1));
+
+	//set left part of window
+	bool isCurrentMapConquerable = ourCampaign->currentMap && ourCampaign->camp->conquerable(*ourCampaign->currentMap);
+	for(int g = 0; g < ourCampaign->camp->scenarios.size(); ++g)
+	{
+		if(ourCampaign->camp->conquerable(g))
 		{
 			if(ourCampaign->camp->conquerable(g))
 			{
@@ -3459,7 +3468,7 @@ void CBonusSelection::updateBonusSelection()
 	updateStartButtonState(-1);
 
 	delete bonuses;
-	bonuses = new CToggleGroup(bind(&CBonusSelection::selectBonus, this, _1));
+	bonuses = new CToggleGroup(std::bind(&CBonusSelection::selectBonus, this, _1));
 
 	static const char *bonusPics[] = {"SPELLBON.DEF", "TWCRPORT.DEF", "", "ARTIFBON.DEF", "SPELLBON.DEF",
 		"PSKILBON.DEF", "SSKILBON.DEF", "BORES.DEF", "PORTRAITSLARGE", "PORTRAITSLARGE"};
