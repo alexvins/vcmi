@@ -11,6 +11,7 @@
 
 #include "IRenderer.h"
 
+///ClipRectGuard
 ClipRectGuard::ClipRectGuard(IWindow * window, SDL_Rect * newClipRect)
 {
 	window->getClipRect(&oldRect, target);
@@ -22,6 +23,7 @@ ClipRectGuard::~ClipRectGuard()
 	target->setClipRect(&oldRect);
 }
 
+///EffectGuard
 EffectGuard::EffectGuard(IWindow * window, const SDL_Rect * clipRect, EffectType type)
 {
 	handle = nullptr;
@@ -77,6 +79,7 @@ IWindow::~IWindow()
 	
 }
 
+///IRenderer
 IRenderer::IRenderer()
 {
 	

@@ -125,7 +125,7 @@ public:
 	virtual void update() = 0;	
 };
 
-class ActivateGuard
+class ActivateGuard: public boost::noncopyable
 {	
 public:	
 	ActivateGuard(IRenderTarget * newActiveTarget);
@@ -164,7 +164,7 @@ public:
     /** @brief Apply specified effect in active target for a lifetime of EffectHandle
      *
      * @param clipRect rectangle to limit effect to
-     * @param type Type of effevt
+     * @param type Type of effect
      * @return handle of effect
      *
      */                             	
