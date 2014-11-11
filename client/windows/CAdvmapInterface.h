@@ -146,8 +146,8 @@ public:
 	void activate();
 	void deactivate();
 
-	void show(); //redraws terrain
-	void showAll(); //shows and activates adv. map interface
+	void show() override; //redraws terrain
+	void showAll() override; //shows and activates adv. map interface
 
 	void select(const CArmedInstance *sel, bool centerView = true);
 	void selectionChanged();

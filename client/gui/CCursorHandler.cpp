@@ -229,11 +229,11 @@ void CCursorHandler::centerCursor()
 
 void CCursorHandler::render()
 {
-	mainScreen->runActivated([this](){
-		drawWithScreenRestore();
-		mainScreen->update();
-		drawRestored();	
-	});
+	ActivateGuard mainScreenActivated(mainScreen);
+
+	drawWithScreenRestore();
+	mainScreen->update();
+	drawRestored();
 }
 
 

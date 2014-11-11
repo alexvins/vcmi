@@ -376,12 +376,11 @@ void CGuiHandler::handleMouseMotion(SDL_Event *sEvent)
 
 void CGuiHandler::simpleRedraw()
 {
-	mainScreen->runActivated([this](){
-		//update only top interface and draw background
-		if(objsToBlit.size() > 1)
-			bufferScreen->blitTo(nullptr, nullptr);//blit background
-		objsToBlit.back()->show();//blit active interface/window
-	});
+	ActivateGuard mainScreenActivated(mainScreen);
+	//update only top interface and draw background
+	if(objsToBlit.size() > 1)
+		bufferScreen->blitTo(nullptr, nullptr);//blit background
+	objsToBlit.back()->show();//blit active interface/window
 }
 
 void CGuiHandler::handleMoveInterested( const SDL_MouseMotionEvent & motion )

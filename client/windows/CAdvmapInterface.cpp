@@ -1501,9 +1501,9 @@ void CAdvMapInt::aiTurnStarted()
 	CCS->musich->playMusicFromSet("enemy-turn", true);
 	adventureInt->minimap.setAIRadar(true);
 	adventureInt->infoBar.startEnemyTurn(LOCPLINT->cb->getCurrentPlayer());
-	mainScreen->runActivated([](){
-		adventureInt->infoBar.showAll();//force refresh on inactive object
-	});
+	
+	ActivateGuard mainScreenActivated(mainScreen);
+	adventureInt->infoBar.showAll();//force refresh on inactive object	
 }
 
 void CAdvMapInt::adjustActiveness(bool aiTurnStart)
