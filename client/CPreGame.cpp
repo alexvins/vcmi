@@ -1242,7 +1242,7 @@ SelectionTab::SelectionTab(CMenuScreen::EState Type, const std::function<void(CM
 			if(tabType == CMenuScreen::saveGame)
 			{
 				txt = new CTextInput(Rect(32, 539, 350, 20), Point(-32, -25), "GSSTRIP.bmp", 0);
-				txt->filters.add(CTextInput::filenameFilter);
+				txt->filters += CTextInput::filenameFilter;
 			}
 			break;
 
@@ -1587,7 +1587,14 @@ int SelectionTab::getLine()
 	Point clickPos(GH.current->button.x, GH.current->button.y);
 	clickPos = clickPos - pos.topLeft();
 
-	if (clickPos.y > 115  &&  clickPos.y < 564  &&  clickPos.x > 22  &&  clickPos.x < 371)
+	// Ignore clicks on save name area
+	int maxPosY;
+	if(tabType == CMenuScreen::saveGame)
+		maxPosY = 516;
+	else
+		maxPosY = 564;
+
+    	if(clickPos.y > 115  &&  clickPos.y < maxPosY  &&  clickPos.x > 22  &&  clickPos.x < 371)
 	{
 		line = (clickPos.y-115) / 25; //which line
 	}
@@ -4260,7 +4267,7 @@ CSimpleJoinScreen::CSimpleJoinScreen()
 
 	port = new CTextInput(Rect(25, 115, 175, 16), *bg);
     port->cb += std::bind(&CSimpleJoinScreen::onChange, this, _1);
-    port->filters.add(std::bind(&CTextInput::numberFilter, _1, _2, 0, 65535));
+    port->filters += std::bind(&CTextInput::numberFilter, _1, _2, 0, 65535);
 
 	ok     = new CButton(Point( 26, 142), "MUBCHCK.DEF", CGI->generaltexth->zelp[560], std::bind(&CSimpleJoinScreen::enterSelectionScreen, this), SDLK_RETURN);
 	cancel = new CButton(Point(142, 142), "MUBCANC.DEF", CGI->generaltexth->zelp[561], std::bind(&CGuiHandler::popIntTotally, std::ref(GH), this), SDLK_ESCAPE);

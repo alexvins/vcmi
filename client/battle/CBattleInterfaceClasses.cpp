@@ -260,14 +260,14 @@ CBattleOptionsWindow::CBattleOptionsWindow(const SDL_Rect & position, CBattleInt
 	background = new CPicture("comopbck.bmp");
 	background->colorize(owner->getCurrentPlayerInterface()->playerID);
 
-	viewGrid = new CToggleButton(Point(25, 56), "sysopchk.def", CGI->generaltexth->zelp[427], [&](bool on){owner->setPrintCellBorders(on);} );
+	viewGrid = new CToggleButton(Point(25, 56), "sysopchk.def", CGI->generaltexth->zelp[427], [=](bool on){owner->setPrintCellBorders(on);} );
 	viewGrid->setSelected(settings["battle"]["cellBorders"].Bool());
-	movementShadow = new CToggleButton(Point(25, 89), "sysopchk.def", CGI->generaltexth->zelp[428], [&](bool on){owner->setPrintStackRange(on);});
+	movementShadow = new CToggleButton(Point(25, 89), "sysopchk.def", CGI->generaltexth->zelp[428], [=](bool on){owner->setPrintStackRange(on);});
 	movementShadow->setSelected(settings["battle"]["stackRange"].Bool());
-	mouseShadow = new CToggleButton(Point(25, 122), "sysopchk.def", CGI->generaltexth->zelp[429], [&](bool on){owner->setPrintMouseShadow(on);});
+	mouseShadow = new CToggleButton(Point(25, 122), "sysopchk.def", CGI->generaltexth->zelp[429], [=](bool on){owner->setPrintMouseShadow(on);});
 	mouseShadow->setSelected(settings["battle"]["mouseShadow"].Bool());
 
-	animSpeeds = new CToggleGroup([&](int value){ owner->setAnimSpeed(value);});
+	animSpeeds = new CToggleGroup([=](int value){ owner->setAnimSpeed(value);});
 	animSpeeds->addToggle(40,  new CToggleButton(Point( 28, 225), "sysopb9.def", CGI->generaltexth->zelp[422]));
 	animSpeeds->addToggle(63,  new CToggleButton(Point( 92, 225), "sysob10.def", CGI->generaltexth->zelp[423]));
 	animSpeeds->addToggle(100, new CToggleButton(Point(156, 225), "sysob11.def", CGI->generaltexth->zelp[424]));
@@ -574,10 +574,9 @@ void CClickableHex::mouseMoved(const SDL_MouseMotionEvent &sEvent)
 			attackedStack->owner != myInterface->getCurrentPlayerInterface()->playerID &&
 			attackedStack->alive())
 		{
-			char tabh[160];
 			const std::string & attackedName = attackedStack->count == 1 ? attackedStack->getCreature()->nameSing : attackedStack->getCreature()->namePl;
-			sprintf(tabh, CGI->generaltexth->allTexts[220].c_str(), attackedName.c_str());
-			myInterface->console->alterTxt = std::string(tabh);
+			auto txt = boost::format (CGI->generaltexth->allTexts[220]) % attackedName;
+			myInterface->console->alterTxt = boost::to_string(txt);
 			setAlterText = true;
 		}
 	}
