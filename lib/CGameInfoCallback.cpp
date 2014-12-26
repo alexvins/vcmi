@@ -17,6 +17,7 @@
 #include "BattleState.h" // for BattleInfo
 #include "NetPacks.h" // for InfoWindow
 #include "CModHandler.h"
+#include "CSpellHandler.h"
 
 //TODO make clean
 #define ERROR_VERBOSE_OR_NOT_RET_VAL_IF(cond, verbose, txt, retVal) do {if(cond){if(verbose)logGlobal->errorStream() << BOOST_CURRENT_FUNCTION << ": " << txt; return retVal;}} while(0)
@@ -108,7 +109,7 @@ const CGObjectInstance* CGameInfoCallback::getObj(ObjectInstanceID objid, bool v
 		return nullptr;
 	}
 
-	if(!isVisible(ret, player))
+	if(!isVisible(ret, player) && ret->tempOwner != player)
 	{
 		if(verbose)
             logGlobal->errorStream() << "Cannot get object with id " << oid << ". Object is not visible.";
@@ -170,19 +171,11 @@ int CGameInfoCallback::estimateSpellDamage(const CSpell * sp, const CGHeroInstan
 	//boost::shared_lock<boost::shared_mutex> lock(*gs->mx);
 
 	ERROR_RET_VAL_IF(hero && !canGetFullInfo(hero), "Cannot get info about caster!", -1);
-	if(!gs->curB) //no battle
-	{
-		if (hero) //but we see hero's spellbook
-			return gs->curB->calculateSpellDmg(
-				sp, hero, nullptr, hero->getSpellSchoolLevel(sp), hero->getPrimSkillLevel(PrimarySkill::SPELL_POWER));
-		else
-			return 0; //mage guild
-	}
-	//gs->getHero(gs->currentPlayer)
-	//const CGHeroInstance * ourHero = gs->curB->heroes[0]->tempOwner == player ? gs->curB->heroes[0] : gs->curB->heroes[1];
-	const CGHeroInstance * ourHero = hero;
-	return gs->curB->calculateSpellDmg(
-		sp, ourHero, nullptr, ourHero->getSpellSchoolLevel(sp), ourHero->getPrimSkillLevel(PrimarySkill::SPELL_POWER));
+
+	if (hero) //we see hero's spellbook
+		return sp->calculateDamage(hero, nullptr, hero->getSpellSchoolLevel(sp), hero->getPrimSkillLevel(PrimarySkill::SPELL_POWER));
+	else
+		return 0; //mage guild
 }
 
 void CGameInfoCallback::getThievesGuildInfo(SThievesGuildInfo & thi, const CGObjectInstance * obj)
@@ -525,7 +518,8 @@ std::vector < const CGHeroInstance *> CPlayerSpecificInfoCallback::getHeroesInfo
 	std::vector < const CGHeroInstance *> ret;
 	for(auto hero : gs->map->heroesOnMap)
 	{
-		if( !player || (hero->tempOwner == *player) ||
+		// !player || // - why would we even get access to hero not owned by any player?
+		if((hero->tempOwner == *player) ||
 			(isVisible(hero->getPosition(false), player) && !onlyOur)	)
 		{
 			ret.push_back(hero);

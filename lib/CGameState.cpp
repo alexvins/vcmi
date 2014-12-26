@@ -878,7 +878,7 @@ void CGameState::initDuel()
 		else
 		{
 			CLoadFile lf(scenarioOps->mapname);
-			lf >> dp;
+			lf.serializer >> dp;
 		}
 	}
 	catch(...)
@@ -1847,7 +1847,7 @@ void CGameState::initMapObjects()
 	{
 		if(obj)
 		{
-			logGlobal->traceStream() << boost::format ("Calling Init for object %d, %d") % obj->ID % obj->subID;
+			//logGlobal->traceStream() << boost::format ("Calling Init for object %d, %d") % obj->ID % obj->subID;
 			obj->initObj();
 		}
 	}
@@ -2238,6 +2238,10 @@ bool CGameState::isVisible(int3 pos, PlayerColor player)
 bool CGameState::isVisible( const CGObjectInstance *obj, boost::optional<PlayerColor> player )
 {
 	if(!player)
+		return true;
+
+	//we should always see our own heroes - but sometimes not visible heroes cause crash :?
+	if (player == obj->tempOwner)
 		return true;
 
 	if(*player == PlayerColor::NEUTRAL) //-> TODO ??? needed?

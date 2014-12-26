@@ -2172,6 +2172,10 @@ void InfoCard::changeSelection( const CMapInfo *to )
 		else
 			mapDescription->setText(to->mapHeader->description);
 
+		mapDescription->label->scrollTextTo(0);
+		if (mapDescription->slider)
+			mapDescription->slider->moveToMin();
+
 		if(SEL->screenType != CMenuScreen::newGame && SEL->screenType != CMenuScreen::campaignList) {
 			//difficulty->block(true);
 			difficulty->setSelected(SEL->sInfo.difficulty);

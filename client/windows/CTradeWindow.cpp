@@ -125,6 +125,9 @@ int CTradeWindow::CTradeableItem::getIndex()
 
 void CTradeWindow::CTradeableItem::showAll()
 {
+	CTradeWindow *mw = dynamic_cast<CTradeWindow *>(parent);
+	assert(mw);
+
 	Point posToBitmap;
 	Point posToSubCenter;
 
@@ -137,7 +140,8 @@ void CTradeWindow::CTradeableItem::showAll()
 	case CREATURE_PLACEHOLDER:
 	case CREATURE:
 		posToSubCenter = Point(29, 76);
-		if(downSelection)
+		// Positing of unit count is different in Altar of Sacrifice and Freelancer's Guild
+		if(mw->mode == EMarketMode::CREATURE_EXP && downSelection)
 			posToSubCenter.y += 5;
 		break;
 	case PLAYER:
@@ -626,7 +630,7 @@ void CTradeWindow::artifactSelected(CArtPlace *slot)
 {
 	assert(mode == EMarketMode::ARTIFACT_RESOURCE);
 	items[1][0]->setArtInstance(slot->ourArt);
-	if(slot->ourArt)
+	if(slot->ourArt && !slot->locked)
 		hLeft = items[1][0];
 	else
 		hLeft = nullptr;
@@ -736,8 +740,8 @@ CMarketplaceWindow::CMarketplaceWindow(const IMarket *Market, const CGHeroInstan
 		break;
 	case EMarketMode::ARTIFACT_RESOURCE:
 		//%s's Artifacts
-		new CLabel(152, 102, FONT_SMALL, CENTER, Colors::WHITE,
-		           boost::str(boost::format(CGI->generaltexth->allTexts[272]) % hero->name));
+		new CLabel(152, 56, FONT_SMALL, CENTER, Colors::WHITE,
+		           boost::str(boost::format(CGI->generaltexth->allTexts[271]) % hero->name));
 		break;
 	}
 
@@ -1013,8 +1017,8 @@ void CMarketplaceWindow::getBaseForPositions(EType type, int &dx, int &dy, int &
 		dy = 79;
 		x = 39;
 		y = 180;
-		h = 66;
-		w = 74;
+		h = 68;
+		w = 70;
 		break;
 	case PLAYER:
 		dx = 83;
@@ -1157,10 +1161,18 @@ CAltarWindow::CAltarWindow(const IMarket *Market, const CGHeroInstance *Hero /*=
 
 	deal = new CButton(Point(269, 520), "ALTSACR.DEF", CGI->generaltexth->zelp[585], std::bind(&CAltarWindow::makeDeal,this));
 
-	if(Hero->getAlignment() != ::EAlignment::EVIL && Mode == EMarketMode::CREATURE_EXP)
-		new CButton(Point(516, 421), "ALTART.DEF", CGI->generaltexth->zelp[580], std::bind(&CTradeWindow::setMode,this, EMarketMode::ARTIFACT_EXP));
-	if(Hero->getAlignment() != ::EAlignment::GOOD && Mode == EMarketMode::ARTIFACT_EXP)
-		new CButton(Point(516, 421), "ALTSACC.DEF", CGI->generaltexth->zelp[572], std::bind(&CTradeWindow::setMode,this, EMarketMode::CREATURE_EXP));
+	if(Mode == EMarketMode::CREATURE_EXP)
+	{
+		CButton *changeMode = new CButton(Point(516, 421), "ALTART.DEF", CGI->generaltexth->zelp[580], std::bind(&CTradeWindow::setMode,this, EMarketMode::ARTIFACT_EXP));
+		if (Hero->getAlignment() == ::EAlignment::EVIL)
+			changeMode->block(true);
+	}
+	if(Mode == EMarketMode::ARTIFACT_EXP)
+	{
+		CButton *changeMode = new CButton(Point(516, 421), "ALTSACC.DEF", CGI->generaltexth->zelp[572], std::bind(&CTradeWindow::setMode,this, EMarketMode::CREATURE_EXP));
+		if (Hero->getAlignment() == ::EAlignment::GOOD)
+			changeMode->block(true);
+	}
 
 	expPerUnit.resize(GameConstants::ARMY_SIZE, 0);
 	getExpValues();
@@ -1191,8 +1203,11 @@ void CAltarWindow::getBaseForPositions(EType type, int &dx, int &dy, int &x, int
 
 void CAltarWindow::sliderMoved(int to)
 {
-	sacrificedUnits[hLeft->serial] = to;
-	updateRight(hRight);
+	if(hLeft)
+		sacrificedUnits[hLeft->serial] = to;
+	if(hRight)
+		updateRight(hRight);
+
 	deal->block(!to);
 	calcTotalExp();
 	redraw();
@@ -1267,7 +1282,7 @@ void CAltarWindow::SacrificeAll()
 	{
 		for(auto i = hero->artifactsWorn.cbegin(); i != hero->artifactsWorn.cend(); i++)
 		{
-			if(i->second.artifact->artType->id != ArtifactID::ART_LOCK) //ignore locks from assembled artifacts
+			if(!i->second.locked) //ignore locks from assembled artifacts
 				moveFromSlotToAltar(i->first, nullptr, i->second.artifact);
 		}
 
@@ -1346,13 +1361,7 @@ void CAltarWindow::garrisonChanged()
 	std::set<CTradeableItem *> empty;
 	getEmptySlots(empty);
 
-	for(CTradeableItem *t : empty)
-	{
-		removeItem(*std::find_if(items[0].begin(), items[0].end(), [&](const CTradeableItem * item)
-		{
-			return item->serial == t->serial;
-		}));
-	}
+	removeItems(empty);
 
 	initSubs(true);
 	getExpValues();
@@ -1417,7 +1426,7 @@ int CAltarWindow::firstFreeSlot()
 {
 	int ret = -1;
 	while(items[0][++ret]->id >= 0  &&  ret + 1 < items[0].size());
-	return ret < items[0].size() ? ret : -1;
+	return items[0][ret]->id == -1 ? ret : -1;
 }
 
 void CAltarWindow::SacrificeBackpack()
@@ -1461,14 +1470,13 @@ void CAltarWindow::showAll()
 
 bool CAltarWindow::putOnAltar(CTradeableItem* altarSlot, const CArtifactInstance *art)
 {
-	int artID = art->artType->id;
-	if(artID != 1 && artID < 7) //special art
+	if(!art->artType->isTradable()) //special art
 	{
         logGlobal->warnStream() << "Cannot put special artifact on altar!";
 		return false;
 	}
 
-	if(!altarSlot)
+	if(!altarSlot || altarSlot->id != -1)
 	{
 		int slotIndex = firstFreeSlot();
 		if(slotIndex < 0)
@@ -1480,7 +1488,7 @@ bool CAltarWindow::putOnAltar(CTradeableItem* altarSlot, const CArtifactInstance
 	}
 
 	int dmp, val;
-	market->getOffer(artID, 0, dmp, val, EMarketMode::ARTIFACT_EXP);
+	market->getOffer(art->artType->id, 0, dmp, val, EMarketMode::ARTIFACT_EXP);
 
 	arts->artifactsOnAltar.insert(art);
 	altarSlot->setArtInstance(art);

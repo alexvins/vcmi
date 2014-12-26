@@ -500,7 +500,7 @@ void CMinimapInstance::showAll()
 	minimap->blitTo(nullptr, &pos);
 
 	//draw heroes
-	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false);
+	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false); //TODO: do we really need separate function for drawing heroes? 
 	for(auto & hero : heroes)
 	{
 		int3 position = hero->getPosition(false);

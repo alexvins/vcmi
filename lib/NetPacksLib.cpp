@@ -184,9 +184,16 @@ DLL_LINKAGE void ChangeSpells::applyGs( CGameState *gs )
 
 DLL_LINKAGE void SetMana::applyGs( CGameState *gs )
 {
-	CGHeroInstance *hero = gs->getHero(hid);
-	vstd::amax(val, 0); //not less than 0
-	hero->mana = val;
+	CGHeroInstance * hero = gs->getHero(hid);
+	
+	assert(hero);
+	
+	if(absolute)
+		hero->mana = val;		
+	else
+		hero->mana += val;
+
+	vstd::amax(hero->mana, 0); //not less than 0
 }
 
 DLL_LINKAGE void SetMovePoints::applyGs( CGameState *gs )
@@ -909,7 +916,7 @@ DLL_LINKAGE void MoveArtifact::applyGs( CGameState *gs )
 	a->move(src, dst);
 
 	//TODO what'll happen if Titan's thunder is equipped by pickin git up or the start of game?
-	if (a->artType->id == 135 && dst.slot == ArtifactPosition::RIGHT_HAND) //Titan's Thunder creates new spellbook on equip
+	if (a->artType->id == ArtifactID::TITANS_THUNDER && dst.slot == ArtifactPosition::RIGHT_HAND) //Titan's Thunder creates new spellbook on equip
 	{
 		auto hPtr = boost::get<ConstTransitivePtr<CGHeroInstance> >(&dst.artHolder);
 		if(hPtr)
@@ -1197,6 +1204,7 @@ void BattleResult::applyGs( CGameState *gs )
 void BattleStackMoved::applyGs( CGameState *gs )
 {
 	CStack *s = gs->curB->getStack(stack);
+	assert(s);
 	BattleHex dest = tilesToMove.back();
 
 	//if unit ended movement on quicksands that were created by enemy, that quicksand patch becomes visible for owner
@@ -1328,44 +1336,10 @@ DLL_LINKAGE void StartAction::applyGs( CGameState *gs )
 DLL_LINKAGE void BattleSpellCast::applyGs( CGameState *gs )
 {
 	assert(gs->curB);
-	if (castedByHero)
-	{
-		CGHeroInstance * h = gs->curB->battleGetFightingHero(side);
-		CGHeroInstance * enemy = gs->curB->battleGetFightingHero(!side);
 
-		h->mana -= spellCost;
-			vstd::amax(h->mana, 0);
-		if (enemy && manaGained)
-			enemy->mana += manaGained;
-		if (side < 2)
-		{
-			gs->curB->sides[side].castSpellsCount++;
-		}
-	}
-
-	//Handle spells removing effects from stacks
-	const CSpell *spell = SpellID(id).toSpell();
-	const bool removeAllSpells = id == SpellID::DISPEL;
-	const bool removeHelpful = id == SpellID::DISPEL_HELPFUL_SPELLS;
-
-	for(auto stackID : affectedCres)
-	{
-		if(vstd::contains(resisted, stackID))
-			continue;
-
-		CStack *s = gs->curB->getStack(stackID);
-		s->popBonuses([&](const Bonus *b) -> bool
-		{
-			//check for each bonus if it should be removed
-			const bool isSpellEffect = Selector::sourceType(Bonus::SPELL_EFFECT)(b);
-			const bool isPositiveSpell = Selector::positiveSpellEffects(b);
-			const int spellID = isSpellEffect ? b->sid : -1;
-
-			return (removeHelpful && isPositiveSpell)
-				|| (removeAllSpells && isSpellEffect)
-				|| vstd::contains(spell->counteredSpells, spellID);
-		});
-	}
+	const CSpell * spell = SpellID(id).toSpell();
+	
+	spell->afterCast(gs->curB, this);
 }
 
 void actualizeEffect(CStack * s, const std::vector<Bonus> & ef)
@@ -1590,6 +1564,7 @@ DLL_LINKAGE void BattleStacksRemoved::applyGs( CGameState *gs )
 
 DLL_LINKAGE void BattleStackAdded::applyGs(CGameState *gs)
 {
+	newStackID = 0;
 	if (!BattleHex(pos).isValid())
 	{
         logNetwork->warnStream() << "No place found for new stack!";
@@ -1603,6 +1578,8 @@ DLL_LINKAGE void BattleStackAdded::applyGs(CGameState *gs)
 
 	gs->curB->localInitStack(addedStack);
 	gs->curB->stacks.push_back(addedStack); //the stack is not "SUMMONED", it is permanent
+	
+	newStackID = addedStack->ID;
 }
 
 DLL_LINKAGE void BattleSetStackProperty::applyGs(CGameState *gs)
