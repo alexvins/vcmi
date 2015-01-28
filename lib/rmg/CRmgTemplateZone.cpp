@@ -120,6 +120,11 @@ void CTileInfo::setOccupied(ETileType::ETileType value)
 	occupied = value;
 }
 
+ETileType::ETileType CTileInfo::getTileType() const
+{
+	return occupied;
+}
+
 ETerrainType CTileInfo::getTerrainType() const
 {
 	return terrain;
@@ -138,7 +143,8 @@ CRmgTemplateZone::CRmgTemplateZone() :
 	matchTerrainToTown(true),
 	townType(ETownType::NEUTRAL),
 	terrainType (ETerrainType::GRASS),
-	zoneMonsterStrength(EMonsterStrength::ZONE_NORMAL)
+	zoneMonsterStrength(EMonsterStrength::ZONE_NORMAL),
+	minGuardedValue(0)
 {
 	terrainTypes = getDefaultTerrainTypes();
 }
@@ -370,6 +376,11 @@ void CRmgTemplateZone::discardDistantTiles (CMapGenerator* gen, float distance)
 	});
 }
 
+void CRmgTemplateZone::clearTiles()
+{
+	tileinfo.clear();
+}
+
 void CRmgTemplateZone::initFreeTiles (CMapGenerator* gen)
 {
 	vstd::copy_if (tileinfo, vstd::set_inserter(possibleTiles), [gen](const int3 &tile) -> bool
@@ -412,7 +423,7 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 	int totalDensity = 0;
 	for (auto ti : treasureInfo)
 		totalDensity =+ ti.density;
-	const float minDistance = totalDensity * 4; //squared
+	const float minDistance = 10 * 10; //squared
 
 	for (auto tile : tileinfo)
 	{
@@ -423,57 +434,62 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 	}
 	assert (clearedTiles.size()); //this should come from zone connections
 
-	while (possibleTiles.size())
+	if (type != ETemplateZoneType::JUNCTION)
 	{
-		//link tiles in random order
-		std::vector<int3> tilesToMakePath(possibleTiles.begin(), possibleTiles.end());
-		RandomGeneratorUtil::randomShuffle(tilesToMakePath, gen->rand);
-
-		for (auto tileToMakePath : tilesToMakePath)
+		//junction is not fractalized, has only one straight path
+		//everything else remains blocked
+		while (possibleTiles.size())
 		{
-			//find closest free tile
-			float currentDistance = 1e10;
-			int3 closestTile (-1,-1,-1);
+			//link tiles in random order
+			std::vector<int3> tilesToMakePath(possibleTiles.begin(), possibleTiles.end());
+			RandomGeneratorUtil::randomShuffle(tilesToMakePath, gen->rand);
 
-			for (auto clearTile : clearedTiles)
+			for (auto tileToMakePath : tilesToMakePath)
 			{
-				float distance = tileToMakePath.dist2dSQ(clearTile);
-				
-				if (distance < currentDistance)
+				//find closest free tile
+				float currentDistance = 1e10;
+				int3 closestTile(-1, -1, -1);
+
+				for (auto clearTile : clearedTiles)
 				{
-					currentDistance = distance;
-					closestTile = clearTile;
+					float distance = tileToMakePath.dist2dSQ(clearTile);
+
+					if (distance < currentDistance)
+					{
+						currentDistance = distance;
+						closestTile = clearTile;
+					}
+					if (currentDistance <= minDistance)
+					{
+						//this tile is close enough. Forget about it and check next one
+						tilesToIgnore.insert(tileToMakePath);
+						break;
+					}
 				}
-				if (currentDistance <= minDistance)
+				//if tiles is not close enough, make path to it
+				if (currentDistance > minDistance)
 				{
-					//this tile is close enough. Forget about it and check next one
-					tilesToIgnore.insert (tileToMakePath);
-					break;
+					crunchPath(gen, tileToMakePath, closestTile, id, &tilesToClear);
+					break; //next iteration - use already cleared tiles
 				}
 			}
-			//if tiles is not close enough, make path to it
-			if (currentDistance > minDistance)
-			{
-				crunchPath (gen, tileToMakePath, closestTile, id, &tilesToClear);
-				break; //next iteration - use already cleared tiles
-			}
-		}
 
-		for (auto tileToClear : tilesToClear)
-		{
-			//move cleared tiles from one set to another
-			clearedTiles.push_back(tileToClear);
-			vstd::erase_if_present(possibleTiles, tileToClear);
+			for (auto tileToClear : tilesToClear)
+			{
+				//move cleared tiles from one set to another
+				clearedTiles.push_back(tileToClear);
+				vstd::erase_if_present(possibleTiles, tileToClear);
+			}
+			for (auto tileToClear : tilesToIgnore)
+			{
+				//these tiles are already connected, ignore them
+				vstd::erase_if_present(possibleTiles, tileToClear);
+			}
+			if (tilesToClear.empty()) //nothing else can be done (?)
+				break;
+			tilesToClear.clear(); //empty this container
+			tilesToIgnore.clear();
 		}
-		for (auto tileToClear : tilesToIgnore)
-		{
-			//these tiles are already connected, ignore them
-			vstd::erase_if_present(possibleTiles, tileToClear);
-		}
-		if (tilesToClear.empty()) //nothing else can be done (?)
-			break;
-		tilesToClear.clear(); //empty this container
-		tilesToIgnore.clear();
 	}
 
 	for (auto tile : clearedTiles)
@@ -483,10 +499,13 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 
 	//now block most distant tiles away from passages
 
-	float blockDistance = minDistance * 0.6f;
+	float blockDistance = minDistance * 0.25f;
 
-	for (auto tile : possibleTiles)
+	for (auto tile : tileinfo)
 	{
+		if (!gen->isPossible(tile))
+			continue;
+
 		bool closeTileFound = false;
 
 		for (auto clearTile : freePaths)
@@ -503,7 +522,8 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 			gen->setOccupied(tile, ETileType::BLOCKED);
 	}
 
-	if (0) //enable to debug
+	#define PRINT_FRACTALIZED_MAP false
+	if (PRINT_FRACTALIZED_MAP) //enable to debug
 	{
 		std::ofstream out(boost::to_string(boost::format("zone %d") % id));
 		int levels = gen->map->twoLevel ? 2 : 1;
@@ -515,12 +535,26 @@ void CRmgTemplateZone::fractalize(CMapGenerator* gen)
 			{
 				for (int i=0; i<width; i++)
 				{
-					out << (int)vstd::contains(freePaths, int3(i,j,k));
+					char t = '?';
+					switch (gen->getTile(int3(i, j, k)).getTileType())
+					{
+						case ETileType::FREE:
+							t = ' '; break;
+						case ETileType::BLOCKED:
+							t = '#'; break;
+						case ETileType::POSSIBLE:
+							t = '-'; break;
+						case ETileType::USED:
+							t = 'O'; break;
+					}
+
+					out << t;
 				}
 				out << std::endl;
 			}
 			out << std::endl;
 		}
+		out << std::endl;
 	}
 
 	//logGlobal->infoStream() << boost::format ("Zone %d subdivided fractally") %id;
@@ -680,7 +714,7 @@ bool CRmgTemplateZone::addMonster(CMapGenerator* gen, int3 &pos, si32 strength, 
 	auto guard = new CGCreature();
 	guard->ID = Obj::MONSTER;
 	guard->subID = creId;
-	guard->character = 1; //MUST be initialized or switch will diverge
+	guard->character = CGCreature::HOSTILE;
 	auto  hlp = new CStackInstance(creId, amount);
 	//will be set during initialization
 	guard->putStack(SlotID(0), hlp);
@@ -715,18 +749,17 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 	int maxValue = treasureInfo.max;
 	int minValue = treasureInfo.min;
 
-	ui32 desiredValue = gen->rand.nextInt(minValue, maxValue);
-	//quantize value to let objects with value equal to max spawn too
+	ui32 desiredValue = (gen->rand.nextInt(minValue, maxValue));
 
 	int currentValue = 0;
 	CGObjectInstance * object = nullptr;
-	while (currentValue < desiredValue)
+	while (currentValue <= desiredValue - 100) //no objects with value below 100 are avaiable
 	{
 		treasures[info.nextTreasurePos] = nullptr;
 
 		for (auto treasurePos : treasures)
 		{
-			gen->foreach_neighbour (treasurePos.first, [gen, &boundary](int3 pos)
+			gen->foreach_neighbour(treasurePos.first, [gen, &boundary](int3 pos)
 			{
 				boundary.insert(pos);
 			});
@@ -734,7 +767,7 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 		for (auto treasurePos : treasures)
 		{
 			//leaving only boundary around objects
-			vstd::erase_if_present (boundary, treasurePos.first);
+			vstd::erase_if_present(boundary, treasurePos.first);
 		}
 
 		for (auto tile : boundary)
@@ -814,7 +847,9 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 			}
 			if (placeFound.valid())
 				info.nextTreasurePos = placeFound;
-			}
+			else
+				break; //no more place to add any objects
+		}
 	}
 
 	if (treasures.size())
@@ -869,9 +904,10 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 		//update boundary around our objects, including knowledge about objects visitable from bottom
 
 		boundary.clear();
+
 		for (auto tile : info.visitableFromBottomPositions)
 		{
-			gen->foreach_neighbour (tile, [tile, &boundary](int3 pos)
+			gen->foreach_neighbour(tile, [tile, &boundary](int3 pos)
 			{
 				if (pos.y >= tile.y) //don't block these objects from above
 					boundary.insert(pos);
@@ -879,11 +915,13 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 		}
 		for (auto tile : info.visitableFromTopPositions)
 		{
-			gen->foreach_neighbour (tile, [&boundary](int3 pos)
+			gen->foreach_neighbour(tile, [&boundary](int3 pos)
 			{
 				boundary.insert(pos);
 			});
 		}
+
+		bool isPileGuarded = currentValue >= minGuardedValue;
 
 		for (auto tile : boundary) //guard must be standing there
 		{
@@ -906,22 +944,28 @@ bool CRmgTemplateZone::createTreasurePile(CMapGenerator* gen, int3 &pos, float m
 				for (auto tile : boundary)
 				{
 					if (gen->isPossible(tile))
-						gen->setOccupied (tile, ETileType::BLOCKED);
+						gen->setOccupied(tile, ETileType::BLOCKED);
 				}
 				//do not spawn anything near monster
-				gen->foreach_neighbour (guardPos, [gen](int3 pos)
+				gen->foreach_neighbour(guardPos, [gen](int3 pos)
 				{
 					if (gen->isPossible(pos))
 						gen->setOccupied(pos, ETileType::FREE);
 				});
 			}
+			else //mo monster in this pile, make some free space (needed?)
+			{
+				for (auto tile : boundary)
+					if (gen->isPossible(tile))
+						gen->setOccupied(tile, ETileType::FREE);
+			}
 		}
-		else //we couldn't make a connection to this location, block it
+		else if (isPileGuarded)//we couldn't make a connection to this location, block it
 		{
 			for (auto treasure : treasures)
 			{
 				if (gen->isPossible(treasure.first))
-					gen->setOccupied (treasure.first, ETileType::BLOCKED);
+					gen->setOccupied(treasure.first, ETileType::BLOCKED);
 
 				delete treasure.second;
 			}
@@ -1235,6 +1279,12 @@ bool CRmgTemplateZone::createRequiredObjects(CMapGenerator* gen)
 
 void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 {
+	int mapMonsterStrength = gen->mapGenOptions->getMonsterStrength();
+	int monsterStrength = zoneMonsterStrength + mapMonsterStrength - 1; //array index from 0 to 4
+
+	static int minGuardedValues[] = { 6500, 4167, 3000, 1833, 1333 };
+	minGuardedValue = minGuardedValues[monsterStrength];
+
 	auto valueComparator = [](const CTreasureInfo & lhs, const CTreasureInfo & rhs) -> bool
 	{
 		return lhs.max > rhs.max;
@@ -1252,8 +1302,7 @@ void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 		//also, normalize it to zone count - higher count means relatively smaller zones
 
 		//this is squared distance for optimization purposes
-		const double minDistance = std::max<float>((300.f * size * size * gen->getZones().size()) /
-			(gen->mapGenOptions->getWidth() * gen->mapGenOptions->getHeight() * totalDensity * (gen->map->twoLevel ? 2 : 1)), 2);
+		const double minDistance = std::max<float>((125.f / totalDensity), 2);
 		//distance lower than 2 causes objects to overlap and crash
 
 		do {
@@ -1264,7 +1313,9 @@ void CRmgTemplateZone::createTreasures(CMapGenerator* gen)
 			});
 
 			int3 pos;
-			if (!findPlaceForTreasurePile(gen, minDistance, pos))
+
+			//If we are able to place at least one object with value lower than minGuardedValue, it's ok
+			if (!findPlaceForTreasurePile(gen, minDistance, pos, t.min))
 			{
 				break;
 			}
@@ -1426,11 +1477,12 @@ bool CRmgTemplateZone::fill(CMapGenerator* gen)
 	return true;
 }
 
-bool CRmgTemplateZone::findPlaceForTreasurePile(CMapGenerator* gen, float min_dist, int3 &pos)
+bool CRmgTemplateZone::findPlaceForTreasurePile(CMapGenerator* gen, float min_dist, int3 &pos, int value)
 {
-	//si32 min_dist = sqrt(tileinfo.size()/density);
 	float best_distance = 0;
 	bool result = false;
+
+	bool needsGuard = value > minGuardedValue;
 
 	//logGlobal->infoStream() << boost::format("Min dist for density %f is %d") % density % min_dist;
 	for(auto tile : possibleTiles)
@@ -1440,9 +1492,9 @@ bool CRmgTemplateZone::findPlaceForTreasurePile(CMapGenerator* gen, float min_di
 		if ((dist >= min_dist) && (dist > best_distance))
 		{
 			bool allTilesAvailable = true;
-			gen->foreach_neighbour (tile, [&gen, &allTilesAvailable](int3 neighbour)
+			gen->foreach_neighbour (tile, [&gen, &allTilesAvailable, needsGuard](int3 neighbour)
 			{
-				if (!(gen->isPossible(neighbour) || gen->shouldBeBlocked(neighbour)))
+				if (!(gen->isPossible(neighbour) || gen->shouldBeBlocked(neighbour) || (!needsGuard && gen->isFree(neighbour))))
 				{
 					allTilesAvailable = false; //all present tiles must be already blocked or ready for new objects
 				}
@@ -1457,7 +1509,7 @@ bool CRmgTemplateZone::findPlaceForTreasurePile(CMapGenerator* gen, float min_di
 	}
 	if (result)
 	{
-		gen->setOccupied(pos, ETileType::BLOCKED); //block that tile
+		gen->setOccupied(pos, ETileType::BLOCKED); //block that tile //FIXME: why?
 	}
 	return result;
 }
@@ -1716,7 +1768,7 @@ ObjectInfo CRmgTemplateZone::getRandomObject(CMapGenerator* gen, CTreasurePileIn
 	ui32 total = 0;
 
 	//calculate actual treasure value range based on remaining value
-	ui32 maxVal = maxValue - currentValue;
+	ui32 maxVal = desiredValue - currentValue;
 	ui32 minValue = 0.25f * (desiredValue - currentValue);
 
 	//roulette wheel
@@ -1919,8 +1971,7 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 
 			auto hid = *RandomGeneratorUtil::nextItem(possibleHeroes, gen->rand);
 			obj->subID = hid; //will be initialized later
-			obj->exp = prisonExp[i]; //game crashes at hero level up
-			//obj->exp = 0;
+			obj->exp = prisonExp[i];
 			obj->setOwner(PlayerColor::NEUTRAL);
 			gen->map->allowedHeroes[hid] = false; //ban this hero
 			gen->decreasePrisonsRemaining();
@@ -1992,9 +2043,9 @@ void CRmgTemplateZone::addAllPossibleObjects (CMapGenerator* gen)
 			std::vector<SpellID> out;
 
 			//TODO: unify with cb->getAllowedSpells?
-			for (ui32 i = 0; i < gen->map->allowedSpell.size(); i++) //spellh size appears to be greater (?)
+			for (ui32 spellid = 0; spellid < gen->map->allowedSpell.size(); spellid++) //spellh size appears to be greater (?)
 			{
-				const CSpell *spell = SpellID(i).toSpell();
+				const CSpell *spell = SpellID(spellid).toSpell();
 				if (gen->map->allowedSpell[spell->id] && spell->level == i+1)
 				{
 					out.push_back(spell->id);

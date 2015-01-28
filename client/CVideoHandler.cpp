@@ -249,7 +249,7 @@ bool CVideoPlayer::nextFrame()
 			if (doLoop && !gotError)
 			{
 				// Rewind
-				if (av_seek_frame(format, stream, 0, 0) < 0)
+				if (av_seek_frame(format, stream, 0, AVSEEK_FLAG_BYTE) < 0)
 					break;
 				gotError = true;
 			}
