@@ -23,7 +23,7 @@
 #include "../lib/CGeneralTextHandler.h"
 #include "../lib/CHeroHandler.h"
 #include "../lib/Connection.h"
-#include "../lib/CSpellHandler.h"
+#include "../lib/spells/CSpellHandler.h"
 #include "../lib/CTownHandler.h"
 #include "../lib/mapObjects/CObjectClassesHandler.h" // For displaying correct UI when interacting with objects
 #include "../lib/BattleState.h"
@@ -89,14 +89,15 @@ CondSh<EMoveState> stillMoveHero; //used during hero movement
 
 int CPlayerInterface::howManyPeople = 0;
 
-static bool objectBlitOrderSorter(const std::pair<const CGObjectInstance*,SDL_Rect>  & a, const std::pair<const CGObjectInstance*,SDL_Rect> & b)
+static bool objectBlitOrderSorter(const TerrainTileObject  & a, const TerrainTileObject & b)
 {
-	return CMapHandler::compareObjectBlitOrder(a.first, b.first);
+	return CMapHandler::compareObjectBlitOrder(a.obj, b.obj);
 }
 
 CPlayerInterface::CPlayerInterface(PlayerColor Player)
 {
-    logGlobal->traceStream() << "\tHuman player interface for player " << Player << " being constructed";
+	logGlobal->traceStream() << "\tHuman player interface for player " << Player << " being constructed";
+	destinationTeleport = ObjectInstanceID();
 	observerInDuelMode = false;
 	howManyPeople++;
 	GH.defActionsDef = 0;
@@ -115,7 +116,7 @@ CPlayerInterface::CPlayerInterface(PlayerColor Player)
 	firstCall = 1; //if loading will be overwritten in serialize
 	autosaveCount = 0;
 	isAutoFightOn = false;
-	
+
 	duringMovement = false;
 	ignoreEvents = false;
 	locked = false;
@@ -141,8 +142,10 @@ void CPlayerInterface::init(shared_ptr<CCallback> CB)
 	if(!towns.size() && !wanderingHeroes.size())
 		initializeHeroTownList();
 
-	if(!adventureInt)
-		adventureInt = new CAdvMapInt();
+	// always recreate advmap interface to avoid possible memory-corruption bugs
+	if(adventureInt)
+		delete adventureInt;
+	adventureInt = new CAdvMapInt();
 }
 void CPlayerInterface::yourTurn()
 {
@@ -203,9 +206,9 @@ STRONG_INLINE void subRect(const int & x, const int & y, const int & z, const SD
 {
 	TerrainTile2 & hlp = CGI->mh->ttiles[x][y][z];
 	for(auto & elem : hlp.objects)
-		if(elem.first->id == hid)
+		if(elem.obj && elem.obj->id == hid)
 		{
-			elem.second = r;
+			elem.rect = r;
 			return;
 		}
 }
@@ -214,7 +217,7 @@ STRONG_INLINE void delObjRect(const int & x, const int & y, const int & z, const
 {
 	TerrainTile2 & hlp = CGI->mh->ttiles[x][y][z];
 	for(int h=0; h<hlp.objects.size(); ++h)
-		if(hlp.objects[h].first->id == hid)
+		if(hlp.objects[h].obj && hlp.objects[h].obj->id == hid)
 		{
 			hlp.objects.erase(hlp.objects.begin()+h);
 			return;
@@ -237,8 +240,8 @@ void CPlayerInterface::heroMoved(const TryMoveHero & details)
 		// TODO -> we should not need full CGHeroInstance structure to display animation or it should not be handled by playerint (but by the client itself)
 		const TerrainTile2 &tile = CGI->mh->ttiles[hp.x-1][hp.y][hp.z];
 		for(auto & elem : tile.objects)
-			if(elem.first->id == details.id)
-				hero = dynamic_cast<const CGHeroInstance *>(elem.first);
+			if(elem.obj && elem.obj->id == details.id)
+				hero = dynamic_cast<const CGHeroInstance *>(elem.obj);
 
 		if(!hero) //still nothing...
 			return;
@@ -274,6 +277,8 @@ void CPlayerInterface::heroMoved(const TryMoveHero & details)
 
 				}
 			}
+			adventureInt->centerOn(hero, true); //actualizing screen pos
+			adventureInt->minimap.redraw();
 			adventureInt->heroList.update(hero);
 			return;	//teleport - no fancy moving animation
 					//TODO: smooth disappear / appear effect
@@ -768,7 +773,7 @@ void CPlayerInterface::actionFinished(const BattleAction &action)
 BattleAction CPlayerInterface::activeStack(const CStack * stack) //called when it's turn of that stack
 {
 	THREAD_CREATED_BY_CLIENT;
-    logGlobal->traceStream() << "Awaiting command for " << stack->nodeName();
+	logGlobal->traceStream() << "Awaiting command for " << stack->nodeName();
 
 	if(autofightingAI)
 	{
@@ -813,7 +818,7 @@ BattleAction CPlayerInterface::activeStack(const CStack * stack) //called when i
 	b->givenCommand->data = nullptr;
 
 	//return command
-    logGlobal->traceStream() << "Giving command for " << stack->nodeName();
+	logGlobal->traceStream() << "Giving command for " << stack->nodeName();
 	return ret;
 }
 
@@ -876,7 +881,7 @@ void CPlayerInterface::battleStacksAttacked(const std::vector<BattleStackAttacke
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
 	BATTLE_EVENT_POSSIBLE_RETURN;
-	
+
 	std::vector<StackAttackedInfo> arg;
 	for(auto & elem : bsa)
 	{
@@ -890,7 +895,7 @@ void CPlayerInterface::battleStacksAttacked(const std::vector<BattleStackAttacke
 		if(elem.isSpell())
 		{
 			if (defender)
-				battleInt->displaySpellEffect(elem.spellID, defender->position);			
+				battleInt->displaySpellEffect(elem.spellID, defender->position);
 		}
 		//FIXME: why action is deleted during enchanter cast?
 		bool remoteAttack = false;
@@ -973,14 +978,14 @@ void CPlayerInterface::battleAttack(const BattleAttack *ba)
 		const CStack * attacked = cb->battleGetStackByID(ba->bsa.begin()->stackAttacked);
 		battleInt->stackAttacking( attacker, ba->counter() ? curAction->destinationTile + shift : curAction->additionalInfo, attacked, false);
 	}
-	
+
 	//battleInt->waitForAnims(); //FIXME: freeze
-	
+
 	if(ba->spellLike())
 	{
-		//display hit animation		
-		SpellID spellID = ba->spellID;			
-		battleInt->displaySpellHit(spellID,curAction->destinationTile);	
+		//display hit animation
+		SpellID spellID = ba->spellID;
+		battleInt->displaySpellHit(spellID,curAction->destinationTile);
 	}
 }
 void CPlayerInterface::battleObstaclePlaced(const CObstacleInstance &obstacle)
@@ -1137,6 +1142,16 @@ void CPlayerInterface::showBlockingDialog( const std::string &text, const std::v
 
 }
 
+void CPlayerInterface::showTeleportDialog(TeleportChannelID channel, std::vector<ObjectInstanceID> exits, bool impassable, QueryID askID)
+{
+	EVENT_HANDLER_CALLED_BY_CLIENT;
+	ObjectInstanceID choosenExit;
+	if(destinationTeleport != ObjectInstanceID() && vstd::contains(exits, destinationTeleport))
+		choosenExit = destinationTeleport;
+
+	cb->selectionMade(choosenExit.getNum(), askID);
+}
+
 void CPlayerInterface::tileRevealed(const std::unordered_set<int3, ShashInt3> &pos)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
@@ -1264,15 +1279,15 @@ template <typename Handler> void CPlayerInterface::serializeTempl( Handler &h, c
 	{
 		h & pathsMap;
 
-        if(cb)
-            for(auto &p : pathsMap)
-            {
-                CGPath path;
-                cb->getPathsInfo(p.first)->getPath(p.second, path);
-                paths[p.first] = path;
-                logGlobal->traceStream() << boost::format("Restored path for hero %s leading to %s with %d nodes")
-                    % p.first->nodeName() % p.second % path.nodes.size();
-            }
+		if(cb)
+			for(auto &p : pathsMap)
+			{
+				CGPath path;
+				cb->getPathsInfo(p.first)->getPath(p.second, path);
+				paths[p.first] = path;
+				logGlobal->traceStream() << boost::format("Restored path for hero %s leading to %s with %d nodes")
+					% p.first->nodeName() % p.second % path.nodes.size();
+			}
 	}
 
 	h & spellbookSettings;
@@ -1293,7 +1308,7 @@ void CPlayerInterface::loadGame( CISer & h, const int version )
 
 void CPlayerInterface::moveHero( const CGHeroInstance *h, CGPath path )
 {
-    logGlobal->traceStream() << __FUNCTION__;
+	logGlobal->traceStream() << __FUNCTION__;
 	if(!LOCPLINT->makingTurn)
 		return;
 	if (!h)
@@ -1304,7 +1319,7 @@ void CPlayerInterface::moveHero( const CGHeroInstance *h, CGPath path )
 		return;
 
 	duringMovement = true;
-	
+
 	if (adventureInt && adventureInt->isHeroSleeping(h))
 	{
 		adventureInt->sleepWake->clickLeft(true, false);
@@ -1313,10 +1328,10 @@ void CPlayerInterface::moveHero( const CGHeroInstance *h, CGPath path )
 		//adventureInt->fsleepWake();
 		//but no authentic button click/sound ;-)
 	}
-	
+
 	boost::thread moveHeroTask(std::bind(&CPlayerInterface::doMoveHero,this,h,path));
 
-	
+
 }
 
 bool CPlayerInterface::shiftPressed() const
@@ -1385,8 +1400,17 @@ void CPlayerInterface::showArtifactAssemblyDialog (ui32 artifactID, ui32 assembl
 void CPlayerInterface::requestRealized( PackageApplied *pa )
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
-	if(pa->packType == typeList.getTypeID<MoveHero>()  &&  stillMoveHero.get() == DURING_MOVE)
+	if(pa->packType == typeList.getTypeID<MoveHero>()  &&  stillMoveHero.get() == DURING_MOVE
+	   && destinationTeleport == ObjectInstanceID())
 		stillMoveHero.setn(CONTINUE_MOVE);
+
+	if(destinationTeleport != ObjectInstanceID()
+	   && pa->packType == typeList.getTypeID<QueryReply>()
+	   && stillMoveHero.get() == DURING_MOVE)
+	{ // After teleportation via CGTeleport object is finished
+		destinationTeleport = ObjectInstanceID();
+		stillMoveHero.setn(CONTINUE_MOVE);
+	}
 }
 
 void CPlayerInterface::heroExchangeStarted(ObjectInstanceID hero1, ObjectInstanceID hero2, QueryID query)
@@ -1480,7 +1504,7 @@ void CPlayerInterface::waitWhileDialog(bool unlockPim /*= true*/)
 {
 	if(GH.amIGuiThread())
 	{
-        logGlobal->warnStream() << "Cannot wait for dialogs in gui thread (deadlock risk)!";
+		logGlobal->warnStream() << "Cannot wait for dialogs in gui thread (deadlock risk)!";
 		return;
 	}
 
@@ -1521,16 +1545,11 @@ void CPlayerInterface::centerView (int3 pos, int focusTime)
 	if(focusTime)
 	{
 		GH.totalRedraw();
-		#ifdef VCMI_SDL1
-		CSDL_Ext::update(screen);
-		SDL_Delay(focusTime);
-		#else
 		{
 			auto unlockPim = vstd::makeUnlockGuard(*pim);
 			IgnoreEvents ignore(*this);
 			SDL_Delay(focusTime);
 		}
-		#endif
 	}
 }
 
@@ -1539,7 +1558,7 @@ void CPlayerInterface::objectRemoved( const CGObjectInstance *obj )
 	EVENT_HANDLER_CALLED_BY_CLIENT;
 	if (LOCPLINT->cb->getCurrentPlayer() == playerID) {
 		std::string handlerName = VLC->objtypeh->getObjectHandlerName(obj->ID);
-        if ((handlerName == "pickable") || (handlerName == "scholar") || (handlerName== "artifact") || (handlerName == "pandora")) {
+		if ((handlerName == "pickable") || (handlerName == "scholar") || (handlerName== "artifact") || (handlerName == "pandora")) {
 			waitWhileDialog();
 			CCS->soundh->playSoundFromSet(CCS->soundh->pickupSounds);
 		} else if ((handlerName == "monster") || (handlerName == "hero")) {
@@ -1603,7 +1622,7 @@ void CPlayerInterface::update()
 		GH.drawFPSCounter();
 }
 
-void CPlayerInterface::runLocked(std::function<void(IUpdateable * )> functor)
+void CPlayerInterface::runLocked(std::function<void()> functor)
 {
 	// Updating GUI requires locking pim mutex (that protects screen and GUI state).
 	// When ending the game, the pim mutex might be hold by other thread,
@@ -1626,12 +1645,12 @@ void CPlayerInterface::runLocked(std::function<void(IUpdateable * )> functor)
 	// While mutexes were locked away we may be have stopped being the active interface
 	if(LOCPLINT != this)
 		return;
-		
+
 	// Make sure that gamestate won't change when GUI objects may obtain its parts on event processing or drawing request
-	boost::shared_lock<boost::shared_mutex> gsLock(cb->getGsMutex());		
-	
-	locked = true;	
-	functor(this);
+	boost::shared_lock<boost::shared_mutex> gsLock(cb->getGsMutex());
+
+	locked = true;
+	functor();
 	locked = false;
 }
 
@@ -1672,17 +1691,17 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 	{
 		//ho->moveDir = 1;
 		ho->isStanding = false;
-		CGI->mh->ttiles[hp.x-3][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, -31)));
-		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 1, -31)));
-		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 33, -31)));
-		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 65, -31)));
+		CGI->mh->ttiles[hp.x-3][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, -31)));
+		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 1, -31)));
+		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 33, -31)));
+		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 65, -31)));
 
-		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 1)));
+		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 1)));
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, 1, 1), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 33, 1), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 65, 1), ho->id);
 
-		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 33)));
+		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 33)));
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, 1, 33), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 33, 33), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 65, 33), ho->id);
@@ -1700,9 +1719,9 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 	{
 		//ho->moveDir = 2;
 		ho->isStanding = false;
-		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 0, -31)));
-		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 32, -31)));
-		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 64, -31)));
+		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 0, -31)));
+		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 32, -31)));
+		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 64, -31)));
 
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, 0, 1), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 32, 1), ho->id);
@@ -1720,20 +1739,20 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 	{
 		//ho->moveDir = 3;
 		ho->isStanding = false;
-		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -1, -31)));
-		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 31, -31)));
-		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 63, -31)));
-		CGI->mh->ttiles[hp.x+1][hp.y-2][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, -31)));
+		CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -1, -31)));
+		CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 31, -31)));
+		CGI->mh->ttiles[hp.x][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 63, -31)));
+		CGI->mh->ttiles[hp.x+1][hp.y-2][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, -31)));
 
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, -1, 1), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 31, 1), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 63, 1), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 1)));
+		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 1)));
 
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, -1, 33), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 31, 33), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 63, 33), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 33)));
+		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 33)));
 
 		std::stable_sort(CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.begin(), CGI->mh->ttiles[hp.x-2][hp.y-2][hp.z].objects.end(), objectBlitOrderSorter);
 		std::stable_sort(CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.begin(), CGI->mh->ttiles[hp.x-1][hp.y-2][hp.z].objects.end(), objectBlitOrderSorter);
@@ -1751,12 +1770,12 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, -1, 0), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 31, 0), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 63, 0), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 0)));
+		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 0)));
 
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, -1, 32), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 31, 32), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 63, 32), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 32)));
+		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 32)));
 
 		std::stable_sort(CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.begin(), CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.end(), objectBlitOrderSorter);
 
@@ -1769,17 +1788,17 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, -1, -1), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 31, -1), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 63, -1), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, -1)));
+		CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, -1)));
 
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, -1, 31), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 31, 31), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 63, 31), ho->id);
-		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 31)));
+		CGI->mh->ttiles[hp.x+1][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 31)));
 
-		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -1, 63)));
-		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 31, 63)));
-		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 63, 63)));
-		CGI->mh->ttiles[hp.x+1][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 95, 63)));
+		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -1, 63)));
+		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 31, 63)));
+		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 63, 63)));
+		CGI->mh->ttiles[hp.x+1][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 95, 63)));
 
 		std::stable_sort(CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.begin(), CGI->mh->ttiles[hp.x+1][hp.y-1][hp.z].objects.end(), objectBlitOrderSorter);
 
@@ -1802,9 +1821,9 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 32, 31), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 64, 31), ho->id);
 
-		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 0, 63)));
-		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 32, 63)));
-		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 64, 63)));
+		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 0, 63)));
+		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 32, 63)));
+		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 64, 63)));
 
 		std::stable_sort(CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.begin(), CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.end(), objectBlitOrderSorter);
 		std::stable_sort(CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.begin(), CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.end(), objectBlitOrderSorter);
@@ -1814,20 +1833,20 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 	{
 		//ho->moveDir = 7;
 		ho->isStanding = false;
-		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, -1)));
+		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, -1)));
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, 1, -1), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 33, -1), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 65, -1), ho->id);
 
-		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 31)));
+		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 31)));
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, 1, 31), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 33, 31), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 65, 31), ho->id);
 
-		CGI->mh->ttiles[hp.x-3][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 63)));
-		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 1, 63)));
-		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 33, 63)));
-		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, 65, 63)));
+		CGI->mh->ttiles[hp.x-3][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 63)));
+		CGI->mh->ttiles[hp.x-2][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 1, 63)));
+		CGI->mh->ttiles[hp.x-1][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 33, 63)));
+		CGI->mh->ttiles[hp.x][hp.y+1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, 65, 63)));
 
 		std::stable_sort(CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.begin(), CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.end(), objectBlitOrderSorter);
 
@@ -1842,12 +1861,12 @@ void CPlayerInterface::initMovement( const TryMoveHero &details, const CGHeroIns
 	{
 		//ho->moveDir = 8;
 		ho->isStanding = false;
-		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 0)));
+		CGI->mh->ttiles[hp.x-3][hp.y-1][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 0)));
 		subRect(hp.x-2, hp.y-1, hp.z, genRect(32, 32, 1, 0), ho->id);
 		subRect(hp.x-1, hp.y-1, hp.z, genRect(32, 32, 33, 0), ho->id);
 		subRect(hp.x, hp.y-1, hp.z, genRect(32, 32, 65, 0), ho->id);
 
-		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(std::make_pair(ho, genRect(32, 32, -31, 32)));
+		CGI->mh->ttiles[hp.x-3][hp.y][hp.z].objects.push_back(TerrainTileObject(ho, genRect(32, 32, -31, 32)));
 		subRect(hp.x-2, hp.y, hp.z, genRect(32, 32, 1, 32), ho->id);
 		subRect(hp.x-1, hp.y, hp.z, genRect(32, 32, 33, 32), ho->id);
 		subRect(hp.x, hp.y, hp.z, genRect(32, 32, 65, 32), ho->id);
@@ -2171,6 +2190,11 @@ void CPlayerInterface::showPuzzleMap()
 	GH.pushInt(new CPuzzleWindow(grailPos, ratio));
 }
 
+void CPlayerInterface::viewWorldMap()
+{
+	adventureInt->changeMode(EAdvMapMode::WORLD_VIEW);
+}
+
 void CPlayerInterface::advmapSpellCast(const CGHeroInstance * caster, int spellID)
 {
 	EVENT_HANDLER_CALLED_BY_CLIENT;
@@ -2179,6 +2203,13 @@ void CPlayerInterface::advmapSpellCast(const CGHeroInstance * caster, int spellI
 		eraseCurrentPathOf(caster, false);
 	}
 	const CSpell * spell = CGI->spellh->objects[spellID];
+
+	if(spellID == SpellID::VIEW_EARTH)
+	{
+		//TODO: implement on server side
+		int level = caster->getSpellSchoolLevel(spell);
+		adventureInt->worldViewOptions.showAllTerrain = (level>2);
+	}
 	
 	auto castSoundPath = spell->getCastSound();
 	if (!castSoundPath.empty())
@@ -2216,7 +2247,7 @@ CGPath * CPlayerInterface::getAndVerifyPath(const CGHeroInstance * h)
 		CGPath &path = paths[h];
 		if(!path.nodes.size())
 		{
-            logGlobal->warnStream() << "Warning: empty path found...";
+			logGlobal->warnStream() << "Warning: empty path found...";
 			paths.erase(h);
 		}
 		else
@@ -2604,7 +2635,7 @@ bool CPlayerInterface::capturedAllEvents()
 		//just inform that we are capturing events. they will be processed by heroMoved() in client thread.
 		return true;
 	}
-	
+
 	if(ignoreEvents)
 	{
 		boost::unique_lock<boost::mutex> un(eventsM);
@@ -2614,34 +2645,51 @@ bool CPlayerInterface::capturedAllEvents()
 		}
 		return true;
 	}
-	
+
 	return false;
 }
 
-void CPlayerInterface::doMoveHero(const CGHeroInstance* h, CGPath path)
+void CPlayerInterface::doMoveHero(const CGHeroInstance * h, CGPath path)
 {
 	int i = 1;
+	auto getObj = [&](int3 coord, bool ignoreHero)
+	{
+		return cb->getTile(CGHeroInstance::convertPosition(coord,false))->topVisitableObj(ignoreHero);
+	};
+
+	boost::unique_lock<boost::mutex> un(stillMoveHero.mx);
+	stillMoveHero.data = CONTINUE_MOVE;
+	auto doMovement = [&](int3 dst, bool transit)
+	{
+		stillMoveHero.data = WAITING_MOVE;
+		cb->moveHero(h, dst, transit);
+		while(stillMoveHero.data != STOP_MOVE && stillMoveHero.data != CONTINUE_MOVE)
+			stillMoveHero.cond.wait(un);
+	};
 
 	{
 		path.convert(0);
-		boost::unique_lock<boost::mutex> un(stillMoveHero.mx);
-		stillMoveHero.data = CONTINUE_MOVE;
-
 		ETerrainType currentTerrain = ETerrainType::BORDER; // not init yet
 		ETerrainType newTerrain;
 		int sh = -1;
 
-		const TerrainTile * curTile = cb->getTile(CGHeroInstance::convertPosition(h->pos, false));
-
-		for(i=path.nodes.size()-1; i>0 && (stillMoveHero.data == CONTINUE_MOVE || curTile->blocked); i--)
+		for(i=path.nodes.size()-1; i>0 && (stillMoveHero.data == CONTINUE_MOVE); i--)
 		{
-			//changing z coordinate means we're moving through subterranean gate -> it's done automatically upon the visit, so we don't have to request that move here
-			if(path.nodes[i-1].coord.z != path.nodes[i].coord.z)
-				continue;
+			int3 currentCoord = path.nodes[i].coord;
+			int3 nextCoord = path.nodes[i-1].coord;
 
-			//stop sending move requests if the next node can't be reached at the current turn (hero exhausted his move points)
-			if(path.nodes[i-1].turns)
+			auto nextObject = getObj(nextCoord, nextCoord == h->pos);
+			if(CGTeleport::isConnected(getObj(currentCoord, currentCoord == h->pos), nextObject))
 			{
+				CCS->soundh->stopSound(sh);
+				destinationTeleport = nextObject->id;
+				doMovement(h->pos, false);
+				sh = CCS->soundh->playSound(CCS->soundh->horseSounds[currentTerrain], -1);
+				continue;
+			}
+
+			if(path.nodes[i-1].turns)
+			{ //stop sending move requests if the next node can't be reached at the current turn (hero exhausted his move points)
 				stillMoveHero.data = STOP_MOVE;
 				break;
 			}
@@ -2649,13 +2697,12 @@ void CPlayerInterface::doMoveHero(const CGHeroInstance* h, CGPath path)
 			// Start a new sound for the hero movement or let the existing one carry on.
 #if 0
 			// TODO
-			if (hero is flying && sh == -1)
+			if(hero is flying && sh == -1)
 				sh = CCS->soundh->playSound(soundBase::horseFlying, -1);
 #endif
 			{
-				newTerrain = cb->getTile(CGHeroInstance::convertPosition(path.nodes[i].coord, false))->terType;
-
-				if (newTerrain != currentTerrain)
+				newTerrain = cb->getTile(CGHeroInstance::convertPosition(currentCoord, false))->terType;
+				if(newTerrain != currentTerrain)
 				{
 					CCS->soundh->stopSound(sh);
 					sh = CCS->soundh->playSound(CCS->soundh->horseSounds[newTerrain], -1);
@@ -2663,19 +2710,22 @@ void CPlayerInterface::doMoveHero(const CGHeroInstance* h, CGPath path)
 				}
 			}
 
-			stillMoveHero.data = WAITING_MOVE;
-
-			int3 endpos(path.nodes[i-1].coord.x, path.nodes[i-1].coord.y, h->pos.z);
-			bool guarded = CGI->mh->map->isInTheMap(cb->getGuardingCreaturePosition(endpos - int3(1, 0, 0)));
-
+			assert(h->pos.z == nextCoord.z); // Z should change only if it's movement via teleporter and in this case this code shouldn't be executed at all
+			int3 endpos(nextCoord.x, nextCoord.y, h->pos.z);
 			logGlobal->traceStream() << "Requesting hero movement to " << endpos;
-			cb->moveHero(h,endpos);
 
-			while(stillMoveHero.data != STOP_MOVE  &&  stillMoveHero.data != CONTINUE_MOVE)
-				stillMoveHero.cond.wait(un);
+			if((i-2 >= 0) // Check there is node after next one; otherwise transit is pointless
+				&& (CGTeleport::isConnected(nextObject, getObj(path.nodes[i-2].coord, false))
+					|| CGTeleport::isTeleport(nextObject)))
+			{ // Hero should be able to go through object if it's allow transit
+				doMovement(endpos, true);
+			}
+			else
+				doMovement(endpos, false);
 
 			logGlobal->traceStream() << "Resuming " << __FUNCTION__;
-			if (guarded || showingDialog->get() == true) // Abort movement if a guard was fought or there is a dialog to display (Mantis #1136)
+			bool guarded = cb->isInTheMap(cb->getGuardingCreaturePosition(endpos - int3(1, 0, 0)));
+			if(guarded || showingDialog->get() == true) // Abort movement if a guard was fought or there is a dialog to display (Mantis #1136)
 				break;
 		}
 
@@ -2688,12 +2738,22 @@ void CPlayerInterface::doMoveHero(const CGHeroInstance* h, CGPath path)
 
 
 	//todo: this should be in main thread
-	if (adventureInt)
+	if(adventureInt)
 	{
 		// (i == 0) means hero went through all the path
 		adventureInt->updateMoveHero(h, (i != 0));
 		adventureInt->updateNextHero(h);
-	}	
-	
+	}
+
 	duringMovement = false;
+}
+
+void CPlayerInterface::showWorldViewEx(const std::vector<ObjectPosInfo>& objectPositions)
+{
+	EVENT_HANDLER_CALLED_BY_CLIENT;
+	//TODO: showWorldViewEx
+	
+	std::copy(objectPositions.begin(), objectPositions.end(), std::back_inserter(adventureInt->worldViewOptions.iconPositions));
+	
+	viewWorldMap();
 }

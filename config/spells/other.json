@@ -86,6 +86,7 @@
 		},
 		"levels" : {
 			"base":{
+				"targetModifier":{"smart":true},
 				"range" : "X"
 			}
 		},
@@ -105,15 +106,20 @@
 			"cast": "DISPELL"
 		},
 		"levels" : {
-			"base":{
-				"range" : "0"
+ 			"base":{
+				"targetModifier":{"smart":true},			
+ 				"range" : "0"
+ 			},
+			"advanced":{
+				"targetModifier":{"smart":false}			
 			},
-			"expert":{
-				"range" : "X"
-			}
+ 			"expert":{
+				"targetModifier":{"smart":false},			
+ 				"range" : "X"
+ 			}
 		},
 		"flags" : {
-			"indifferent": true
+			"positive": true
 		}
 	},
 	"cure" : {
@@ -226,7 +232,7 @@
 				"targetModifier":{"smart":true}
 			}
 		},
-		"immunity" : {
+		"absoluteImmunity" : {
 			"SIEGE_WEAPON": true
 		},
 		"flags" : {
@@ -242,7 +248,7 @@
 		},
 		"levels" : {
 			"base":{
-				"range" : "X"
+				"range" : "0"
 			}
 		},
 		"flags" : {
@@ -262,7 +268,7 @@
 				"targetModifier":{"smart":true}
 			}
 		},
-		"immunity" : {
+		"absoluteImmunity" : {
 			"SIEGE_WEAPON": true
 		},
 		"flags" : {

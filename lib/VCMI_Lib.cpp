@@ -19,7 +19,7 @@
 #include "mapObjects/CObjectHandler.h"
 #include "CTownHandler.h"
 #include "CBuildingHandler.h"
-#include "CSpellHandler.h"
+#include "spells/CSpellHandler.h"
 #include "CGeneralTextHandler.h"
 #include "CModHandler.h"
 #include "IGameEventsReceiver.h"
@@ -40,16 +40,16 @@ DLL_LINKAGE void preinitDLL(CConsoleHandler *Console)
 	{
 		VLC->loadFilesystem();
 	}
-	HANDLE_EXCEPTION;
+	catch(...)
+	{
+		handleException();
+		throw;
+	}
 }
 
 DLL_LINKAGE void loadDLLClasses()
 {
-	//try
-	{
-		VLC->init();
-	}
-	//HANDLE_EXCEPTION;
+	VLC->init();
 }
 
 const IBonusTypeHandler * LibClasses::getBth() const
@@ -115,11 +115,11 @@ void LibClasses::init()
 
 	createHandler(terviewh, "Terrain view pattern", pomtime);
 
+	createHandler(tplh, "Template", pomtime); //templates need already resolved identifiers (refactor?)
+
 	logGlobal->infoStream()<<"\tInitializing handlers: "<< totalTime.getDiff();
 
 	modh->load();
-
-	createHandler(tplh, "Template", pomtime); //templates need already resolved identifiers (refactor?)
 
 	modh->afterLoad();
 

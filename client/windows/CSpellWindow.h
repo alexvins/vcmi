@@ -112,6 +112,4 @@ public:
 	void deactivate();
 	void showAll();
 	void show();
-
-	void teleportTo(int town, const CGHeroInstance * hero);
 };

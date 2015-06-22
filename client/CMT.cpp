@@ -19,7 +19,7 @@
 #include "CVideoHandler.h"
 #include "../lib/CHeroHandler.h"
 #include "../lib/CCreatureHandler.h"
-#include "../lib/CSpellHandler.h"
+#include "../lib/spells/CSpellHandler.h"
 #include "CMusicHandler.h"
 #include "CVideoHandler.h"
 #include "CDefHandler.h"
@@ -259,11 +259,6 @@ int main(int argc, char** argv)
 		gNoGUI = true;
 		vm.insert(std::pair<std::string, po::variable_value>("onlyAI", po::variable_value()));
 	}
-#ifdef VCMI_SDL1
-	//Set environment vars to make window centered. Sometimes work, sometimes not. :/
-	putenv((char*)"SDL_VIDEO_WINDOW_POS");
-	putenv((char*)"SDL_VIDEO_CENTERED=1");
-#endif
 
 	// Have effect on X11 system only (Linux).
 	// For whatever reason in fullscreen mode SDL takes "raw" mouse input from DGA X11 extension
@@ -334,7 +329,7 @@ int main(int argc, char** argv)
 
 	if(!gNoGUI)
 	{
-		if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_AUDIO))
+		if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_AUDIO|SDL_INIT_NOPARACHUTE))
 		{
 			logGlobal->errorStream() << "[FATAL] SDL_Init failed: " << SDL_GetError();
 			exit(EXIT_FAILURE);
@@ -815,13 +810,7 @@ static void handleEvent(SDL_Event & ev)
 		handleQuit();	
 		return;
 	}
-
-	#ifdef VCMI_SDL1
-	//FIXME: this should work even in pregame
-	else if(LOCPLINT && ev.type == SDL_KEYDOWN && ev.key.keysym.sym==SDLK_F4)
-	#else
 	else if(ev.type == SDL_KEYDOWN && ev.key.keysym.sym==SDLK_F4)
-	#endif // VCMI_SDL1		
 	{
 		Settings full = settings.write["video"]["fullscreen"];
 		full->Bool() = !full->Bool();
@@ -831,6 +820,12 @@ static void handleEvent(SDL_Event & ev)
 	{
 		switch(ev.user.code)
 		{
+		case FORCE_QUIT:
+			{
+				handleQuit(false);	
+				return;			
+			}
+		    break;
 		case RETURN_TO_MAIN_MENU:
 			{
 				endGame();
@@ -948,7 +943,7 @@ void endGame()
 	vstd::clear_pointer(client);
 }
 
-void handleQuit()
+void handleQuit(bool ask/* = true*/)
 {
 	auto quitApplication = []()
 	{
@@ -965,7 +960,7 @@ void handleQuit()
 		exit(EXIT_SUCCESS);
 	};
 
-	if(client && LOCPLINT)
+	if(client && LOCPLINT && ask)
 	{
 		CCS->curh->changeGraphic(ECursor::ADVENTURE, 0);
 		LOCPLINT->showYesNoDialog(CGI->generaltexth->allTexts[69], quitApplication, 0);

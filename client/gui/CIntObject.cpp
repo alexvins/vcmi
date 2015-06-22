@@ -10,12 +10,6 @@ IShowActivatable::IShowActivatable()
 	type = 0;
 }
 
-void ILockedUpdatable::runLocked(std::function<void(IUpdateable*)> cb)
-{
-	boost::unique_lock<boost::recursive_mutex> lock(updateGuard);	
-	cb(this);
-}
-
 CIntObject::CIntObject(int used_, Point pos_):
 	parent_m(nullptr),
 	active_m(0),
@@ -82,7 +76,7 @@ void CIntObject::activate()
 			return;
 		else
 		{
-            logGlobal->warnStream() << "Warning: IntObject re-activated with mismatching used and active";
+			logGlobal->warnStream() << "Warning: IntObject re-activated with mismatching used and active";
 			deactivate(); //FIXME: better to avoid such possibility at all
 		}
 	}
@@ -143,6 +137,11 @@ CIntObject::~CIntObject()
 void CIntObject::printAtLoc( const std::string & text, int x, int y, EFonts font, SDL_Color color/*=Colors::WHITE*/)
 {
 	graphics->fonts[font]->renderTextLeft(text, color, Point(pos.x + x, pos.y + y));
+}
+
+void CIntObject::printAtRightLoc( const std::string & text, int x, int y, EFonts font, SDL_Color kolor/*=Colors::WHITE*/)
+{
+	graphics->fonts[font]->renderTextRight(text, kolor, Point(pos.x + x, pos.y + y));
 }
 
 void CIntObject::printAtMiddleLoc( const std::string & text, int x, int y, EFonts font, SDL_Color color/*=Colors::WHITE*/)
@@ -315,8 +314,8 @@ const Rect & CIntObject::center( bool propagate )
 
 const Rect & CIntObject::center(const Point &p, bool propagate /*= true*/)
 {
-	moveBy(Point(p.x - pos.w/2 - pos.x, 
-		p.y - pos.h/2 - pos.y), 
+	moveBy(Point(p.x - pos.w/2 - pos.x,
+		p.y - pos.h/2 - pos.y),
 		propagate);
 	return pos;
 }
@@ -336,7 +335,7 @@ CKeyShortcut::CKeyShortcut(int key)
 }
 
 CKeyShortcut::CKeyShortcut(std::set<int> Keys)
-    :assignedKeys(Keys)
+	:assignedKeys(Keys)
 {}
 
 void CKeyShortcut::keyPressed(const SDL_KeyboardEvent & key)
@@ -345,12 +344,12 @@ void CKeyShortcut::keyPressed(const SDL_KeyboardEvent & key)
 	 || vstd::contains(assignedKeys, CGuiHandler::numToDigit(key.keysym.sym)))
 	{
 		bool prev = pressedL;
-		if(key.state == SDL_PRESSED) 
+		if(key.state == SDL_PRESSED)
 		{
 			pressedL = true;
 			clickLeft(true, prev);
-		} 
-		else 
+		}
+		else
 		{
 			pressedL = false;
 			clickLeft(false, prev);

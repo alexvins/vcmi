@@ -294,6 +294,7 @@ void CTextBox::setText(const std::string &text)
 		// decrease width again if slider still used
 		label->pos.w = pos.w - 32;
 		label->setText(text);
+		slider->setAmount(label->textSize.y);
 	}
 	else if(label->textSize.y > label->pos.h)
 	{
@@ -462,9 +463,7 @@ void CTextInput::keyPressed( const SDL_KeyboardEvent & key )
 	}
 
 	bool redrawNeeded = false;
-	#ifdef VCMI_SDL1
-	std::string oldText = text;
-	#endif // 0	
+	
 	switch(key.keysym.sym)
 	{
 	case SDLK_DELETE: // have index > ' ' so it won't be filtered out by default section
@@ -482,20 +481,9 @@ void CTextInput::keyPressed( const SDL_KeyboardEvent & key )
 		}			
 		break;
 	default:
-		#ifdef VCMI_SDL1
-		if (key.keysym.unicode < ' ')
-			return;
-		else
-		{
-			text += key.keysym.unicode; //TODO 16-/>8
-			redrawNeeded = true;
-		}			
-		#endif // 0
 		break;
 	}
-	#ifdef VCMI_SDL1
-	filters(text, oldText);
-	#endif // 0
+
 	if (redrawNeeded)
 	{
 		redraw();
@@ -515,18 +503,9 @@ bool CTextInput::captureThisEvent(const SDL_KeyboardEvent & key)
 	if(key.keysym.sym == SDLK_RETURN || key.keysym.sym == SDLK_KP_ENTER)
 		return false;
 	
-	#ifdef VCMI_SDL1
-	//this should allow all non-printable keys to go through (for example arrows)
-	if (key.keysym.unicode < ' ')
-		return false;
-
-	return true;
-	#else
 	return false;
-	#endif
 }
 
-#ifndef VCMI_SDL1
 void CTextInput::textInputed(const SDL_TextInputEvent & event)
 {
 	if(!focus)
@@ -553,9 +532,6 @@ void CTextInput::textEdited(const SDL_TextEditingEvent & event)
 	redraw();
 	cb(text+newText);	
 }
-
-#endif
-
 
 void CTextInput::filenameFilter(std::string & text, const std::string &)
 {

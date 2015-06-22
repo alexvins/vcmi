@@ -261,22 +261,6 @@ public:
 	}
 };
 
-namespace ERiverType
-{
-enum ERiverType
-{
-	NO_RIVER, CLEAR_RIVER, ICY_RIVER, MUDDY_RIVER, LAVA_RIVER
-};
-}
-
-namespace ERoadType
-{
-enum ERoadType
-{
-	NO_ROAD, DIRT_ROAD, GRAVEL_ROAD, COBBLESTONE_ROAD
-};
-}
-
 /// The terrain tile describes the terrain type and the visual representation of the terrain.
 /// Furthermore the struct defines whether the tile is visitable or/and blocked and which objects reside in it.
 struct DLL_LINKAGE TerrainTile
@@ -289,8 +273,8 @@ struct DLL_LINKAGE TerrainTile
 	/// Checks for blocking objects and terraint type (water / land).
 	bool isClear(const TerrainTile * from = nullptr) const;
 	/// Gets the ID of the top visitable object or -1 if there is none.
-	int topVisitableId() const;
-	CGObjectInstance * topVisitableObj() const;
+	Obj topVisitableId(bool excludeTop = false) const;
+	CGObjectInstance * topVisitableObj(bool excludeTop = false) const;
 	bool isWater() const;
 	bool isCoastal() const;
 	bool hasFavourableWinds() const;
@@ -432,6 +416,7 @@ public:
 
 	//Helper lists
 	std::vector< ConstTransitivePtr<CGHeroInstance> > heroesOnMap;
+	std::map<TeleportChannelID, shared_ptr<TeleportChannel> > teleportChannels;
 
 	/// associative list to identify which hero/creature id belongs to which object id(index for objects)
 	std::map<si32, ObjectInstanceID> questIdentifierToId;
@@ -499,11 +484,9 @@ public:
 		}
 
 		h & objects;
-		h & heroesOnMap & towns & artInstances;
+		h & heroesOnMap & teleportChannels & towns & artInstances;
 
 		// static members
-		h & CGTeleport::objs;
-		h & CGTeleport::gates;
 		h & CGKeys::playerKeyMap;
 		h & CGMagi::eyelist;
 		h & CGObelisk::obeliskCount & CGObelisk::visited;

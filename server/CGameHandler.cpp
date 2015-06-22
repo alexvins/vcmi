@@ -9,7 +9,7 @@
 #include "../lib/CArtHandler.h"
 #include "../lib/CBuildingHandler.h"
 #include "../lib/CHeroHandler.h"
-#include "../lib/CSpellHandler.h"
+#include "../lib/spells/CSpellHandler.h"
 #include "../lib/CGeneralTextHandler.h"
 #include "../lib/CTownHandler.h"
 #include "../lib/CCreatureHandler.h"
@@ -67,8 +67,11 @@ public:
 	void sendAndApply(CPackForClient * info) const override;	
 	CRandomGenerator & getRandomGenerator() const override;
 	void complain(const std::string & problem) const override;
+	const CMap * getMap() const override;
+	const CGameInfoCallback * getCb() const override;
+	bool moveHero(ObjectInstanceID hid, int3 dst, ui8 teleporting, PlayerColor asker = PlayerColor::NEUTRAL) const override;	
 private:
-	CGameHandler * gh;	
+	mutable CGameHandler * gh;	
 };
 
 CondSh<bool> battleMadeAction;
@@ -861,12 +864,12 @@ void CGameHandler::applyBattleEffects(BattleAttack &bat, const CStack *att, cons
 	bat.bsa.push_back(bsa); //add this stack to the list of victims after drain life has been calculated
 
 	//fire shield handling
-	if (!bat.shot() && def->hasBonusOfType(Bonus::FIRE_SHIELD) && !att->hasBonusOfType (Bonus::FIRE_IMMUNITY) && !bsa.killed() )
+	if(!bat.shot() && def->hasBonusOfType(Bonus::FIRE_SHIELD) && !att->hasBonusOfType (Bonus::FIRE_IMMUNITY))
 	{
 		BattleStackAttacked bsa2;
 		bsa2.stackAttacked = att->ID; //invert
 		bsa2.attackerID = def->ID;
-		bsa2.flags |= BattleStackAttacked::EFFECT; //FIXME: play anmation upon efreet and not attacker
+		bsa2.flags |= BattleStackAttacked::EFFECT; //FIXME: play animation upon efreet and not attacker
 		bsa2.effect = 11;
 
 		bsa2.damageAmount = (bsa.damageAmount * def->valOfBonuses(Bonus::FIRE_SHIELD)) / 100; //TODO: scale with attack/defense
@@ -942,7 +945,12 @@ void CGameHandler::handleConnection(std::set<PlayerColor> players, CConnection &
         logGlobal->errorStream() << e.what();
 		end2 = true;
 	}
-	HANDLE_EXCEPTION(end2 = true);
+	catch(...)
+	{
+		end2 = true;
+		handleException();
+		throw;
+	}
 
     logGlobal->errorStream() << "Ended handling connection";
 }
@@ -1012,50 +1020,76 @@ int CGameHandler::moveStack(int stack, BattleHex dest)
 	}
 	else //for non-flying creatures
 	{
-		// send one package with the creature path information
-
-		shared_ptr<const CObstacleInstance> obstacle; //obstacle that interrupted movement
+		shared_ptr<const CObstacleInstance> obstacle, obstacle2; //obstacle that interrupted movement
 		std::vector<BattleHex> tiles;
-		int tilesToMove = std::max((int)(path.first.size() - creSpeed), 0);
+		const int tilesToMove = std::max((int)(path.first.size() - creSpeed), 0);
 		int v = path.first.size()-1;
 
-startWalking:
-		for(; v >= tilesToMove; --v)
+		bool stackIsMoving = true;
+		
+		while(stackIsMoving)
 		{
-			BattleHex hex = path.first[v];
-			tiles.push_back(hex);
-
-			if((obstacle = battleGetObstacleOnPos(hex, false)))
+			if(v<tilesToMove)
 			{
-				//we walked onto something, so we finalize this portion of stack movement check into obstacle
+				logGlobal->error("Movement terminated abnormally");
 				break;
 			}
-		}
 
-		if (tiles.size() > 0)
-		{
-			//commit movement
-			BattleStackMoved sm;
-			sm.stack = curStack->ID;
-			sm.distance = path.second;
-			sm.teleporting = false;
-			sm.tilesToMove = tiles;
-			sendAndApply(&sm);
-		}
-
-		//we don't handle obstacle at the destination tile -> it's handled separately in the if at the end
-		if(obstacle && curStack->position != dest)
-		{
-			handleDamageFromObstacle(*obstacle, curStack);
-
-			//if stack didn't die in explosion, continue movement
-			if(!obstacle->stopsMovement() && curStack->alive())
+			for(bool obstacleHit = false; (!obstacleHit) && (v >= tilesToMove); --v)
 			{
-				obstacle.reset();
-				tiles.clear();
-				v--;
-				goto startWalking; //TODO it's so evil
+				BattleHex hex = path.first[v];
+				tiles.push_back(hex);
+
+				//if we walked onto something, finalize this portion of stack movement check into obstacle
+				if((obstacle = battleGetObstacleOnPos(hex, false)))
+					obstacleHit = true;
+
+				if(curStack->doubleWide())
+				{
+					BattleHex otherHex = curStack->occupiedHex(hex);
+
+					//two hex creature hit obstacle by backside
+					if(otherHex.isValid() && ((obstacle2 = battleGetObstacleOnPos(otherHex, false))))
+						obstacleHit = true;
+				}
 			}
+
+			if(tiles.size() > 0)
+			{
+				//commit movement
+				BattleStackMoved sm;
+				sm.stack = curStack->ID;
+				sm.distance = path.second;
+				sm.teleporting = false;
+				sm.tilesToMove = tiles;
+				sendAndApply(&sm);
+				tiles.clear();
+			}
+
+			//we don't handle obstacle at the destination tile -> it's handled separately in the if at the end
+			if(curStack->position != dest)
+			{
+				auto processObstacle = [&](shared_ptr<const CObstacleInstance> & obs)
+				{
+					if(obs)
+					{
+						handleDamageFromObstacle(*obs, curStack);
+
+						//if stack die in explosion or interrupted by obstacle, abort movement
+						if(obs->stopsMovement() || !curStack->alive())
+							stackIsMoving = false;
+
+						obs.reset();						
+					}
+				};
+				
+				processObstacle(obstacle);
+				if(curStack->alive())
+					processObstacle(obstacle2);
+			}
+			else
+				//movement finished normally: we reached destination
+				stackIsMoving = false;
 		}
 	}
 
@@ -1067,6 +1101,18 @@ startWalking:
 			handleDamageFromObstacle(*theLastObstacle, curStack);
 		}
 	}
+
+	if(curStack->alive() && curStack->doubleWide())
+	{
+		BattleHex otherHex = curStack->occupiedHex(curStack->position);
+		
+		if(otherHex.isValid())
+			if(auto theLastObstacle = battleGetObstacleOnPos(otherHex, false))
+			{
+				//two hex creature hit obstacle by backside
+				handleDamageFromObstacle(*theLastObstacle, curStack);
+			}
+	}	
 	return ret;
 }
 
@@ -1657,7 +1703,7 @@ void CGameHandler::setAmount(ObjectInstanceID objid, ui32 val)
 	sendAndApply(&sop);
 }
 
-bool CGameHandler::moveHero( ObjectInstanceID hid, int3 dst, ui8 teleporting, PlayerColor asker /*= 255*/ )
+bool CGameHandler::moveHero( ObjectInstanceID hid, int3 dst, ui8 teleporting, bool transit, PlayerColor asker /*= 255*/ )
 {
 	const CGHeroInstance *h = getHero(hid);
 
@@ -1742,7 +1788,11 @@ bool CGameHandler::moveHero( ObjectInstanceID hid, int3 dst, ui8 teleporting, Pl
 		tmh.result = result;
 		sendAndApply(&tmh);
 
-		if(lookForGuards == CHECK_FOR_GUARDS && this->isInTheMap(guardPos))
+		if (visitDest == VISIT_DEST && t.topVisitableObj() && t.topVisitableObj()->id == h->id)
+		{ // Hero should be always able to visit any object he staying on even if there guards around
+			visitObjectOnTile(t, h);
+		}
+		else if(lookForGuards == CHECK_FOR_GUARDS && this->isInTheMap(guardPos))
 		{
 			tmh.attackedFrom = guardPos;
 
@@ -1753,7 +1803,8 @@ bool CGameHandler::moveHero( ObjectInstanceID hid, int3 dst, ui8 teleporting, Pl
 		}
 		else if(visitDest == VISIT_DEST)
 		{
-			visitObjectOnTile(t, h);
+			if(!transit || !CGTeleport::isTeleport(t.topVisitableObj()))
+				visitObjectOnTile(t, h);
 		}
 
 		queries.popIfTop(moveQuery);
@@ -1883,6 +1934,14 @@ void CGameHandler::setOwner(const CGObjectInstance * obj, PlayerColor owner)
 void CGameHandler::showBlockingDialog( BlockingDialog *iw )
 {
 	auto dialogQuery = make_shared<CBlockingDialogQuery>(*iw);
+	queries.addQuery(dialogQuery);
+	iw->queryID = dialogQuery->queryID;
+	sendToAllClients(iw);
+}
+
+void CGameHandler::showTeleportDialog( TeleportDialog *iw )
+{
+	auto dialogQuery = make_shared<CTeleportDialogQuery>(*iw);
 	queries.addQuery(dialogQuery);
 	iw->queryID = dialogQuery->queryID;
 	sendToAllClients(iw);
@@ -2305,10 +2364,16 @@ bool CGameHandler::arrangeStacks( ObjectInstanceID id1, ObjectInstanceID id2, ui
 
 	if(what==1) //swap
 	{
-		if ( ((s1->tempOwner != player && s1->tempOwner != PlayerColor::UNFLAGGABLE) && s1->getStackCount(p1)) //why 254??
+		if ( ((s1->tempOwner != player && s1->tempOwner != PlayerColor::UNFLAGGABLE) && s1->getStackCount(p1))
 		  || ((s2->tempOwner != player && s2->tempOwner != PlayerColor::UNFLAGGABLE) && s2->getStackCount(p2)))
 		{
 			complain("Can't take troops from another player!");
+			return false;
+		}
+
+		if (sl1.army == sl2.army && sl1.slot == sl2.slot)
+		{
+			complain("Cannot swap stacks - slots are the same!");
 			return false;
 		}
 
@@ -2683,7 +2748,10 @@ bool CGameHandler::recruitCreatures(ObjectInstanceID objid, ObjectInstanceID dst
 bool CGameHandler::upgradeCreature( ObjectInstanceID objid, SlotID pos, CreatureID upgID )
 {
 	CArmedInstance *obj = static_cast<CArmedInstance*>(gs->getObjInstance(objid));
-	assert(obj->hasStackAtSlot(pos));
+	if (!obj->hasStackAtSlot(pos))
+	{
+		COMPLAIN_RET("Cannot upgrade, no stack at slot " + boost::to_string(pos));
+	}
 	UpgradeInfo ui = gs->getUpgradeInfo(obj->getStack(pos));
 	PlayerColor player = obj->tempOwner;
 	const PlayerState *p = getPlayer(player);
@@ -4145,34 +4213,42 @@ void CGameHandler::stackTurnTrigger(const CStack * st)
 		}
 		BonusList bl = *(st->getBonuses(Selector::type(Bonus::ENCHANTER)));
 		int side = gs->curB->whatSide(st->owner);
-		if (bl.size() && st->casts && !gs->curB->sides.at(side).enchanterCounter)
+		if (st->casts && !gs->curB->sides.at(side).enchanterCounter)
 		{
-			auto bonus = *RandomGeneratorUtil::nextItem(bl, gs->getRandomGenerator());
-			auto spellID = SpellID(bonus->subtype);
-			const CSpell * spell = SpellID(spellID).toSpell();
-			if (gs->curB->battleCanCastThisSpell(st->owner, spell, ECastingMode::ENCHANTER_CASTING) == ESpellCastProblem::OK) //TODO: select another available?
+			bool casted = false;
+			while (!bl.empty() and !casted)
 			{
-				BattleSpellCastParameters parameters(gs->curB);
-				parameters.spellLvl = bonus->val;
-				parameters.destination = BattleHex::INVALID;
-				parameters.casterSide = side;
-				parameters.casterColor = st->owner;	
-				parameters.caster = nullptr;
-				parameters.secHero = gs->curB->getHero(gs->curB->theOtherPlayer(st->owner));
-				parameters.usedSpellPower = 0;	
-				parameters.mode = ECastingMode::ENCHANTER_CASTING;
-				parameters.casterStack = st;	
-				parameters.selectedStack = nullptr;
+				auto bonus = *RandomGeneratorUtil::nextItem(bl, gs->getRandomGenerator());
+				auto spellID = SpellID(bonus->subtype);
+				const CSpell * spell = SpellID(spellID).toSpell();
+				bl.remove_if([&bonus](Bonus * b){return b==bonus;});					
 				
-				spell->battleCast(spellEnv, parameters);				
+				if (gs->curB->battleCanCastThisSpell(st->owner, spell, ECastingMode::ENCHANTER_CASTING) == ESpellCastProblem::OK)
+				{
+					BattleSpellCastParameters parameters(gs->curB);
+					parameters.spellLvl = bonus->val;
+					parameters.destination = BattleHex::INVALID;
+					parameters.casterSide = side;
+					parameters.casterColor = st->owner;	
+					parameters.caster = nullptr;
+					parameters.secHero = gs->curB->getHero(gs->curB->theOtherPlayer(st->owner));
+					parameters.usedSpellPower = 0;	
+					parameters.mode = ECastingMode::ENCHANTER_CASTING;
+					parameters.casterStack = st;	
+					parameters.selectedStack = nullptr;
+					
+					spell->battleCast(spellEnv, parameters);				
 
-				BattleSetStackProperty ssp;
-				ssp.which = BattleSetStackProperty::ENCHANTER_COUNTER;
-				ssp.absolute = false;
-				ssp.val = bonus->additionalInfo; //increase cooldown counter
-				ssp.stackID = st->ID;
-				sendAndApply(&ssp);
-			}
+					BattleSetStackProperty ssp;
+					ssp.which = BattleSetStackProperty::ENCHANTER_COUNTER;
+					ssp.absolute = false;
+					ssp.val = bonus->additionalInfo; //increase cooldown counter
+					ssp.stackID = st->ID;
+					sendAndApply(&ssp);
+					
+					casted = true;
+				}				
+			};
 		}
 		bl = *(st->getBonuses(Selector::type(Bonus::ENCHANTED)));
 		for (auto b : bl)
@@ -4225,14 +4301,25 @@ void CGameHandler::handleDamageFromObstacle(const CObstacleInstance &obstacle, c
 
 		oneTimeObstacle = true;
 		effect = 82; //makes
-		damage = SpellID(SpellID::LAND_MINE).toSpell()->calculateDamage(hero, curStack,
+
+		const CSpell * sp = SpellID(SpellID::LAND_MINE).toSpell();
+
+		if(sp->isImmuneByStack(hero, curStack))
+			return;
+
+		damage = sp->calculateDamage(hero, curStack,
 											 spellObstacle->spellLevel, spellObstacle->casterSpellPower);
 		//TODO even if obstacle wasn't created by hero (Tower "moat") it should deal dmg as if casted by hero,
 		//if it is bigger than default dmg. Or is it just irrelevant H3 implementation quirk
 	}
 	else if(obstacle.obstacleType == CObstacleInstance::FIRE_WALL)
 	{
-		damage = SpellID(SpellID::FIRE_WALL).toSpell()->calculateDamage(hero, curStack,
+		const CSpell * sp = SpellID(SpellID::FIRE_WALL).toSpell();
+
+		if(sp->isImmuneByStack(hero, curStack))
+			return;
+
+		damage = sp->calculateDamage(hero, curStack,
 											 spellObstacle->spellLevel, spellObstacle->casterSpellPower);
 	}
 	else
@@ -4952,222 +5039,12 @@ void CGameHandler::handleAfterAttackCasting( const BattleAttack & bat )
 bool CGameHandler::castSpell(const CGHeroInstance *h, SpellID spellID, const int3 &pos)
 {
 	const CSpell *s = spellID.toSpell();
-	int cost = h->getSpellCost(s);
-	int schoolLevel = h->getSpellSchoolLevel(s);
-
-	if(!h->canCastThisSpell(s))
-		COMPLAIN_RET("Hero cannot cast this spell!");
-	if(h->mana < cost)
-		COMPLAIN_RET("Hero doesn't have enough spell points to cast this spell!");
-	if(s->combatSpell)
-		COMPLAIN_RET("This function can be used only for adventure map spells!");
-
-	AdvmapSpellCast asc;
-	asc.caster = h;
-	asc.spellID = spellID;
-	sendAndApply(&asc);
-
-	switch(spellID)
-	{
-	case SpellID::SUMMON_BOAT:
-		{
-			//check if spell works at all
-			if(gs->getRandomGenerator().nextInt(99) >= s->getPower(schoolLevel)) //power is % chance of success
-			{
-				InfoWindow iw;
-				iw.player = h->tempOwner;
-				iw.text.addTxt(MetaString::GENERAL_TXT, 336); //%s tried to summon a boat, but failed.
-				iw.text.addReplacement(h->name);
-				sendAndApply(&iw);
-				break;
-			}
-
-			//try to find unoccupied boat to summon
-			const CGBoat *nearest = nullptr;
-			double dist = 0;
-			int3 summonPos = h->bestLocation();
-			if(summonPos.x < 0)
-				COMPLAIN_RET("There is no water tile available!");
-
-			for(const CGObjectInstance *obj : gs->map->objects)
-			{
-				if(obj && obj->ID == Obj::BOAT)
-				{
-					const CGBoat *b = static_cast<const CGBoat*>(obj);
-					if(b->hero) continue; //we're looking for unoccupied boat
-
-					double nDist = distance(b->pos, h->getPosition());
-					if(!nearest || nDist < dist) //it's first boat or closer than previous
-					{
-						nearest = b;
-						dist = nDist;
-					}
-				}
-			}
-
-			if(nearest) //we found boat to summon
-			{
-				ChangeObjPos cop;
-				cop.objid = nearest->id;
-				cop.nPos = summonPos + int3(1,0,0);;
-				cop.flags = 1;
-				sendAndApply(&cop);
-			}
-			else if(schoolLevel < 2) //none or basic level -> cannot create boat :(
-			{
-				InfoWindow iw;
-				iw.player = h->tempOwner;
-				iw.text.addTxt(MetaString::GENERAL_TXT, 335); //There are no boats to summon.
-				sendAndApply(&iw);
-			}
-			else //create boat
-			{
-				NewObject no;
-				no.ID = Obj::BOAT;
-				no.subID = h->getBoatType();
-				no.pos = summonPos + int3(1,0,0);;
-				sendAndApply(&no);
-			}
-			break;
-		}
-
-	case SpellID::SCUTTLE_BOAT:
-		{
-			//check if spell works at all
-			if(gs->getRandomGenerator().nextInt(99) >= s->getPower(schoolLevel)) //power is % chance of success
-			{
-				InfoWindow iw;
-				iw.player = h->tempOwner;
-				iw.text.addTxt(MetaString::GENERAL_TXT, 337); //%s tried to scuttle the boat, but failed
-				iw.text.addReplacement(h->name);
-				sendAndApply(&iw);
-				break;
-			}
-			if(!gs->map->isInTheMap(pos))
-				COMPLAIN_RET("Invalid dst tile for scuttle!");
-
-			//TODO: test range, visibility
-			const TerrainTile *t = &gs->map->getTile(pos);
-			if(!t->visitableObjects.size() || t->visitableObjects.back()->ID != Obj::BOAT)
-				COMPLAIN_RET("There is no boat to scuttle!");
-
-			RemoveObject ro;
-			ro.id = t->visitableObjects.back()->id;
-			sendAndApply(&ro);
-			break;
-		}
-	case SpellID::DIMENSION_DOOR:
-		{
-			const TerrainTile *dest = getTile(pos);
-			const TerrainTile *curr = getTile(h->getSightCenter());
-
-			if(!dest)
-				COMPLAIN_RET("Destination tile doesn't exist!");
-			if(!h->movement)
-				COMPLAIN_RET("Hero needs movement points to cast Dimension Door!");
-			if(h->getBonusesCount(Bonus::SPELL_EFFECT, SpellID::DIMENSION_DOOR) >= s->getPower(schoolLevel)) //limit casts per turn
-			{
-				InfoWindow iw;
-				iw.player = h->tempOwner;
-				iw.text.addTxt(MetaString::GENERAL_TXT, 338); //%s is not skilled enough to cast this spell again today.
-				iw.text.addReplacement(h->name);
-				sendAndApply(&iw);
-				break;
-			}
-
-			GiveBonus gb;
-			gb.id = h->id.getNum();
-			gb.bonus = Bonus(Bonus::ONE_DAY, Bonus::NONE, Bonus::SPELL_EFFECT, 0, SpellID::DIMENSION_DOOR);
-			sendAndApply(&gb);
-
-			if(!dest->isClear(curr)) //wrong dest tile
-			{
-				InfoWindow iw;
-				iw.player = h->tempOwner;
-				iw.text.addTxt(MetaString::GENERAL_TXT, 70); //Dimension Door failed!
-				sendAndApply(&iw);
-				break;
-			}
-
-			if (moveHero(h->id, pos + h->getVisitableOffset(), true))
-			{
-				SetMovePoints smp;
-				smp.hid = h->id;
-				smp.val = std::max<ui32>(0, h->movement - 300);
-				sendAndApply(&smp);
-			}
-		}
-		break;
-	case SpellID::FLY:
-		{
-			int subtype = schoolLevel >= 2 ? 1 : 2; //adv or expert
-
-			GiveBonus gb;
-			gb.id = h->id.getNum();
-			gb.bonus = Bonus(Bonus::ONE_DAY, Bonus::FLYING_MOVEMENT, Bonus::SPELL_EFFECT, 0, SpellID::FLY, subtype);
-			sendAndApply(&gb);
-		}
-		break;
-	case SpellID::WATER_WALK:
-		{
-			int subtype = schoolLevel >= 2 ? 1 : 2; //adv or expert
-
-			GiveBonus gb;
-			gb.id = h->id.getNum();
-			gb.bonus = Bonus(Bonus::ONE_DAY, Bonus::WATER_WALKING, Bonus::SPELL_EFFECT, 0, SpellID::WATER_WALK, subtype);
-			sendAndApply(&gb);
-		}
-		break;
-
-	case SpellID::TOWN_PORTAL:
-		{
-			if (!gs->map->isInTheMap(pos))
-				COMPLAIN_RET("Destination tile not present!")
-			TerrainTile tile = gs->map->getTile(pos);
-			if (tile.visitableObjects.empty() || tile.visitableObjects.back()->ID != Obj::TOWN )
-				COMPLAIN_RET("Town not found for Town Portal!");
-
-			CGTownInstance * town = static_cast<CGTownInstance*>(tile.visitableObjects.back());
-			if (town->tempOwner != h->tempOwner)
-				COMPLAIN_RET("Can't teleport to another player!");
-			if (town->visitingHero)
-				COMPLAIN_RET("Can't teleport to occupied town!");
-
-			if (h->getSpellSchoolLevel(s) < 2)
-			{
-				si32 dist = town->pos.dist2dSQ(h->pos);
-				ObjectInstanceID nearest = town->id; //nearest town's ID
-				for(const CGTownInstance * currTown : gs->getPlayer(h->tempOwner)->towns)
-				{
-					si32 currDist = currTown->pos.dist2dSQ(h->pos);
-					if (currDist < dist)
-					{
-						nearest = currTown->id;
-						dist = currDist;
-					}
-				}
-				if (town->id != nearest)
-					COMPLAIN_RET("This hero can only teleport to nearest town!")
-			}
-			moveHero(h->id, town->visitablePos() + h->getVisitableOffset() ,1);
-		}
-		break;
-
-	case SpellID::VISIONS:
-	case SpellID::VIEW_EARTH:
-	case SpellID::DISGUISE:
-	case SpellID::VIEW_AIR:
-	default:
-		COMPLAIN_RET("This spell is not implemented yet!");
-	}
-
-	SetMana sm;
-	sm.hid = h->id;
-	sm.absolute = false;
-	sm.val = -cost;
-	sendAndApply(&sm);
-
-	return true;
+	
+	AdventureSpellCastParameters p;
+	p.caster = h;
+	p.pos = pos;
+	
+	return s->adventureCast(spellEnv, p);
 }
 
 void CGameHandler::visitObjectOnTile(const TerrainTile &t, const CGHeroInstance * h)
@@ -5409,7 +5286,7 @@ void CGameHandler::runBattle()
 			BattleSpellCastParameters parameters(gs->curB);
 			parameters.spellLvl = 3;
 			parameters.destination = BattleHex::INVALID;
-			parameters.casterSide = 0;
+			parameters.casterSide = i;
 			parameters.casterColor = h->tempOwner;	
 			parameters.caster = nullptr;
 			parameters.secHero = gs->curB->battleGetFightingHero(1-i);
@@ -5992,7 +5869,7 @@ CGameHandler::FinishingBattleHelper::FinishingBattleHelper()
 	winnerHero = loserHero = nullptr;
 }
 
-
+///ServerSpellCastEnvironment
 ServerSpellCastEnvironment::ServerSpellCastEnvironment(CGameHandler * gh): gh(gh)
 {
 	
@@ -6012,3 +5889,20 @@ void ServerSpellCastEnvironment::complain(const std::string& problem) const
 {
 	gh->complain(problem);
 }
+
+const CGameInfoCallback * ServerSpellCastEnvironment::getCb() const
+{
+	return gh;
+}
+
+
+const CMap * ServerSpellCastEnvironment::getMap() const
+{
+	return gh->gameState()->map;
+}
+
+bool ServerSpellCastEnvironment::moveHero(ObjectInstanceID hid, int3 dst, ui8 teleporting, PlayerColor asker) const
+{
+	return gh->moveHero(hid, dst, teleporting, false, asker);
+}
+

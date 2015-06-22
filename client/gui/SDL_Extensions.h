@@ -12,14 +12,11 @@
 #include <SDL_version.h>
 #include <SDL_endian.h>
 
-#ifndef VCMI_SDL1
-#include <SDL_render.h>
-#endif
+
 
 #include <SDL_video.h>
 #include <SDL_events.h>
 #include "../../lib/int3.h"
-//#include "../Graphics.h"
 #include "Geometries.h"
 #include "../../lib/GameConstants.h"
 
@@ -35,71 +32,48 @@
 	#define STRONG_INLINE inline
 #endif
 
-#if SDL_VERSION_ATLEAST(1,3,0)
-#define SDL_GetKeyState SDL_GetKeyboardState
-#endif
-
 extern IWindow * mainScreen;
 extern IRenderTarget * bufferScreen;
-
-//SDL2 support
-#if (SDL_MAJOR_VERSION == 2)
-
 inline void SDL_SetColors(SDL_Surface *surface, SDL_Color *colors, int firstcolor, int ncolors)
 {
 	SDL_SetPaletteColors(surface->format->palette,colors,firstcolor,ncolors);
 }
 
 //void SDL_UpdateRect(SDL_Surface *surface, int x, int y, int w, int h);
-#endif
 
 inline bool isCtrlKeyDown()
 {
-	#ifdef VCMI_SDL1
-	return SDL_GetKeyState(nullptr)[SDLK_LCTRL] || SDL_GetKeyState(nullptr)[SDLK_RCTRL];
-	#else
 	return SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LCTRL] || SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RCTRL];
-	#endif
 }
 
 inline bool isAltKeyDown()
 {
-	#ifdef VCMI_SDL1
-	return SDL_GetKeyState(nullptr)[SDLK_LALT] || SDL_GetKeyState(nullptr)[SDLK_RALT];
-	#else
 	return SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LALT] || SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RALT];
-	#endif
 }
 
 inline bool isShiftKeyDown()
 {
-	#ifdef VCMI_SDL1
-	return SDL_GetKeyState(nullptr)[SDLK_LSHIFT] || SDL_GetKeyState(nullptr)[SDLK_RSHIFT];
-	#else
 	return SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LSHIFT] || SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RSHIFT];
-	#endif
 }
 namespace CSDL_Ext
 {
+	//todo: remove
 	STRONG_INLINE void colorSetAlpha(SDL_Color & color, Uint8 alpha)
 	{
-		#ifdef VCMI_SDL1
-		color.unused = alpha;
-		#else
 		color.a = alpha;
-		#endif	
 	}
 	//todo: should this better be assignment operator?
 	STRONG_INLINE void colorAssign(SDL_Color & dest, const SDL_Color & source)
 	{
-		dest.r = source.r;		
+		dest.r = source.r;
 		dest.g = source.g;
-		dest.b = source.b;		
-		#ifdef VCMI_SDL1
-		dest.unused = source.unused;
-		#else
+		dest.b = source.b;
 		dest.a = source.a;
-		#endif			
+	}
+
+	inline void setAlpha(SDL_Surface * bg, int value)
+	{
+		SDL_SetSurfaceAlphaMod(bg, value);
 	}
 }
 struct Rect;

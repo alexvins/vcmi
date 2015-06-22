@@ -15,7 +15,7 @@
 #include "lib/Connection.h"
 #include "lib/NetPacks.h"
 #include "client/mapHandler.h"
-#include "lib/CSpellHandler.h"
+#include "lib/spells/CSpellHandler.h"
 #include "lib/CArtHandler.h"
 #include "lib/GameConstants.h"
 #ifdef min
@@ -48,9 +48,9 @@ bool CCallback::teleportHero(const CGHeroInstance *who, const CGTownInstance *wh
 	return true;
 }
 
-bool CCallback::moveHero(const CGHeroInstance *h, int3 dst)
+bool CCallback::moveHero(const CGHeroInstance *h, int3 dst, bool transit)
 {
-	MoveHero pack(dst,h->id);
+	MoveHero pack(dst,h->id,transit);
 	sendRequest(&pack);
 	return true;
 }
@@ -80,7 +80,7 @@ void CCallback::recruitCreatures(const CGDwelling *obj, const CArmedInstance * d
 
 bool CCallback::dismissCreature(const CArmedInstance *obj, SlotID stackPos)
 {
-	if(((player>=0)  &&  obj->tempOwner != player) || (obj->stacksCount()<2  && obj->needsLastStack()))
+	if((player && obj->tempOwner != player) || (obj->stacksCount()<2  && obj->needsLastStack()))
 		return false;
 
 	DisbandCreature pack(stackPos,obj->id);

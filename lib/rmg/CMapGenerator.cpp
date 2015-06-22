@@ -13,6 +13,8 @@
 #include "CZonePlacer.h"
 #include "../mapObjects/CObjectClassesHandler.h"
 
+static const int3 dirs4[] = {int3(0,1,0),int3(0,-1,0),int3(-1,0,0),int3(+1,0,0)};
+
 void CMapGenerator::foreach_neighbour(const int3 &pos, std::function<void(int3& pos)> foo)
 {
 	for(const int3 &dir : dirs)
@@ -21,6 +23,16 @@ void CMapGenerator::foreach_neighbour(const int3 &pos, std::function<void(int3& 
 		if(map->isInTheMap(n))
 			foo(n);
 	}
+}
+
+void CMapGenerator::foreachDirectNeighbour(const int3& pos, std::function<void(int3& pos)> foo)
+{
+	for(const int3 &dir : dirs4)
+	{
+		int3 n = pos + dir;
+		if(map->isInTheMap(n))
+			foo(n);
+	}	
 }
 
 
@@ -77,6 +89,15 @@ void CMapGenerator::initPrisonsRemaining()
 	prisonsRemaining = std::max<int> (0, prisonsRemaining - 16 * mapGenOptions->getPlayerCount()); //so at least 16 heroes will be available for every player
 }
 
+void CMapGenerator::initQuestArtsRemaining()
+{
+	for (auto art : VLC->arth->artifacts)
+	{
+		if (art->aClass == CArtifact::ART_TREASURE && art->constituentOf.empty()) //don't use parts of combined artifacts
+		questArtifacts.push_back(art->id);
+	}
+}
+
 std::unique_ptr<CMap> CMapGenerator::generate(CMapGenOptions * mapGenOptions, int randomSeed /*= std::time(nullptr)*/)
 {
 	this->mapGenOptions = mapGenOptions;
@@ -98,6 +119,7 @@ std::unique_ptr<CMap> CMapGenerator::generate(CMapGenOptions * mapGenOptions, in
 		initTiles();
 
 		initPrisonsRemaining();
+		initQuestArtsRemaining();
 		genZones();
 		map->calculateGuardingGreaturePositions(); //clear map so that all tiles are unguarded
 		fillZones();
@@ -122,7 +144,7 @@ std::string CMapGenerator::getMapDescription() const
 
     std::stringstream ss;
     ss << boost::str(boost::format(std::string("Map created by the Random Map Generator.\nTemplate was %s, Random seed was %d, size %dx%d") +
-        ", levels %s, humans %d, computers %d, water %s, monster %s, second expansion map") % mapGenOptions->getMapTemplate()->getName() %
+        ", levels %s, players %d, computers %d, water %s, monster %s, VCMI map") % mapGenOptions->getMapTemplate()->getName() %
 		randomSeed % map->width % map->height % (map->twoLevel ? "2" : "1") % static_cast<int>(mapGenOptions->getPlayerCount()) %
 		static_cast<int>(mapGenOptions->getCompOnlyPlayerCount()) % waterContentStr[mapGenOptions->getWaterContent()] %
 		monsterStrengthStr[monsterStrengthIndex]);
@@ -147,19 +169,32 @@ std::string CMapGenerator::getMapDescription() const
 void CMapGenerator::addPlayerInfo()
 {
 	// Calculate which team numbers exist
-	std::array<std::list<int>, 2> teamNumbers; // 0= cpu/human, 1= cpu only
-	int teamOffset = 0;
-	for(int i = 0; i < 2; ++i)
-	{
-		int playerCount = i == 0 ? mapGenOptions->getPlayerCount() : mapGenOptions->getCompOnlyPlayerCount();
-		int teamCount = i == 0 ? mapGenOptions->getTeamCount() : mapGenOptions->getCompOnlyTeamCount();
 
+	enum ETeams {CPHUMAN = 0, CPUONLY = 1, AFTER_LAST = 2};
+	std::array<std::list<int>, 2> teamNumbers;
+
+	int teamOffset = 0;
+	int playerCount = 0;
+	int teamCount = 0;
+
+	for (int i = CPHUMAN; i < AFTER_LAST; ++i)
+	{
+		if (i == CPHUMAN)
+		{
+			playerCount = mapGenOptions->getPlayerCount();
+			teamCount = mapGenOptions->getTeamCount();
+		}
+		else
+		{
+			playerCount = mapGenOptions->getCompOnlyPlayerCount();
+			teamCount = mapGenOptions->getCompOnlyTeamCount();
+		}
+		
 		if(playerCount == 0)
 		{
 			continue;
 		}
-		int playersPerTeam = playerCount /
-				(teamCount == 0 ? playerCount : teamCount);
+		int playersPerTeam = playerCount / (teamCount == 0 ? playerCount : teamCount);
 		int teamCountNorm = teamCount;
 		if(teamCountNorm == 0)
 		{
@@ -180,17 +215,23 @@ void CMapGenerator::addPlayerInfo()
 	}
 
 	// Team numbers are assigned randomly to every player
+	//TODO: allow customize teams in rmg template
 	for(const auto & pair : mapGenOptions->getPlayersSettings())
 	{
 		const auto & pSettings = pair.second;
 		PlayerInfo player;
 		player.canComputerPlay = true;
-		int j = pSettings.getPlayerType() == EPlayerType::COMP_ONLY ? 1 : 0;
-		if(j == 0)
+		int j = (pSettings.getPlayerType() == EPlayerType::COMP_ONLY) ? CPUONLY : CPHUMAN;
+		if (j == CPHUMAN)
 		{
 			player.canHumanPlay = true;
 		}
 
+		if (teamNumbers[j].empty())
+		{
+			logGlobal->errorStream() << boost::format("Not enough places in team for %s player") % ((j == CPUONLY) ? "CPU" : "CPU or human");
+			assert (teamNumbers[j].size());
+		}
         auto itTeam = RandomGeneratorUtil::nextItem(teamNumbers[j], rand);
 		player.team = TeamID(*itTeam);
 		teamNumbers[j].erase(itTeam);
@@ -231,6 +272,7 @@ void CMapGenerator::fillZones()
 		it.second->initFreeTiles(this);
 	}
 
+	findZonesForQuestArts();
 	createConnections();
 	//make sure all connections are passable before creating borders
 	for (auto it : zones)
@@ -247,6 +289,58 @@ void CMapGenerator::fillZones()
 			treasureZones.push_back(it.second);
 	}
 
+	//set apriopriate free/occupied tiles, including blocked underground rock
+	createObstaclesCommon1();
+	//set back original terrain for underground zones
+	for (auto it : zones)
+		it.second->createObstacles1(this);
+	createObstaclesCommon2();
+	//place actual obstacles matching zone terrain
+	for (auto it : zones)
+	{
+		it.second->createObstacles2(this);
+	}
+
+	#define PRINT_MAP_BEFORE_ROADS true
+	if (PRINT_MAP_BEFORE_ROADS) //enable to debug
+	{
+		std::ofstream out("road debug");
+		int levels = map->twoLevel ? 2 : 1;
+		int width = map->width;
+		int height = map->height;
+		for (int k = 0; k < levels; k++)
+		{
+			for (int j = 0; j<height; j++)
+			{
+				for (int i = 0; i<width; i++)
+				{
+					char t = '?';
+					switch (getTile(int3(i, j, k)).getTileType())
+					{
+					case ETileType::FREE:
+						t = ' '; break;
+					case ETileType::BLOCKED:
+						t = '#'; break;
+					case ETileType::POSSIBLE:
+						t = '-'; break;
+					case ETileType::USED:
+						t = 'O'; break;
+					}
+
+					out << t;
+				}
+				out << std::endl;
+			}
+			out << std::endl;
+		}
+		out << std::endl;
+	}
+
+	for (auto it : zones)
+	{
+		it.second->connectRoads(this); //draw roads after everything else has been placed
+	}
+
 	//find place for Grail
 	if (treasureZones.empty())
 	{
@@ -258,6 +352,110 @@ void CMapGenerator::fillZones()
 	map->grailPos = *RandomGeneratorUtil::nextItem(*grailZone->getFreePaths(), rand);
 
 	logGlobal->infoStream() << "Zones filled successfully";
+}
+
+void CMapGenerator::createObstaclesCommon1()
+{
+	if (map->twoLevel) //underground
+	{
+		//negative approach - create rock tiles first, then make sure all accessible tiles have no rock
+		std::vector<int3> rockTiles;
+
+		for (int x = 0; x < map->width; x++)
+		{
+			for (int y = 0; y < map->height; y++)
+			{
+				int3 tile(x, y, 1);
+				if (shouldBeBlocked(tile))
+				{
+					rockTiles.push_back(tile);
+				}
+			}
+		}
+		editManager->getTerrainSelection().setSelection(rockTiles);
+		editManager->drawTerrain(ETerrainType::ROCK, &rand);
+	}
+}
+
+void CMapGenerator::createObstaclesCommon2()
+{
+	if (map->twoLevel)
+	{
+		//finally mark rock tiles as occupied, spawn no obstacles there
+		for (int x = 0; x < map->width; x++)
+		{
+			for (int y = 0; y < map->height; y++)
+			{
+				int3 tile(x, y, 1);
+				if (map->getTile(tile).terType == ETerrainType::ROCK)
+				{
+					setOccupied(tile, ETileType::USED);
+				}
+			}
+		}
+	}
+
+	//tighten obstacles to improve visuals
+
+	for (int i = 0; i < 3; ++i)
+	{
+		int blockedTiles = 0;
+		int freeTiles = 0;
+
+		for (int z = 0; z < (map->twoLevel ? 2 : 1); z++)
+		{
+			for (int x = 0; x < map->width; x++)
+			{
+				for (int y = 0; y < map->height; y++)
+				{
+					int3 tile(x, y, z);
+					if (!isPossible(tile)) //only possible tiles can change
+						continue;
+
+					int blockedNeighbours = 0;
+					int freeNeighbours = 0;
+					foreach_neighbour(tile, [this, &blockedNeighbours, &freeNeighbours](int3 &pos)
+					{
+						if (this->isBlocked(pos))
+							blockedNeighbours++;
+						if (this->isFree(pos))
+							freeNeighbours++;
+					});
+					if (blockedNeighbours > 4)
+					{
+						setOccupied(tile, ETileType::BLOCKED);
+						blockedTiles++;
+					}
+					else if (freeNeighbours > 4)
+					{
+						setOccupied(tile, ETileType::FREE);
+						freeTiles++;
+					}
+				}
+			}
+		}
+		logGlobal->traceStream() << boost::format("Set %d tiles to BLOCKED and %d tiles to FREE") % blockedTiles % freeTiles;
+	}
+}
+
+void CMapGenerator::findZonesForQuestArts()
+{
+	//we want to place arties in zones that were not yet filled (higher index)
+
+	for (auto connection : mapGenOptions->getMapTemplate()->getConnections())
+	{
+		auto zoneA = connection.getZoneA();
+		auto zoneB = connection.getZoneB();
+
+		if (zoneA->getId() > zoneB->getId())
+		{
+			zoneB->setQuestArtZone(zoneA);
+		}
+		else if (zoneA->getId() < zoneB->getId())
+		{
+			zoneA->setQuestArtZone(zoneB);
+		}
+	}
 }
 
 void CMapGenerator::createConnections()
@@ -285,7 +483,7 @@ void CMapGenerator::createConnections()
 			{
 				if (isBlocked(tile)) //tiles may be occupied by subterranean gates already placed
 					continue;
-				foreach_neighbour (tile, [&guardPos, tile, &otherZoneTiles, this](int3 &pos)
+				foreachDirectNeighbour (tile, [&guardPos, tile, &otherZoneTiles, this](int3 &pos) //must be direct since paths also also generated between direct neighbours
 				{
 					//if (vstd::contains(otherZoneTiles, pos) && !this->isBlocked(pos))
 					if (vstd::contains(otherZoneTiles, pos))
@@ -296,8 +494,11 @@ void CMapGenerator::createConnections()
 					setOccupied (guardPos, ETileType::FREE); //just in case monster is too weak to spawn
 					zoneA->addMonster (this, guardPos, connection.getGuardStrength(), false, true);
 					//zones can make paths only in their own area
-					zoneA->crunchPath (this, guardPos, posA, zoneA->getId(), zoneA->getFreePaths()); //make connection towards our zone center
-					zoneB->crunchPath (this, guardPos, posB, zoneB->getId(), zoneB->getFreePaths()); //make connection towards other zone center
+					zoneA->crunchPath(this, guardPos, posA, true, zoneA->getFreePaths()); //make connection towards our zone center
+					zoneB->crunchPath(this, guardPos, posB, true, zoneB->getFreePaths()); //make connection towards other zone center		
+					
+					zoneA->addRoadNode(guardPos);
+					zoneB->addRoadNode(guardPos);
 					break; //we're done with this connection
 				}
 			}
@@ -350,13 +551,8 @@ void CMapGenerator::createConnections()
 
 						if (withinZone)
 						{
-							auto gate1 = new CGTeleport;
-							gate1->ID = Obj::SUBTERRANEAN_GATE;
-							gate1->subID = 0;
-							zoneA->placeAndGuardObject(this, gate1, tile, connection.getGuardStrength());
-							auto gate2 = new CGTeleport(*gate1);
-							zoneB->placeAndGuardObject(this, gate2, otherTile, connection.getGuardStrength());
-
+							zoneA->placeSubterraneanGate(this, tile, connection.getGuardStrength());
+							zoneB->placeSubterraneanGate(this, otherTile, connection.getGuardStrength());
 							stop = true; //we are done, go to next connection
 						}
 					}
@@ -367,11 +563,11 @@ void CMapGenerator::createConnections()
 		}
 		if (!guardPos.valid())
 		{
-			auto teleport1 = new CGTeleport;
+			auto teleport1 = new CGMonolith;
 			teleport1->ID = Obj::MONOLITH_TWO_WAY;
 			teleport1->subID = getNextMonlithIndex();
 
-			auto teleport2 = new CGTeleport(*teleport1);
+			auto teleport2 = new CGMonolith(*teleport1);
 
 			zoneA->addRequiredObject (teleport1, connection.getGuardStrength());
 			zoneB->addRequiredObject (teleport2, connection.getGuardStrength());
@@ -391,6 +587,13 @@ void CMapGenerator::addHeaderInfo()
 	addPlayerInfo();
 }
 
+void CMapGenerator::checkIsOnMap(const int3& tile) const
+{
+	if (!map->isInTheMap(tile))
+		throw  rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));	
+}
+
+
 std::map<TRmgTemplateZoneId, CRmgTemplateZone*> CMapGenerator::getZones() const
 {
 	return zones;
@@ -398,67 +601,74 @@ std::map<TRmgTemplateZoneId, CRmgTemplateZone*> CMapGenerator::getZones() const
 
 bool CMapGenerator::isBlocked(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw  rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].isBlocked();
 }
 bool CMapGenerator::shouldBeBlocked(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].shouldBeBlocked();
 }
 bool CMapGenerator::isPossible(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].isPossible();
 }
 bool CMapGenerator::isFree(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].isFree();
 }
 bool CMapGenerator::isUsed(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw  rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].isUsed();
 }
+
+bool CMapGenerator::isRoad(const int3& tile) const
+{
+	checkIsOnMap(tile);
+	
+	return tiles[tile.x][tile.y][tile.z].isRoad();	
+}
+
 void CMapGenerator::setOccupied(const int3 &tile, ETileType::ETileType state)
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	tiles[tile.x][tile.y][tile.z].setOccupied(state);
 }
 
-CTileInfo CMapGenerator::getTile(const int3&  tile) const
+void CMapGenerator::setRoad(const int3& tile, ERoadType::ERoadType roadType)
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
+
+	tiles[tile.x][tile.y][tile.z].setRoadType(roadType);	
+}
+
+
+CTileInfo CMapGenerator::getTile(const int3& tile) const
+{
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z];
 }
 
 void CMapGenerator::setNearestObjectDistance(int3 &tile, float value)
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	tiles[tile.x][tile.y][tile.z].setNearestObjectDistance(value);
 }
 
 float CMapGenerator::getNearestObjectDistance(const int3 &tile) const
 {
-	if (!map->isInTheMap(tile))
-		throw rmgException(boost::to_string(boost::format("Tile %s is outside the map") % tile));
+	checkIsOnMap(tile);
 
 	return tiles[tile.x][tile.y][tile.z].getNearestObjectDistance();
 }
@@ -484,6 +694,16 @@ int CMapGenerator::getPrisonsRemaning() const
 void CMapGenerator::decreasePrisonsRemaining()
 {
 	prisonsRemaining = std::max (0, prisonsRemaining - 1);
+}
+
+std::vector<ArtifactID> CMapGenerator::getQuestArtsRemaning() const
+{
+	return questArtifacts;
+}
+void CMapGenerator::banQuestArt(ArtifactID id)
+{
+	map->allowedArtifact[id] = false;
+	vstd::erase_if_present (questArtifacts, id);
 }
 
 void CMapGenerator::registerZone (TFaction faction)

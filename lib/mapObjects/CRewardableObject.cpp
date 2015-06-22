@@ -421,7 +421,7 @@ void CRewardableObject::setPropertyDer(ui8 what, ui32 val)
 
 void CRewardableObject::newTurn() const
 {
-	if (resetDuration != 0 && cb->getDate(Date::DAY) % (resetDuration+1) == 0)
+	if (resetDuration != 0 && cb->getDate(Date::DAY) > 1 && cb->getDate(Date::DAY) % (resetDuration) == 1)
 		cb->setObjProperty(id, ObjProperty::REWARD_RESET, 0);
 }
 
@@ -728,8 +728,8 @@ void CGBonusingObject::initObj()
 	case Obj::STABLES:
 		configureMessage(info[0], 137, 136, soundBase::STORE);
 
-		configureBonusDuration(info[0], Bonus::ONE_WEEK, Bonus::LAND_MOVEMENT, 600, 0);
-		info[0].reward.movePoints = 600;
+		configureBonusDuration(info[0], Bonus::ONE_WEEK, Bonus::LAND_MOVEMENT, 400, 0);
+		info[0].reward.movePoints = 400;
 		//TODO: upgrade champions to cavaliers
 /*
 		bool someUpgradeDone = false;

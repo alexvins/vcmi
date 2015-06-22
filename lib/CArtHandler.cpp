@@ -15,7 +15,7 @@
 #include "CGeneralTextHandler.h"
 #include "VCMI_Lib.h"
 #include "CModHandler.h"
-#include "CSpellHandler.h"
+#include "spells/CSpellHandler.h"
 #include "mapObjects/MapObjects.h"
 #include "NetPacksBase.h"
 #include "GameConstants.h"
@@ -671,7 +671,7 @@ boost::optional<std::vector<CArtifact*>&> CArtHandler::listFromClass( CArtifact:
 	case CArtifact::ART_RELIC:
 		return relics;
 	default: //special artifacts should not be erased
-		return nullptr;
+		return boost::optional<std::vector<CArtifact*>&>();
 	}
 }
 

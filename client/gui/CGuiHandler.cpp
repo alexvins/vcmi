@@ -63,10 +63,7 @@ void CGuiHandler::processLists(const ui16 activityFlag, std::function<void (std:
 	processList(CIntObject::TIME,activityFlag,&timeinterested,cb);
 	processList(CIntObject::WHEEL,activityFlag,&wheelInterested,cb);
 	processList(CIntObject::DOUBLECLICK,activityFlag,&doubleClickInterested,cb);
-	
-	#ifndef VCMI_SDL1
 	processList(CIntObject::TEXTINPUT,activityFlag,&textInterested,cb);
-	#endif // VCMI_SDL1
 }
 
 void CGuiHandler::handleElementActivate(CIntObject * elem, ui16 activityFlag)
@@ -200,10 +197,8 @@ void CGuiHandler::handleEvent(SDL_Event *sEvent)
 		//translate numpad keys
 		if(key.keysym.sym == SDLK_KP_ENTER)
 		{
-			key.keysym.sym = (SDLKey)SDLK_RETURN;
-			#ifndef VCMI_SDL1
+			key.keysym.sym = SDLK_RETURN;
 			key.keysym.scancode = SDL_SCANCODE_RETURN;
-			#endif // VCMI_SDL1
 		}
 
 		bool keysCaptured = false;
@@ -274,19 +269,7 @@ void CGuiHandler::handleEvent(SDL_Event *sEvent)
 				}
 			}
 		}
-		#ifdef VCMI_SDL1 //SDL1x only events
-		else if(sEvent->button.button == SDL_BUTTON_WHEELDOWN || sEvent->button.button == SDL_BUTTON_WHEELUP)
-		{
-			std::list<CIntObject*> hlp = wheelInterested;
-			for(auto i=hlp.begin(); i != hlp.end() && current; i++)
-			{
-				if(!vstd::contains(wheelInterested,*i)) continue;
-				(*i)->wheelScrolled(sEvent->button.button == SDL_BUTTON_WHEELDOWN, isItIn(&(*i)->pos,sEvent->motion.x,sEvent->motion.y));
-			}
-		}
-		#endif
 	}
-	#ifndef VCMI_SDL1 //SDL2x only events	
 	else if (sEvent->type == SDL_MOUSEWHEEL)
 	{
 		std::list<CIntObject*> hlp = wheelInterested;
@@ -311,7 +294,6 @@ void CGuiHandler::handleEvent(SDL_Event *sEvent)
 		}
 	}	
 	//todo: muiltitouch
-	#endif // VCMI_SDL1
 	else if ((sEvent->type==SDL_MOUSEBUTTONUP) && (sEvent->button.button == SDL_BUTTON_LEFT))
 	{
 		std::list<CIntObject*> hlp = lclickable;
@@ -345,7 +327,6 @@ void CGuiHandler::handleEvent(SDL_Event *sEvent)
 		}
 	}
 	current = nullptr;
-
 } //event end
 
 void CGuiHandler::handleMouseMotion(SDL_Event *sEvent)
@@ -399,12 +380,9 @@ void CGuiHandler::handleMoveInterested( const SDL_MouseMotionEvent & motion )
 void CGuiHandler::fakeMouseMove()
 {
 	SDL_Event evnt;
-#ifdef VCMI_SDL1
-	SDL_MouseMotionEvent sme = {SDL_MOUSEMOTION, 0, 0, 0, 0, 0, 0};
-#else
 	SDL_MouseMotionEvent sme = {SDL_MOUSEMOTION, 0, 0, 0, 0, 0, 0, 0, 0};
-#endif	
 	int x, y;
+
 	sme.state = SDL_GetMouseState(&x, &y);
 	sme.x = x;
 	sme.y = y;
@@ -416,9 +394,7 @@ void CGuiHandler::fakeMouseMove()
 
 void CGuiHandler::renderFrame()
 {
-
-	
-	auto doUpdate = [](IUpdateable * target)
+	auto doUpdate = [this]()
 	{
 		mainScreen->renderFrame([&](){
 		
@@ -432,7 +408,7 @@ void CGuiHandler::renderFrame()
 	if(curInt)
 		curInt->runLocked(doUpdate);
 	else
-		doUpdate(nullptr);
+		doUpdate();
 	
 	mainFPSmng->framerateDelay(); // holds a constant FPS	
 }
@@ -470,23 +446,8 @@ void CGuiHandler::drawFPSCounter()
 	graphics->fonts[FONT_BIG]->renderTextLeft(fps, yellow, Point(10, 10));
 }
 
-SDLKey CGuiHandler::arrowToNum( SDLKey key )
+SDL_Keycode CGuiHandler::arrowToNum(SDL_Keycode key )
 {
-	#ifdef VCMI_SDL1
-	switch(key)
-	{
-	case SDLK_DOWN:
-		return SDLK_KP2;
-	case SDLK_UP:
-		return SDLK_KP8;
-	case SDLK_LEFT:
-		return SDLK_KP4;
-	case SDLK_RIGHT:
-		return SDLK_KP6;
-	default:
-		throw std::runtime_error("Wrong key!");assert(0);
-	}	
-	#else
 	switch(key)
 	{
 	case SDLK_DOWN:
@@ -500,20 +461,14 @@ SDLKey CGuiHandler::arrowToNum( SDLKey key )
 	default:
 		throw std::runtime_error("Wrong key!");
 	}	
-	#endif // 0
 }
 
-SDLKey CGuiHandler::numToDigit( SDLKey key )
+SDL_Keycode CGuiHandler::numToDigit(SDL_Keycode key)
 {
-#ifdef VCMI_SDL1
-	if(key >= SDLK_KP0 && key <= SDLK_KP9)
-		return SDLKey(key - SDLK_KP0 + SDLK_0);
-#endif // 0
 
 #define REMOVE_KP(keyName) case SDLK_KP_ ## keyName : return SDLK_ ## keyName;
 	switch(key)
 	{
-#ifndef VCMI_SDL1
 		REMOVE_KP(0)
 		REMOVE_KP(1)
 		REMOVE_KP(2)
@@ -524,7 +479,6 @@ SDLKey CGuiHandler::numToDigit( SDLKey key )
 		REMOVE_KP(7)
 		REMOVE_KP(8)
 		REMOVE_KP(9)		
-#endif // VCMI_SDL1		
 		REMOVE_KP(PERIOD)
 		REMOVE_KP(MINUS)
 		REMOVE_KP(PLUS)
@@ -542,22 +496,15 @@ SDLKey CGuiHandler::numToDigit( SDLKey key )
 #undef REMOVE_KP
 }
 
-bool CGuiHandler::isNumKey( SDLKey key, bool number )
+bool CGuiHandler::isNumKey(SDL_Keycode key, bool number)
 {
-	#ifdef VCMI_SDL1
-	if(number)
-		return key >= SDLK_KP0 && key <= SDLK_KP9;
-	else
-		return key >= SDLK_KP0 && key <= SDLK_KP_EQUALS;
-	#else
 	if(number)
 		return key >= SDLK_KP_1 && key <= SDLK_KP_0;
 	else
 		return (key >= SDLK_KP_1 && key <= SDLK_KP_0) || key == SDLK_KP_MINUS || key == SDLK_KP_PLUS || key == SDLK_KP_EQUALS;
-	#endif // 0
 }
 
-bool CGuiHandler::isArrowKey( SDLKey key )
+bool CGuiHandler::isArrowKey(SDL_Keycode key)
 {
 	return key == SDLK_UP || key == SDLK_DOWN || key == SDLK_LEFT || key == SDLK_RIGHT;
 }

@@ -8,7 +8,7 @@
 #include "IGameCallback.h"
 #include "CGameState.h"
 #include "CGeneralTextHandler.h"
-#include "CSpellHandler.h"
+#include "spells/CSpellHandler.h"
 #include "CHeroHandler.h"
 #include "IBonusTypeHandler.h"
 
@@ -712,7 +712,7 @@ void CCommanderInstance::setAlive (bool Alive)
 	alive = Alive;
 	if (!alive)
 	{
-		getBonusList().remove_if (Bonus::UntilCommanderKilled);
+		popBonuses(Bonus::UntilCommanderKilled);
 	}
 }
 

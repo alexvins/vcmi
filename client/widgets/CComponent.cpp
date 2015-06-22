@@ -12,7 +12,7 @@
 #include "../../lib/CArtHandler.h"
 #include "../../lib/CTownHandler.h"
 #include "../../lib/CCreatureHandler.h"
-#include "../../lib/CSpellHandler.h"
+#include "../../lib/spells/CSpellHandler.h"
 #include "../../lib/CGeneralTextHandler.h"
 #include "../../lib/NetPacksBase.h"
 
@@ -34,7 +34,7 @@ CComponent::CComponent(Etype Type, int Subtype, int Val, ESize imageSize):
 	init(Type, Subtype, Val, imageSize);
 }
 
-CComponent::CComponent(const Component &c):
+CComponent::CComponent(const Component &c, ESize imageSize):
 	image(nullptr),
 	perDay(false)
 {
@@ -43,7 +43,7 @@ CComponent::CComponent(const Component &c):
 	if(c.id == Component::RESOURCE && c.when==-1)
 		perDay = true;
 
-	init((Etype)c.id,c.subtype,c.val, large);
+	init((Etype)c.id,c.subtype,c.val, imageSize);
 }
 
 void CComponent::init(Etype Type, int Subtype, int Val, ESize imageSize)

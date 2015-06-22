@@ -80,7 +80,8 @@ enum
 	RESTART_GAME,
 	RETURN_TO_MENU_LOAD,
 	FULLSCREEN_TOGGLED,
-	PREPARE_RESTART_CAMPAIGN
+	PREPARE_RESTART_CAMPAIGN,
+	FORCE_QUIT //quit client without question
 };
 
 /// Central class for managing user interface logic
@@ -89,6 +90,7 @@ class CPlayerInterface : public CGameInterface, public ILockedUpdatable
 	const CArmedInstance * currentSelection;
 public:
 	bool observerInDuelMode;
+	ObjectInstanceID destinationTeleport; //contain -1 or object id if teleportation
 
 	//minor interfaces
 	CondSh<bool> *showingDialog; //indicates if dialog box is displayed
@@ -134,7 +136,7 @@ public:
 	} spellbookSettings;
 
 	void update() override;
-	void runLocked(std::function<void(IUpdateable * )> functor) override;
+	void runLocked(std::function<void()> functor) override;
 	void initializeHeroTownList();
 	int getLastIndex(std::string namePrefix);
 
@@ -168,8 +170,10 @@ public:
 	void showRecruitmentDialog(const CGDwelling *dwelling, const CArmedInstance *dst, int level) override;
 	void showShipyardDialog(const IShipyard *obj) override; //obj may be town or shipyard;
 	void showBlockingDialog(const std::string &text, const std::vector<Component> &components, QueryID askID, int soundID, bool selection, bool cancel) override; //Show a dialog, player must take decision. If selection then he has to choose between one of given components, if cancel he is allowed to not choose. After making choice, CCallback::selectionMade should be called with number of selected component (1 - n) or 0 for cancel (if allowed) and askID.
+	void showTeleportDialog(TeleportChannelID channel, std::vector<ObjectInstanceID> exits, bool impassable, QueryID askID) override;
 	void showGarrisonDialog(const CArmedInstance *up, const CGHeroInstance *down, bool removableUnits, QueryID queryID) override;
 	void showPuzzleMap() override;
+	void viewWorldMap() override;
 	void showMarketWindow(const IMarket *market, const CGHeroInstance *visitor) override;
 	void showUniversityWindow(const IMarket *market, const CGHeroInstance *visitor) override;
 	void showHillFortWindow(const CGObjectInstance *object, const CGHeroInstance *visitor) override;
@@ -195,6 +199,7 @@ public:
 	void showComp(const Component &comp, std::string message) override; //display component in the advmapint infobox
 	void saveGame(COSer & h, const int version) override; //saving
 	void loadGame(CISer & h, const int version) override; //loading
+	void showWorldViewEx(const std::vector<ObjectPosInfo> & objectPositions) override;	
 
 	//for battles
 	void actionFinished(const BattleAction& action) override;//occurs AFTER action taken by active stack or by the hero
@@ -267,15 +272,15 @@ public:
 	~CPlayerInterface();//d-tor
 
 	static CondSh<bool> terminate_cond; // confirm termination
-	
+
 
 
 private:
 
 	template <typename Handler> void serializeTempl(Handler &h, const int version);
 
-private:	
-	
+private:
+
 	struct IgnoreEvents
 	{
 		CPlayerInterface & owner;
@@ -287,16 +292,16 @@ private:
 		{
 			owner.ignoreEvents = false;
 		};
-		
+
 	};
-	
-	
-	
+
+
+
 	bool duringMovement;
 	bool ignoreEvents;
-	
+
 	bool locked;
-	
+
 	void doMoveHero(const CGHeroInstance *h, CGPath path);
 };
 

@@ -6,6 +6,8 @@
 #include "../widgets/TextControls.h"
 #include "../widgets/Buttons.h"
 
+#include "../../lib/spells/ViewSpellInt.h"
+
 class CDefHandler;
 class CCallback;
 struct CGPath;
@@ -15,6 +17,10 @@ class CGTownInstance;
 class CHeroWindow;
 class CSpell;
 class IShipyard;
+enum class EMapAnimRedrawStatus;
+class CFadeAnimation;
+
+struct MapDrawingInfo;
 
 /*****************************/
 
@@ -27,6 +33,12 @@ class IShipyard;
  * Full text of license available in license.txt file, in main folder
  *
  */
+
+enum class EAdvMapMode
+{
+	NORMAL,
+	WORLD_VIEW
+};
 
 /// Adventure options dialogue where you can view the world, dig, play the replay of the last turn,...
 class CAdventureOptions : public CWindowObject
@@ -42,22 +54,33 @@ public:
 class CTerrainRect
 	:  public CIntObject
 {
+	SDL_Surface * fadeSurface;
+	EMapAnimRedrawStatus lastRedrawStatus;
+	CFadeAnimation * fadeAnim;
 public:
 	int tilesw, tilesh; //width and height of terrain to blit in tiles
 	int3 curHoveredTile;
 	int moveX, moveY; //shift between actual position of screen and the one we wil blit; ranges from -31 to 31 (in pixels)
 
 	CTerrainRect();
+	virtual ~CTerrainRect();
 	CGPath * currentPath;
 	void deactivate();
 	void clickLeft(tribool down, bool previousState);
 	void clickRight(tribool down, bool previousState);
 	void hover(bool on);
 	void mouseMoved (const SDL_MouseMotionEvent & sEvent);
-	void show();
-	void showPath(SDL_Rect * extRect);
+	void show(SDL_Surface * to);
+	void showAll(SDL_Surface * to);
+	void showAnim(SDL_Surface * to);
+	void showPath(const SDL_Rect * extRect, SDL_Surface * to);
 	int3 whichTileIsIt(const int & x, const int & y); //x,y are cursor position
 	int3 whichTileIsIt(); //uses current cursor pos
+	/// @returns number of visible tiles on screen respecting current map scaling
+	int3 tileCountOnScreen();
+	/// animates view by caching current surface and crossfading it with normal screen
+	void fadeFromCurrentView();
+	bool needsAnimUpdate();
 };
 
 /// Resources bar which shows information about how many gold, crystals,... you have
@@ -79,9 +102,9 @@ public:
 	void showAll();
 };
 
-/// That's a huge class which handles general adventure map actions and 
-/// shows the right menu(questlog, spellbook, end turn,..) from where you 
-/// can get to the towns and heroes. 
+/// That's a huge class which handles general adventure map actions and
+/// shows the right menu(questlog, spellbook, end turn,..) from where you
+/// can get to the towns and heroes.
 class CAdvMapInt : public CIntObject
 {
 	//Return object that must be active at this tile (=clickable)
@@ -105,7 +128,26 @@ public:
 	ui8 anim, animValHitCount; //animation frame
 	ui8 heroAnim, heroAnimValHitCount; //animation frame
 
+	EAdvMapMode mode;
+	float worldViewScale;
+	
+	struct WorldViewOptions
+	{
+		bool showAllTerrain; //for expert viewEarth
+		
+		std::vector<ObjectPosInfo> iconPositions;
+		
+		WorldViewOptions();
+		
+		void clear();
+		
+		void adjustDrawingInfo(MapDrawingInfo & info);		
+	};
+	
+	WorldViewOptions worldViewOptions; 	
+
 	SDL_Surface * bg;
+	SDL_Surface * bgWorldView;
 	std::vector<CDefHandler *> gems;
 	CMinimap minimap;
 	CGStatusBar statusbar;
@@ -121,11 +163,19 @@ public:
 	CButton * nextHero;
 	CButton * endTurn;
 
+	CButton * worldViewUnderground;
+
 	CTerrainRect terrain; //visible terrain
 	CResDataBar resdatabar;
 	CHeroList heroList;
 	CTownList townList;
 	CInfoBar infoBar;
+
+	CAdvMapPanel *panelMain; // panel that holds all right-side buttons in normal view
+	CAdvMapWorldViewPanel *panelWorldView; // panel that holds all buttons and other ui in world view
+	CAdvMapPanel *activeMapPanel; // currently active panel (either main or world view, depending on current mode)
+
+	CDefHandler * worldViewIconsDef; // images for world view overlay
 
 	const CSpell *spellBeingCasted; //nullptr if none
 
@@ -133,6 +183,10 @@ public:
 
 	//functions bound to buttons
 	void fshowOverview();
+	void fworldViewBack();
+	void fworldViewScale1x();
+	void fworldViewScale2x();
+	void fworldViewScale4x();
 	void fswitchLevel();
 	void fshowQuestlog();
 	void fsleepWake();
@@ -151,8 +205,8 @@ public:
 
 	void select(const CArmedInstance *sel, bool centerView = true);
 	void selectionChanged();
-	void centerOn(int3 on);
-	void centerOn(const CGObjectInstance *obj);
+	void centerOn(int3 on, bool fade = false);
+	void centerOn(const CGObjectInstance *obj, bool fade = false);
 	int3 verifyPos(int3 ver);
 	void handleRightClick(std::string text, tribool down);
 	void keyPressed(const SDL_KeyboardEvent & key);
@@ -179,9 +233,12 @@ public:
 	const CGTownInstance * curTown() const;
 	const IShipyard * ourInaccessibleShipyard(const CGObjectInstance *obj) const; //checks if obj is our ashipyard and cursor is 0,0 -> returns shipyard or nullptr else
 	//button updates
-	void updateSleepWake(const CGHeroInstance *h); 
+	void updateSleepWake(const CGHeroInstance *h);
 	void updateMoveHero(const CGHeroInstance *h, tribool hasPath = boost::logic::indeterminate);
 	void updateNextHero(const CGHeroInstance *h);
+
+	/// changes current adventure map mode; used to switch between default view and world view; scale is ignored if EAdvMapMode == NORMAL
+	void changeMode(EAdvMapMode newMode, float newScale = 0.36f);
 };
 
 extern CAdvMapInt *adventureInt;

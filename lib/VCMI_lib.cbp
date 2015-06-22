@@ -42,41 +42,6 @@
 					<Add directory="$(#sdl2.lib)" />
 				</Linker>
 			</Target>
-			<Target title="Debug-win32-SDL1">
-				<Option platforms="Windows;" />
-				<Option output="../VCMI_lib" prefix_auto="0" extension_auto="1" />
-				<Option object_output="../obj/Debug/Lib" />
-				<Option type="3" />
-				<Option compiler="gcc" />
-				<Option host_application="D:/projects/vcmi/engine/VCMI_client.exe" />
-				<Option run_host_application_in_terminal="1" />
-				<Option createStaticLib="1" />
-				<Compiler>
-					<Add option="-Og" />
-					<Add option="-g" />
-					<Add directory="$(#sdl.include)" />
-				</Compiler>
-				<Linker>
-					<Add directory="$(#sdl.lib)" />
-				</Linker>
-			</Target>
-			<Target title="Release-win32-SDL1">
-				<Option platforms="Windows;" />
-				<Option output="../VCMI_lib" prefix_auto="0" extension_auto="1" />
-				<Option object_output="../obj/Release/Lib" />
-				<Option type="3" />
-				<Option compiler="gcc" />
-				<Option createStaticLib="1" />
-				<Compiler>
-					<Add option="-fomit-frame-pointer" />
-					<Add option="-O2" />
-					<Add directory="$(#sdl.include)" />
-				</Compiler>
-				<Linker>
-					<Add option="-s" />
-					<Add directory="$(#sdl.lib)" />
-				</Linker>
-			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wextra" />
@@ -150,8 +115,6 @@
 		<Unit filename="CRandomGenerator.h" />
 		<Unit filename="CScriptingModule.h" />
 		<Unit filename="CSoundBase.h" />
-		<Unit filename="CSpellHandler.cpp" />
-		<Unit filename="CSpellHandler.h" />
 		<Unit filename="CStopWatch.h" />
 		<Unit filename="CThreadHelper.cpp" />
 		<Unit filename="CThreadHelper.h" />
@@ -185,8 +148,6 @@
 		<Unit filename="ResourceSet.cpp" />
 		<Unit filename="ResourceSet.h" />
 		<Unit filename="ScopeGuard.h" />
-		<Unit filename="SpellMechanics.cpp" />
-		<Unit filename="SpellMechanics.h" />
 		<Unit filename="StartInfo.h" />
 		<Unit filename="StdInc.h">
 			<Option weight="0" />
@@ -259,6 +220,8 @@
 		<Unit filename="mapObjects/ObjectTemplate.h" />
 		<Unit filename="mapping/CCampaignHandler.cpp" />
 		<Unit filename="mapping/CCampaignHandler.h" />
+		<Unit filename="mapping/CDrawRoadsOperation.cpp" />
+		<Unit filename="mapping/CDrawRoadsOperation.h" />
 		<Unit filename="mapping/CMap.cpp" />
 		<Unit filename="mapping/CMap.h" />
 		<Unit filename="mapping/CMapEditManager.cpp" />
@@ -294,6 +257,20 @@
 		<Unit filename="rmg/CZoneGraphGenerator.h" />
 		<Unit filename="rmg/CZonePlacer.cpp" />
 		<Unit filename="rmg/CZonePlacer.h" />
+		<Unit filename="spells/AdventureSpellMechanics.cpp" />
+		<Unit filename="spells/AdventureSpellMechanics.h" />
+		<Unit filename="spells/BattleSpellMechanics.cpp" />
+		<Unit filename="spells/BattleSpellMechanics.h" />
+		<Unit filename="spells/CDefaultSpellMechanics.cpp" />
+		<Unit filename="spells/CDefaultSpellMechanics.h" />
+		<Unit filename="spells/CSpellHandler.cpp" />
+		<Unit filename="spells/CSpellHandler.h" />
+		<Unit filename="spells/CreatureSpellMechanics.cpp" />
+		<Unit filename="spells/CreatureSpellMechanics.h" />
+		<Unit filename="spells/ISpellMechanics.cpp" />
+		<Unit filename="spells/ISpellMechanics.h" />
+		<Unit filename="spells/ViewSpellInt.cpp" />
+		<Unit filename="spells/ViewSpellInt.h" />
 		<Unit filename="vcmi_endian.h" />
 		<Extensions>
 			<code_completion />

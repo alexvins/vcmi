@@ -150,6 +150,22 @@
 			"black" :  { "index" : 7 }
 		}
 	},
+	//Seer Hut object is set off bottom-right corner, need to fix that
+	"seerHut" : {
+		"index" :83,
+		"handler": "seerHut",
+		"base" : {
+			"base" : {
+				"visitableFrom" : [ "---", "+++", "+++" ],
+				"mask" : [ "VVV", "VVV", "VAV" ]
+			}
+		},
+		"types" : {
+			"0" :	{ "index" : 0 },
+			"1" :	{ "index" : 1 },
+			"2" :	{ "index" : 2 }
+		}
+	},
 
 	// subtype: different revealed areas
 	"cartographer" : {
@@ -174,6 +190,7 @@
 			"crystalCavern" : { "index" : 4, "rmg" : { "value" : 3500 } },
 			"gemPond" :       { "index" : 5, "rmg" : { "value" : 3500 } },
 			"goldMine" :      { "index" : 6, "rmg" : { "value" : 7000 } },
+			"abandoned" :	  { "index" : 7}
 		}
 	},
 	"abandonedMine" : {
@@ -184,14 +201,27 @@
 		}
 	},
 
-	// subtype: 0 = normal, 1 = anti-magic
-	"garrisonHorizontal"			: { "index" :33, "handler": "garrison" },
-	"garrisonVertical"				: { "index" :219, "handler": "garrison" },
+	"garrisonHorizontal": { 
+		"index" :33, 
+		"handler": "garrison",
+		"types":{
+			"normal":{"index": 0},
+			"antiMagic":{"index": 1}			
+		}	
+	},
+	"garrisonVertical": { 
+		"index" :219, 
+		"handler": "garrison",
+		"types":{
+			"normal":{"index": 0},
+			"antiMagic":{"index": 1}			
+		}	
+	},
 
 	// Subtype: paired monoliths
 	"monolithOneWayEntrance" : {
 		"index" :43,
-		"handler": "teleport",
+		"handler": "monolith",
 		"types" : {
 			"monolith1" : { "index" : 0 },
 			"monolith2" : { "index" : 1 },
@@ -205,7 +235,7 @@
 	},
 	"monolithOneWayExit" : {
 		"index" :44,
-		"handler": "teleport",
+		"handler": "monolith",
 		"types" : {
 			"monolith1" : { "index" : 0 },
 			"monolith2" : { "index" : 1 },
@@ -219,7 +249,7 @@
 	},
 	"monolithTwoWay" : {
 		"index" :45,
-		"handler": "teleport",
+		"handler": "monolith",
 		"types" : {
 			"monolith1" : { "index" : 0 },
 			"monolith2" : { "index" : 1 },
@@ -231,9 +261,6 @@
 			"monolith8" : { "index" : 7 }
 		}
 	},
-
-	// subtype: different appearance. That's all?
-	"seerHut" : { "index" :83, "handler": "seerHut" },
 
 	// subtype: level
 	"randomDwellingLvl" : {

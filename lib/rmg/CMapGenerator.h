@@ -64,14 +64,20 @@ public:
 
 	std::map<TRmgTemplateZoneId, CRmgTemplateZone*> getZones() const;
 	void createConnections();
+	void findZonesForQuestArts();
 	void foreach_neighbour(const int3 &pos, std::function<void(int3& pos)> foo);
+	void foreachDirectNeighbour(const int3 &pos, std::function<void(int3& pos)> foo);
 
 	bool isBlocked(const int3 &tile) const;
 	bool shouldBeBlocked(const int3 &tile) const;
 	bool isPossible(const int3 &tile) const;
 	bool isFree(const int3 &tile) const;
 	bool isUsed(const int3 &tile) const;
+	bool isRoad(const int3 &tile) const;
+	
 	void setOccupied(const int3 &tile, ETileType::ETileType state);
+	void setRoad(const int3 &tile, ERoadType::ERoadType roadType);
+	
 	CTileInfo getTile(const int3 & tile) const;
 
 	float getNearestObjectDistance(const int3 &tile) const; 
@@ -80,6 +86,8 @@ public:
 	int getNextMonlithIndex();
 	int getPrisonsRemaning() const;
 	void decreasePrisonsRemaining();
+	std::vector<ArtifactID> getQuestArtsRemaning() const;
+	void banQuestArt(ArtifactID id);
 
 	void registerZone (TFaction faction);
 	ui32 getZoneCount(TFaction faction);
@@ -93,16 +101,22 @@ private:
 	CTileInfo*** tiles;
 
 	int prisonsRemaining;
+	//int questArtsRemaining;
 	int monolithIndex;
+	std::vector<ArtifactID> questArtifacts;
+	void checkIsOnMap(const int3 &tile) const; //throws
 
 	/// Generation methods
 	std::string getMapDescription() const;
 
 	void initPrisonsRemaining();
+	void initQuestArtsRemaining();
 	void addPlayerInfo();
 	void addHeaderInfo();
 	void initTiles();
 	void genZones();
 	void fillZones();
+	void createObstaclesCommon1();
+	void createObstaclesCommon2();
 
 };

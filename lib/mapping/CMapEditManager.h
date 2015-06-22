@@ -113,7 +113,14 @@ public:
 	virtual void redo() = 0;
 	virtual std::string getLabel() const = 0; /// Returns a display-able name of the operation.
 
-protected:
+protected:	
+	MapRect extendTileAround(const int3 & centerPos) const;
+	MapRect extendTileAroundSafely(const int3 & centerPos) const; /// doesn't exceed map size	
+	
+	static const int FLIP_PATTERN_HORIZONTAL = 1;
+	static const int FLIP_PATTERN_VERTICAL = 2;
+	static const int FLIP_PATTERN_BOTH = 3;	
+	
 	CMap * map;
 };
 
@@ -161,7 +168,11 @@ public:
 
 	/// Draws terrain at the current terrain selection. The selection will be cleared automatically.
 	void drawTerrain(ETerrainType terType, CRandomGenerator * gen = nullptr);
-	void insertObject(CGObjectInstance * obj, const int3 & pos);
+	
+	/// Draws roads at the current terrain selection. The selection will be cleared automatically.
+	void drawRoad(ERoadType::ERoadType roadType, CRandomGenerator * gen = nullptr);
+	
+	void insertObject(CGObjectInstance * obj, const int3 & pos);	
 
 	CTerrainSelection & getTerrainSelection();
 	CObjectSelection & getObjectSelection();
@@ -318,13 +329,14 @@ private:
 	struct InvalidTiles
 	{
 		std::set<int3> foreignTiles, nativeTiles;
+		bool centerPosValid;
+
+		InvalidTiles() : centerPosValid(false) { }
 	};
 
 	void updateTerrainTypes();
 	void invalidateTerrainViews(const int3 & centerPos);
 	InvalidTiles getInvalidTiles(const int3 & centerPos) const;
-	MapRect extendTileAround(const int3 & centerPos) const;
-	MapRect extendTileAroundSafely(const int3 & centerPos) const; /// doesn't exceed map size
 
 	void updateTerrainViews();
 	ETerrainGroup::ETerrainGroup getTerrainGroup(ETerrainType terType) const;
@@ -336,14 +348,16 @@ private:
 	bool isSandType(ETerrainType terType) const;
 	void flipPattern(TerrainViewPattern & pattern, int flip) const;
 
-	static const int FLIP_PATTERN_HORIZONTAL = 1;
-	static const int FLIP_PATTERN_VERTICAL = 2;
-	static const int FLIP_PATTERN_BOTH = 3;
-
 	CTerrainSelection terrainSel;
 	ETerrainType terType;
 	CRandomGenerator * gen;
 	std::set<int3> invalidatedTerViews;
+};
+
+class DLL_LINKAGE CTerrainViewPatternUtils
+{
+public:
+	static void printDebuggingInfoAboutTile(const CMap * map, int3 pos);
 };
 
 /// The CClearTerrainOperation clears+initializes the terrain.

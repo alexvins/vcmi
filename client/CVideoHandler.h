@@ -48,13 +48,22 @@ public:
 
 #include <SDL.h>
 #include <SDL_video.h>
-#if SDL_VERSION_ATLEAST(1,3,0) && !SDL_VERSION_ATLEAST(2,0,0)
-#include <SDL_compat.h>
-#endif
 
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+
+// compatibility with different versions od libavutil
+#if (LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51, 42, 0)) || \
+    (LIBAVUTIL_VERSION_INT == AV_VERSION_INT(51, 73, 101))
+
+#define AV_PIX_FMT_NONE         PIX_FMT_NONE
+#define AV_PIX_FMT_NV12         PIX_FMT_NV12
+#define AV_PIX_FMT_YUV420P      PIX_FMT_YUV420P
+#define AV_PIX_FMT_UYVY422      PIX_FMT_UYVY422
+#define AV_PIX_FMT_YUYV422      PIX_FMT_YUYV422
+
+#endif 
 }
 
 class CVideoPlayer : public IMainVideoPlayer

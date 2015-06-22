@@ -9,7 +9,7 @@
 #include "../mapObjects/CObjectClassesHandler.h"
 #include "../mapObjects/CGHeroInstance.h"
 #include "../CGeneralTextHandler.h"
-#include "../CSpellHandler.h"
+#include "../spells/CSpellHandler.h"
 #include "CMapEditManager.h"
 
 SHeroName::SHeroName() : heroId(-1)
@@ -125,14 +125,18 @@ bool TerrainTile::isClear(const TerrainTile *from /*= nullptr*/) const
 	return entrableTerrain(from) && !blocked;
 }
 
-int TerrainTile::topVisitableId() const
+Obj TerrainTile::topVisitableId(bool excludeTop) const
 {
-	return visitableObjects.size() ? visitableObjects.back()->ID : -1;
+	return topVisitableObj(excludeTop) ? topVisitableObj(excludeTop)->ID : Obj(Obj::NO_OBJ);
 }
 
-CGObjectInstance * TerrainTile::topVisitableObj() const
+CGObjectInstance * TerrainTile::topVisitableObj(bool excludeTop) const
 {
-	return visitableObjects.size() ? visitableObjects.back() : nullptr;
+	auto visitableObj = visitableObjects;
+	if(excludeTop && visitableObj.size())
+		visitableObj.pop_back();
+
+	return visitableObj.size() ? visitableObj.back() : nullptr;
 }
 
 bool TerrainTile::isCoastal() const
@@ -336,12 +340,12 @@ bool CMap::isWaterTile(const int3 &pos) const
 
 bool CMap::checkForVisitableDir(const int3 & src, const TerrainTile *pom, const int3 & dst ) const
 {
-	for(ui32 b=0; b<pom->visitableObjects.size(); ++b) //checking destination tile
+	if (!pom->entrableTerrain()) //rock is never accessible
+		return false;
+	for (auto obj : pom->visitableObjects) //checking destination tile
 	{
-		if(!vstd::contains(pom->blockingObjects, pom->visitableObjects[b])) //this visitable object is not blocking, ignore
+		if(!vstd::contains(pom->blockingObjects, obj)) //this visitable object is not blocking, ignore
 			continue;
-
-		const CGObjectInstance * obj = pom->visitableObjects[b];
 
 		if (!obj->appearance.isVisitableFrom(src.x - dst.x, src.y - dst.y))
 			return false;

@@ -301,6 +301,7 @@ public:
 	CFunctionList<void (const CMapInfo *)> & getMapInfoChanged();
 	const CMapInfo * getMapInfo() const;
 	const CMapGenOptions & getMapGenOptions() const;
+	void setMapGenOptions(shared_ptr<CMapGenOptions> opts);
 
 private:
     void addButtonsToGroup(CToggleGroup * group, const std::vector<std::string> & defs, int startIndex, int endIndex, int btnWidth, int helpStartIndex) const;
@@ -308,6 +309,7 @@ private:
     void deactivateButtonsFrom(CToggleGroup * group, int startId);
     void validatePlayersCnt(int playersCnt);
     void validateCompOnlyPlayersCnt(int compOnlyPlayersCnt);
+	std::vector<int> getPossibleMapSizes();
 
     CPicture * bg;
 	CToggleButton * twoLevelsBtn;
@@ -611,7 +613,7 @@ public:
 
 	~CGPreGame();
 	void update() override;
-	void runLocked(std::function<void(IUpdateable * )> cb) override;
+	void runLocked(std::function<void()> cb) override;
 	void openSel(CMenuScreen::EState type, CMenuScreen::EMultiMode multi = CMenuScreen::SINGLE_PLAYER);
 
 	void openCampaignScreen(std::string name);

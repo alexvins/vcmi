@@ -249,7 +249,11 @@ void ObjectTemplate::readJson(const JsonNode &node)
 			usedTiles[mask.size() - 1 - i][line.size() - 1 - j] = charToTile(line[j]);
 	}
 
-	printPriority = node["zIndex"].Float();
+	const JsonNode zindex = node["zIndex"];
+	if (!zindex.isNull())
+		printPriority = node["zIndex"].Float();
+	else
+		printPriority = 0; //default value
 }
 
 ui32 ObjectTemplate::getWidth() const
@@ -329,10 +333,10 @@ int3 ObjectTemplate::getBlockMapOffset() const
 		for(int h = 0; h < getHeight(); ++h)
 		{
 			if (isBlockedAt(w, h))
-				return int3(-w, -h, 0);
+				return int3(w, h, 0);
 		}
 	}
-	return int3(-1,-1,-1);
+	return int3(0,0,0);
 }
 
 bool ObjectTemplate::isVisitableFrom(si8 X, si8 Y) const

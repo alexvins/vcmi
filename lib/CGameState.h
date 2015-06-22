@@ -67,7 +67,7 @@ namespace boost
 	class shared_mutex;
 }
 
-//numbers of creatures are exact numbers if detailed else they are quantity ids (0 - a few, 1 - several and so on; additionally -1 - unknown)
+//numbers of creatures are exact numbers if detailed else they are quantity ids (1 - a few, 2 - several and so on; additionally 0 - unknown)
 struct ArmyDescriptor : public std::map<SlotID, CStackBasicDescriptor>
 {
 	bool isDetailed;
@@ -183,7 +183,7 @@ public:
 	template <typename Handler> void serialize(Handler &h, const int version)
 	{
 		h & color & human & team & resources & status;
-		h & heroes & towns & availableHeroes & dwellings & visitedObjects;
+		h & heroes & towns & availableHeroes & dwellings & quests & visitedObjects;
 		h & getBonusList(); //FIXME FIXME FIXME
 		h & status & daysWithoutCastle;
 		h & enteredLosingCheatCode & enteredWinningCheatCode;
@@ -279,8 +279,11 @@ struct DLL_EXPORT DuelParameters
 class CPathfinder : private CGameInfoCallback
 {
 private:
-	bool useSubterraneanGates;
 	bool allowEmbarkAndDisembark;
+	bool allowTeleportTwoWay; // Two-way monoliths and Subterranean Gate
+	bool allowTeleportOneWay; // One-way monoliths with one known exit only
+	bool allowTeleportOneWayRandom; // One-way monoliths with more than one known exit
+	bool allowTeleportWhirlpool; // Force enabled if hero protected or unaffected (have one stack of one creature)
 	CPathsInfo &out;
 	const CGHeroInstance *hero;
 	const std::vector<std::vector<std::vector<ui8> > > &FoW;
@@ -293,7 +296,7 @@ private:
 	CGPathNode *dp; //destination node -> it's a neighbour of cp that we consider
 	const TerrainTile *ct, *dt; //tile info for both nodes
 	ui8 useEmbarkCost; //0 - usual movement; 1 - embark; 2 - disembark
-	int destTopVisObjID;
+	Obj destTopVisObjID;
 
 
 	CGPathNode *getNode(const int3 &coord);
@@ -302,6 +305,11 @@ private:
 
 	CGPathNode::EAccessibility evaluateAccessibility(const TerrainTile *tinfo) const;
 	bool canMoveBetween(const int3 &a, const int3 &b) const; //checks only for visitable objects that may make moving between tiles impossible, not other conditions (like tiles itself accessibility)
+
+	bool addTeleportTwoWay(const CGTeleport * obj) const;
+	bool addTeleportOneWay(const CGTeleport * obj) const;
+	bool addTeleportOneWayRandom(const CGTeleport * obj) const;
+	bool addTeleportWhirlpool(const CGWhirlpool * obj) const;
 
 public:
 	CPathfinder(CPathsInfo &_out, CGameState *_gs, const CGHeroInstance *_hero);

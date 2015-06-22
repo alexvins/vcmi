@@ -13,7 +13,7 @@
 #include "../lib/VCMI_Lib.h"
 #include "../lib/mapping/CMap.h"
 #include "../lib/VCMIDirs.h"
-#include "../lib/CSpellHandler.h"
+#include "../lib/spells/CSpellHandler.h"
 #include "../lib/CSoundBase.h"
 #include "../lib/StartInfo.h"
 #include "mapHandler.h"
@@ -336,7 +336,7 @@ void RemoveObject::applyFirstCl( CClient *cl )
 {
 	const CGObjectInstance *o = cl->getObj(id);
 
-	CGI->mh->hideObject(o);
+	CGI->mh->hideObject(o, true);
 
 	//notify interfaces about removal
 	for(auto i=cl->playerint.begin(); i!=cl->playerint.end(); i++)
@@ -367,7 +367,7 @@ void TryMoveHero::applyFirstCl( CClient *cl )
 	}
 
 	if(result == TELEPORTATION  ||  result == EMBARK  ||  result == DISEMBARK  ||  !humanKnows)
-		CGI->mh->removeObject(h);
+		CGI->mh->removeObject(h, result == EMBARK && humanKnows);
 
 
 	if(result == DISEMBARK)
@@ -381,7 +381,7 @@ void TryMoveHero::applyCl( CClient *cl )
 
 	if(result == TELEPORTATION  ||  result == EMBARK  ||  result == DISEMBARK)
 	{
-		CGI->mh->printObject(h);
+		CGI->mh->printObject(h, result == DISEMBARK);
 	}
 
 	if(result == EMBARK)
@@ -593,6 +593,11 @@ void ExchangeDialog::applyCl(CClient *cl)
 {
 	assert(heroes[0] && heroes[1]);
 	INTERFACE_CALL_IF_PRESENT(heroes[0]->tempOwner, heroExchangeStarted, heroes[0]->id, heroes[1]->id, queryID);
+}
+
+void TeleportDialog::applyCl( CClient *cl )
+{
+	CALL_ONLY_THAT_INTERFACE(hero->tempOwner,showTeleportDialog,channel,exits,impassable,queryID);
 }
 
 void BattleStart::applyFirstCl( CClient *cl )
@@ -834,6 +839,11 @@ void AdvmapSpellCast::applyCl(CClient *cl)
 	INTERFACE_CALL_IF_PRESENT(caster->getOwner(),advmapSpellCast, caster, spellID);
 }
 
+void ShowWorldViewEx::applyCl(CClient * cl)
+{
+	CALL_ONLY_THAT_INTERFACE(player, showWorldViewEx, objectPositions);
+}
+
 void OpenWindow::applyCl(CClient *cl)
 {
 	switch(window)
@@ -908,7 +918,7 @@ void NewObject::applyCl(CClient *cl)
 	cl->invalidatePaths();
 
 	const CGObjectInstance *obj = cl->getObj(id);
-	CGI->mh->printObject(obj);
+	CGI->mh->printObject(obj, true);
 
 	for(auto i=cl->playerint.begin(); i!=cl->playerint.end(); i++)
 	{

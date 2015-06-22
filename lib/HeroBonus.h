@@ -215,7 +215,10 @@ public:
 	BONUS_NAME(REBIRTH) /* val - percent of life restored, subtype = 0 - regular, 1 - at least one unit (sacred Phoenix) */\
 	BONUS_NAME(ADDITIONAL_UNITS) /*val of units with id = subtype will be added to hero's army at the beginning of battle */\
 	BONUS_NAME(SPOILS_OF_WAR) /*val * 10^-6 * gained exp resources of subtype will be given to hero after battle*/\
-	BONUS_NAME(BLOCK)
+	BONUS_NAME(BLOCK)\
+	BONUS_NAME(DISGUISED) /* subtype - spell level */\
+	BONUS_NAME(VISIONS) /* subtype - spell level */
+	
 
 #define BONUS_SOURCE_LIST \
 	BONUS_SOURCE(ARTIFACT)\
@@ -334,6 +337,14 @@ struct DLL_LINKAGE Bonus
 	{
 		return a->additionalInfo < b->additionalInfo;
 	}
+	static bool NDays(const Bonus *hb)
+	{
+		return hb->duration & Bonus::N_DAYS;
+	}
+	static bool NTurns(const Bonus *hb)
+	{
+		return hb->duration & Bonus::N_TURNS;
+	}	
 	static bool OneDay(const Bonus *hb)
 	{
 		return hb->duration & Bonus::ONE_DAY;
@@ -345,6 +356,10 @@ struct DLL_LINKAGE Bonus
 	static bool OneBattle(const Bonus *hb)
 	{
 		return hb->duration & Bonus::ONE_BATTLE;
+	}
+	static bool Permanent(const Bonus *hb)
+	{
+		return hb->duration & Bonus::PERMANENT;
 	}
 	static bool UntilGetsTurn(const Bonus *hb)
 	{
@@ -680,7 +695,6 @@ public:
 	void exportBonus(Bonus * b);
 	void exportBonuses();
 
-	static void incrementTreeChangedNum();
 	BonusList &getBonusList();
 	const BonusList &getBonusList() const;
 	BonusList &getExportedBonusList();
@@ -945,7 +959,6 @@ namespace Selector
 	extern DLL_LINKAGE CSelectFieldEqual<Bonus::BonusType> type;
 	extern DLL_LINKAGE CSelectFieldEqual<TBonusSubtype> subtype;
 	extern DLL_LINKAGE CSelectFieldEqual<si32> info;
-	extern DLL_LINKAGE CSelectFieldEqual<ui16> duration;
 	extern DLL_LINKAGE CSelectFieldEqual<Bonus::BonusSource> sourceType;
 	extern DLL_LINKAGE CSelectFieldEqual<Bonus::LimitEffect> effectRange;
 	extern DLL_LINKAGE CWillLastTurns turns;
@@ -954,7 +967,6 @@ namespace Selector
 	CSelector DLL_LINKAGE typeSubtype(Bonus::BonusType Type, TBonusSubtype Subtype);
 	CSelector DLL_LINKAGE typeSubtypeInfo(Bonus::BonusType type, TBonusSubtype subtype, si32 info);
 	CSelector DLL_LINKAGE source(Bonus::BonusSource source, ui32 sourceID);
-	CSelector DLL_LINKAGE durationType(ui16 duration);
 	CSelector DLL_LINKAGE sourceTypeSel(Bonus::BonusSource source);
 
 	bool DLL_LINKAGE matchesType(const CSelector &sel, Bonus::BonusType type);
@@ -978,7 +990,7 @@ void BonusList::insert(const int position, InputIterator first, InputIterator la
 	bonuses.insert(bonuses.begin() + position, first, last);
 
 	if (belongsToTree)
-		CBonusSystemNode::incrementTreeChangedNum();
+		CBonusSystemNode::treeHasChanged();
 }
 
 // Extensions for BOOST_FOREACH to enable iterating of BonusList objects

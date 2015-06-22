@@ -1,13 +1,47 @@
+0.98 -> 0.next
+
+GENERAL:
+* Rogues provide expert Vision spell effect
+
+ADVETURE AI:
+* Fixed AI trying to go through underground rock
+* Fixed several cases causing AI wandering aimlessly
+* AI can again pick bets artifacts and exchange artifacts between heroes
+
+RANDOM MAP GENERATOR:
+* Added roads generation
+* Added Thieves Guild random object (1 per zone)
+* Changed fractalization algorithm so it can create cycles
+* Zones will not have straight paths anymore, they are totally random
+
 0.97 -> 0.98
+GENERAL:
+* Pathfinder can now find way using Monoliths and Whirlpools (only used if hero has protection)
+
+ADVENTURE AI:
+* AI will try to use Monolith entrances for exploration
+* AI will now always revisit each exit of two way monolith if exit no longer visible
+* AI will eagerly pick guarded and blocked treasures
+
+ADVENTURE MAP:
+* Implemented world view
+* Added graphical fading effects
 
 SPELLS:
-* implemented CURE spell negative dispell effect
-* added LOCATION target for spells castable on any hex with new target modifiers
+* New spells handled:
+- Earthquake
+- View Air
+- View Earth
+- Visions
+- Disguise
+* Implemented CURE spell negative dispell effect
+* Added LOCATION target for spells castable on any hex with new target modifiers
 
 BATTLES:
 * Implemented OH3 stack split / upgrade formulas according to AlexSpl
 
 RANDOM MAP GENERATOR:
+* Underground tunnels are working now
 * Implemented "junction" zone type
 * Improved zone placing algorithm
 * More balanced distribution of treasure piles

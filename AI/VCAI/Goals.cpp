@@ -221,6 +221,12 @@ TSubgoal Win::whatToDoToAchieve()
 			{
 				if (goal.object)
 				{
+					auto obj = cb->getObj (goal.object->id);
+					if (obj)
+						if (obj->getOwner() == ai->playerID) //we can't capture our own object
+							return sptr(Goals::Conquer());
+
+
 					return sptr (Goals::GetObj(goal.object->id.getNum()));
 				}
 				else
@@ -588,14 +594,43 @@ TGoalVec Explore::getAllPossibleSubgoals()
 		{
 			switch (obj->ID.num)
 			{
-				case Obj::REDWOOD_OBSERVATORY:
-				case Obj::PILLAR_OF_FIRE:
-				case Obj::CARTOGRAPHER:
-				case Obj::SUBTERRANEAN_GATE: //TODO: check ai->knownSubterraneanGates
+			case Obj::REDWOOD_OBSERVATORY:
+			case Obj::PILLAR_OF_FIRE:
+			case Obj::CARTOGRAPHER:
+				objs.push_back (obj);
+				break;
+			case Obj::MONOLITH_ONE_WAY_ENTRANCE:
+			case Obj::MONOLITH_TWO_WAY:
+			case Obj::SUBTERRANEAN_GATE:
+				auto tObj = dynamic_cast<const CGTeleport *>(obj);
+				assert(ai->knownTeleportChannels.find(tObj->channel) != ai->knownTeleportChannels.end());
+				if(TeleportChannel::IMPASSABLE != ai->knownTeleportChannels[tObj->channel]->passability)
 					objs.push_back (obj);
+				break;
+			}
+		}
+		else
+		{
+			switch (obj->ID.num)
+			{
+			case Obj::MONOLITH_TWO_WAY:
+			case Obj::SUBTERRANEAN_GATE:
+				auto tObj = dynamic_cast<const CGTeleport *>(obj);
+				if(TeleportChannel::IMPASSABLE == ai->knownTeleportChannels[tObj->channel]->passability)
+					break;
+				for(auto exit : ai->knownTeleportChannels[tObj->channel]->exits)
+				{
+					if(!cb->getObj(exit))
+					{ // Always attempt to visit two-way teleports if one of channel exits is not visible
+						objs.push_back(obj);
+						break;
+					}
+				}
+				break;
 			}
 		}
 	}
+
 	for (auto h : heroes)
 	{
 		SectorMap sm(h);
@@ -603,7 +638,7 @@ TGoalVec Explore::getAllPossibleSubgoals()
 		for (auto obj : objs) //double loop, performance risk?
 		{
 			auto t = sm.firstTileToGet(h, obj->visitablePos()); //we assume that no more than one tile on the way is guarded
-			if (ai->canReachTile(h, t))
+			if (ai->isTileNotReserved(h, t))
 				ret.push_back (sptr(Goals::ClearWayTo(obj->visitablePos(), h).setisAbstract(true)));
 		}
 
@@ -939,7 +974,7 @@ TGoalVec Conquer::getAllPossibleSubgoals()
 		for (auto obj : ourObjs) //double loop, performance risk?
 		{
 			auto t = sm.firstTileToGet(h, obj->visitablePos()); //we assume that no more than one tile on the way is guarded
-			if (ai->canReachTile(h, t))
+			if (ai->isTileNotReserved(h, t))
 				ret.push_back (sptr(Goals::ClearWayTo(obj->visitablePos(), h).setisAbstract(true)));
 		}
 	}
@@ -1039,10 +1074,11 @@ TGoalVec GatherArmy::getAllPossibleSubgoals()
 	}
 	for(auto h : cb->getHeroesInfo())
 	{
+		SectorMap sm(h);
 		for (auto obj : objs)
 		{ //find safe dwelling
 			auto pos = obj->visitablePos();
-			if (ai->isGoodForVisit(obj, h))
+			if (ai->isGoodForVisit(obj, h, sm))
 				ret.push_back (sptr (Goals::VisitTile(pos).sethero(h)));
 		}
 	}

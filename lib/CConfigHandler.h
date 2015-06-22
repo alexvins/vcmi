@@ -133,8 +133,11 @@ namespace config
 		int advmapX, advmapY, advmapW, advmapH;
 		bool smoothMove;
 		bool puzzleSepia;
+		bool screenFading;
+		bool objectFading;
 		//general properties
 		std::string mainGraphic;
+		std::string worldViewGraphic;
 		//buttons
 		ButtonInfo kingOverview, underground, questlog,	sleepWake, moveHero, spellbook,	advOptions,
 			sysOptions,	nextHero, endTurn;

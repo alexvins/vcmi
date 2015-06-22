@@ -8,9 +8,11 @@
 
 #include "../CGameInfo.h"
 #include "../CMusicHandler.h"
+#include "../CDefHandler.h"
 #include "../CPlayerInterface.h"
 #include "../CPreGame.h"
 #include "../Graphics.h"
+#include "../CMessage.h"
 
 #include "../gui/CGuiHandler.h"
 #include "../gui/SDL_Pixels.h"
@@ -47,9 +49,9 @@
  */
 
 CList::CListItem::CListItem(CList * Parent):
-    CIntObject(LCLICK | RCLICK | HOVER),
-    parent(Parent),
-    selection(nullptr)
+	CIntObject(LCLICK | RCLICK | HOVER),
+	parent(Parent),
+	selection(nullptr)
 {
 }
 
@@ -100,10 +102,10 @@ void CList::CListItem::onSelect(bool on)
 }
 
 CList::CList(int Size, Point position, std::string btnUp, std::string btnDown, size_t listAmount,
-             int helpUp, int helpDown, CListBox::CreateFunc create, CListBox::DestroyFunc destroy):
-    CIntObject(0, position),
-    size(Size),
-    selected(nullptr)
+			 int helpUp, int helpDown, CListBox::CreateFunc create, CListBox::DestroyFunc destroy):
+	CIntObject(0, position),
+	size(Size),
+	selected(nullptr)
 {
 	OBJ_CONSTRUCTION_CAPTURING_ALL;
 	scrollUp = new CButton(Point(0, 0), btnUp, CGI->generaltexth->zelp[helpUp]);
@@ -194,8 +196,8 @@ CHeroList::CEmptyHeroItem::CEmptyHeroItem()
 }
 
 CHeroList::CHeroItem::CHeroItem(CHeroList *parent, const CGHeroInstance * Hero):
-    CListItem(parent),
-    hero(Hero)
+	CListItem(parent),
+	hero(Hero)
 {
 	OBJ_CONSTRUCTION_CAPTURING_ALL;
 	movement = new CAnimImage("IMOBIL", 0, 0, 0, 1);
@@ -249,7 +251,7 @@ CIntObject * CHeroList::createHeroItem(size_t index)
 }
 
 CHeroList::CHeroList(int size, Point position, std::string btnUp, std::string btnDown):
-    CList(size, position, btnUp, btnDown, LOCPLINT->wanderingHeroes.size(), 303, 304, std::bind(&CHeroList::createHeroItem, this, _1))
+	CList(size, position, btnUp, btnDown, LOCPLINT->wanderingHeroes.size(), 303, 304, std::bind(&CHeroList::createHeroItem, this, _1))
 {
 }
 
@@ -290,8 +292,8 @@ CIntObject * CTownList::createTownItem(size_t index)
 }
 
 CTownList::CTownItem::CTownItem(CTownList *parent, const CGTownInstance *Town):
-    CListItem(parent),
-    town(Town)
+	CListItem(parent),
+	town(Town)
 {
 	OBJ_CONSTRUCTION_CAPTURING_ALL;
 	picture = new CAnimImage("ITPA", 0);
@@ -334,7 +336,7 @@ std::string CTownList::CTownItem::getHoverText()
 }
 
 CTownList::CTownList(int size, Point position, std::string btnUp, std::string btnDown):
-    CList(size, position, btnUp, btnDown, LOCPLINT->towns.size(),  306, 307, std::bind(&CTownList::createTownItem, this, _1))
+	CList(size, position, btnUp, btnDown, LOCPLINT->towns.size(),  306, 307, std::bind(&CTownList::createTownItem, this, _1))
 {
 }
 
@@ -500,7 +502,7 @@ void CMinimapInstance::showAll()
 	minimap->blitTo(nullptr, &pos);
 
 	//draw heroes
-	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false); //TODO: do we really need separate function for drawing heroes? 
+	std::vector <const CGHeroInstance *> heroes = LOCPLINT->cb->getHeroesInfo(false); //TODO: do we really need separate function for drawing heroes?
 	for(auto & hero : heroes)
 	{
 		int3 position = hero->getPosition(false);
@@ -523,7 +525,7 @@ std::map<int, std::pair<SDL_Color, SDL_Color> > CMinimap::loadColors(std::string
 		auto index = boost::find(GameConstants::TERRAIN_NAMES, m.first);
 		if (index == std::end(GameConstants::TERRAIN_NAMES))
 		{
-            logGlobal->errorStream() << "Error: unknown terrain in terrains.json: " << m.first;
+			logGlobal->errorStream() << "Error: unknown terrain in terrains.json: " << m.first;
 			continue;
 		}
 		int terrainID = index - std::begin(GameConstants::TERRAIN_NAMES);
@@ -552,11 +554,11 @@ std::map<int, std::pair<SDL_Color, SDL_Color> > CMinimap::loadColors(std::string
 }
 
 CMinimap::CMinimap(const Rect &position):
-    CIntObject(LCLICK | RCLICK | HOVER | MOVE, position.topLeft()),
-    aiShield(nullptr),
-    minimap(nullptr),
-    level(0),
-    colors(loadColors("config/terrains.json"))
+	CIntObject(LCLICK | RCLICK | HOVER | MOVE, position.topLeft()),
+	aiShield(nullptr),
+	minimap(nullptr),
+	level(0),
+	colors(loadColors("config/terrains.json"))
 {
 	pos.w = position.w;
 	pos.h = position.h;
@@ -616,15 +618,26 @@ void CMinimap::showAll()
 	if (minimap)
 	{
 		int3 mapSizes = LOCPLINT->cb->getMapSize();
+		int3 tileCountOnScreen = adventureInt->terrain.tileCountOnScreen();
 
 		//draw radar
 		SDL_Rect radar =
 		{
 			si16(adventureInt->position.x * pos.w / mapSizes.x + pos.x),
 			si16(adventureInt->position.y * pos.h / mapSizes.y + pos.y),
-			ui16(adventureInt->terrain.tilesw * pos.w / mapSizes.x),
-			ui16(adventureInt->terrain.tilesh * pos.h / mapSizes.y)
+			ui16(tileCountOnScreen.x * pos.w / mapSizes.x),
+			ui16(tileCountOnScreen.y * pos.h / mapSizes.y)
 		};
+
+		if (adventureInt->mode == EAdvMapMode::WORLD_VIEW)
+		{
+			// adjusts radar so that it doesn't go out of map in world view mode (since there's no frame)
+			radar.x = std::min<int>(std::max(pos.x, radar.x), pos.x + pos.w - radar.w);
+			radar.y = std::min<int>(std::max(pos.y, radar.y), pos.y + pos.h - radar.h);
+
+			if (radar.x < pos.x && radar.y < pos.y)
+				return; // whole map is visible at once, no point in redrawing border
+		}
 		
 		{
 			mainScreen->accessActiveTarget([&,this](SDL_Surface * to){
@@ -685,8 +698,8 @@ void CMinimap::showTile(const int3 &pos)
 }
 
 CInfoBar::CVisibleInfo::CVisibleInfo(Point position):
-    CIntObject(0, position),
-    aiProgress(nullptr)
+	CIntObject(0, position),
+	aiProgress(nullptr)
 {
 
 }
@@ -921,10 +934,10 @@ void CInfoBar::hover(bool on)
 }
 
 CInfoBar::CInfoBar(const Rect &position):
-    CIntObject(LCLICK | RCLICK | HOVER, position.topLeft()),
-    visibleInfo(nullptr),
-    state(EMPTY),
-    currentObject(nullptr)
+	CIntObject(LCLICK | RCLICK | HOVER, position.topLeft()),
+	visibleInfo(nullptr),
+	state(EMPTY),
+	currentObject(nullptr)
 {
 	pos.w = position.w;
 	pos.h = position.h;
@@ -1131,23 +1144,10 @@ void CInGameConsole::keyPressed (const SDL_KeyboardEvent & key)
 		}
 	default:
 		{
-			#ifdef VCMI_SDL1
-			if(enteredText.size() > 0 && enteredText.size() < conf.go()->ac.inputLineLength)
-			{
-				if( key.keysym.unicode < 0x80 && key.keysym.unicode > 0 )
-				{
-					enteredText[enteredText.size()-1] = (char)key.keysym.unicode;
-					enteredText += "_";
-					refreshEnteredText();
-				}
-			}
-			#endif // VCMI_SDL1
 			break;
 		}
 	}
 }
-
-#ifndef VCMI_SDL1
 
 void CInGameConsole::textInputed(const SDL_TextInputEvent & event)
 {
@@ -1165,8 +1165,6 @@ void CInGameConsole::textEdited(const SDL_TextEditingEvent & event)
 {
  //do nothing here
 }
-
-#endif // VCMI_SDL1
 
 void CInGameConsole::startEnteringText()
 {
@@ -1229,9 +1227,116 @@ void CInGameConsole::refreshEnteredText()
 
 CInGameConsole::CInGameConsole() : prevEntDisp(-1), defaultTimeout(10000), maxDisplayedTexts(10)
 {
-	#ifdef VCMI_SDL1
-	addUsedEvents(KEYBOARD);
-	#else
 	addUsedEvents(KEYBOARD | TEXTINPUT);
-	#endif
+}
+
+CAdvMapPanel::CAdvMapPanel(SDL_Surface * bg, Point position)
+	: CIntObject(),
+	  background(bg)
+{
+	defActions = 255;
+	recActions = 255;
+	pos.x += position.x;
+	pos.y += position.y;
+	if (bg)
+	{
+		pos.w = bg->w;
+		pos.h = bg->h;
+	}
+}
+
+CAdvMapPanel::~CAdvMapPanel()
+{
+	if (background)
+		SDL_FreeSurface(background);
+}
+
+void CAdvMapPanel::addChildColorableButton(CButton * btn)
+{
+	buttons.push_back(btn);
+	addChildToPanel(btn, ACTIVATE | DEACTIVATE);
+}
+
+void CAdvMapPanel::setPlayerColor(const PlayerColor & clr)
+{
+	for (auto &btn : buttons)
+	{
+		btn->setPlayerColor(clr);
+	}
+}
+
+void CAdvMapPanel::showAll(SDL_Surface * to)
+{
+	if (background)
+		blitAt(background, pos.x, pos.y, to);
+
+	CIntObject::showAll(to);
+}
+
+void CAdvMapPanel::addChildToPanel(CIntObject * obj, ui8 actions /* = 0 */)
+{
+	obj->recActions |= actions | SHOWALL;
+	addChild(obj, false);
+}
+
+CAdvMapWorldViewPanel::CAdvMapWorldViewPanel(SDL_Surface * bg, Point position, int spaceBottom, const PlayerColor &color)
+	: CAdvMapPanel(bg, position)	  
+{
+	fillerHeight = bg ? spaceBottom - pos.y - pos.h : 0;
+	
+	if (fillerHeight > 0)
+	{
+		tmpBackgroundFiller = CMessage::drawDialogBox(pos.w, fillerHeight, color);
+	}
+	else
+		tmpBackgroundFiller = nullptr;
+}
+
+CAdvMapWorldViewPanel::~CAdvMapWorldViewPanel()
+{
+	if (tmpBackgroundFiller)
+		SDL_FreeSurface(tmpBackgroundFiller);
+}
+
+void CAdvMapWorldViewPanel::recolorIcons(const PlayerColor &color, const CDefHandler *def, int indexOffset)
+{
+	for (auto &pic : currentIcons)
+	{
+		removeChild(pic);
+		delete pic;
+	}
+	currentIcons.clear();
+
+	for (auto &data : iconsData)
+	{
+		auto pic = new CPicture(def->ourImages[data.first + indexOffset].bitmap, data.second.x, data.second.y, false);
+		pic->recActions |= SHOWALL;
+		currentIcons.push_back(pic);
+		addChildToPanel(pic);
+	}
+	
+	if (fillerHeight > 0)
+	{
+		if (tmpBackgroundFiller)
+			SDL_FreeSurface(tmpBackgroundFiller);
+		tmpBackgroundFiller = CMessage::drawDialogBox(pos.w, fillerHeight, color);
+	}
+}
+
+void CAdvMapWorldViewPanel::addChildIcon(std::pair<int, Point> data, const CDefHandler *def, int indexOffset)
+{
+	iconsData.push_back(data);
+	auto pic = new CPicture(def->ourImages[data.first + indexOffset].bitmap, data.second.x, data.second.y, false);
+	currentIcons.push_back(pic);
+	addChildToPanel(pic);
+}
+
+void CAdvMapWorldViewPanel::showAll(SDL_Surface * to)
+{
+	if (tmpBackgroundFiller)
+	{		
+		blitAt(tmpBackgroundFiller, pos.x, pos.y + pos.h, to);
+	}
+
+	CAdvMapPanel::showAll(to);
 }

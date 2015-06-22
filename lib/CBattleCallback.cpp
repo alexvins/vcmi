@@ -3,7 +3,7 @@
 #include "BattleState.h"
 #include "CGameState.h"
 #include "NetPacks.h"
-#include "CSpellHandler.h"
+#include "spells/CSpellHandler.h"
 #include "VCMI_Lib.h"
 #include "CTownHandler.h"
 
@@ -775,6 +775,29 @@ std::vector<BattleHex> CBattleInfoCallback::battleGetAvailableHexes(const CStack
 	return ret;
 }
 
+bool CBattleInfoCallback::battleCanAttack(const CStack * stack, const CStack * target, BattleHex dest) const
+{
+	RETURN_IF_NOT_BATTLE(false);
+	
+	if(battleTacticDist())
+		return false;
+	
+	if (!stack || !target)
+		return false;
+	
+	if (stack->owner == target->owner)
+		return false;
+	
+	auto &id = stack->getCreature()->idNumber;
+	if (id == CreatureID::FIRST_AID_TENT || id == CreatureID::CATAPULT)
+		return false;
+	
+	if (!target->alive())
+		return false;
+	
+	return true;
+}
+
 bool CBattleInfoCallback::battleCanShoot(const CStack * stack, BattleHex dest) const
 {
 	RETURN_IF_NOT_BATTLE(false);
@@ -1231,37 +1254,36 @@ std::set<BattleHex> CBattleInfoCallback::getStoppers(BattlePerspective::BattlePe
 std::pair<const CStack *, BattleHex> CBattleInfoCallback::getNearestStack(const CStack * closest, boost::logic::tribool attackerOwned) const
 {
 	auto reachability = getReachability(closest);
+	auto avHexes = battleGetAvailableHexes(closest, false);
 
 	// I hate std::pairs with their undescriptive member names first / second
 	struct DistStack
 	{
-		int distanceToPred;
+		int distanceToPred;	
+		BattleHex destination;	
 		const CStack *stack;
 	};
 
-	std::vector<DistStack> stackPairs; //pairs <<distance, hex>, stack>
-	for(int g=0; g<GameConstants::BFIELD_SIZE; ++g)
-	{
-		const CStack * atG = battleGetStackByPos(g);
-		if(!atG || atG->ID == closest->ID) //if there is no stack or we are the closest one
-			continue;
+	std::vector<DistStack> stackPairs;
 
-		if(boost::logic::indeterminate(attackerOwned) || atG->attackerOwned == attackerOwned)
-		{
-			if (reachability.isReachable(g))
-			//FIXME: hexes occupied by enemy stack are not accessible. Need to use BattleInfo::getPath or similar
+	std::vector<const CStack *> possibleStacks = battleGetStacksIf([=](const CStack * s)
+	{
+		return s != closest && s->alive() && (boost::logic::indeterminate(attackerOwned) || s->attackerOwned == attackerOwned);
+	}, false);
+	
+	for(const CStack * st : possibleStacks)
+		for(BattleHex hex : avHexes)
+			if(CStack::isMeleeAttackPossible(closest, st, hex))
 			{
-				DistStack hlp = {reachability.distances[reachability.predecessors[g]], atG};
+				DistStack hlp = {reachability.distances[st->position], hex, st};
 				stackPairs.push_back(hlp);
 			}
-		}
-	}
 
 	if (stackPairs.size())
 	{
 		auto comparator = [](DistStack lhs, DistStack rhs) { return lhs.distanceToPred < rhs.distanceToPred; };
 		auto minimal = boost::min_element(stackPairs, comparator);
-		return std::make_pair(minimal->stack, reachability.predecessors[minimal->stack->position]);
+		return std::make_pair(minimal->stack, minimal->destination);
 	}
 	else
 		return std::make_pair<const CStack * , BattleHex>(nullptr, BattleHex::INVALID);
@@ -1599,6 +1621,11 @@ ESpellCastProblem::ESpellCastProblem CBattleInfoCallback::battleCanCastThisSpell
 	if(!spell->combatSpell)
 		return ESpellCastProblem::ADVMAP_SPELL_INSTEAD_OF_BATTLE_SPELL;
 
+	const ESpellCastProblem::ESpellCastProblem specificProblem = spell->canBeCasted(this, player);
+	
+	if(specificProblem != ESpellCastProblem::OK)
+		return specificProblem;	
+
 	if(spell->isNegative() || spell->hasEffects())
 	{
 		bool allStacksImmune = true;
@@ -1618,25 +1645,8 @@ ESpellCastProblem::ESpellCastProblem CBattleInfoCallback::battleCanCastThisSpell
 			return ESpellCastProblem::NO_APPROPRIATE_TARGET;
 	}
 
-
 	if(battleMaxSpellLevel() < spell->level) //effect like Recanter's Cloak or Orb of Inhibition
 		return ESpellCastProblem::SPELL_LEVEL_LIMIT_EXCEEDED;
-
-	//IDs of summon elemental spells (fire, earth, water, air)
-	int spellIDs[] = {	SpellID::SUMMON_FIRE_ELEMENTAL, SpellID::SUMMON_EARTH_ELEMENTAL,
-						SpellID::SUMMON_WATER_ELEMENTAL, SpellID::SUMMON_AIR_ELEMENTAL };
-	//(fire, earth, water, air) elementals
-	int creIDs[] = {CreatureID::FIRE_ELEMENTAL,  CreatureID::EARTH_ELEMENTAL,
-					CreatureID::WATER_ELEMENTAL, CreatureID::AIR_ELEMENTAL};
-
-	int arpos = vstd::find_pos(spellIDs, spell->id);
-	if(arpos < ARRAY_COUNT(spellIDs))
-	{
-		//check if there are summoned elementals of other type
-		for( const CStack * st : battleAliveStacks())
-			if(vstd::contains(st->state, EBattleStackState::SUMMONED) && st->getCreature()->idNumber != creIDs[arpos])
-				return ESpellCastProblem::ANOTHER_ELEMENTAL_SUMMONED;
-	}
 
 	//checking if there exists an appropriate target
 	switch(spell->getTargetType())
@@ -1647,26 +1657,13 @@ ESpellCastProblem::ESpellCastProblem CBattleInfoCallback::battleCanCastThisSpell
 			const CGHeroInstance * caster = battleGetFightingHero(side);
 			const CSpell::TargetInfo ti = spell->getTargetInfo(caster->getSpellSchoolLevel(spell));
 			bool targetExists = false;
-            bool targetToSacrificeExists = false; // for sacrifice we have to check for 2 targets (one dead to resurrect and one living to destroy)
 
             for(const CStack * stack : battleGetAllStacks()) //dead stacks will be immune anyway
 			{
 				bool immune =  ESpellCastProblem::OK != spell->isImmuneByStack(caster, stack);
 				bool casterStack = stack->owner == caster->getOwner();
 				
-                if(spell->id == SpellID::SACRIFICE)
-                {
-                    if(!immune && casterStack)
-                    {
-                        if(stack->alive())
-                            targetToSacrificeExists = true;
-                        else
-                            targetExists = true;
-                        if(targetExists && targetToSacrificeExists)
-                            break;
-                    }
-                }
-                else if(!immune)
+                if(!immune)
                 {
 					switch (spell->positiveness)
 					{
@@ -1690,7 +1687,7 @@ ESpellCastProblem::ESpellCastProblem CBattleInfoCallback::battleCanCastThisSpell
 					}
                 }
 			}
-            if(!targetExists || (spell->id == SpellID::SACRIFICE && !targetExists && !targetToSacrificeExists))
+            if(!targetExists)
 			{
 				return ESpellCastProblem::NO_APPROPRIATE_TARGET;
 			}

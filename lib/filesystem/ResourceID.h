@@ -57,7 +57,8 @@ namespace EResType
 		ERT,
 		ERS,
 		SHADER,
-		OTHER
+		OTHER,
+		UNDEFINED
 	};
 }
 

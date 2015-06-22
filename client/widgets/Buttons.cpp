@@ -144,7 +144,8 @@ bool CButton::isHighlighted()
 
 void CButton::block(bool on)
 {
-	setState(on?BLOCKED:NORMAL);
+	if(on || state == BLOCKED) //dont change button state if unblock requested, but it's not blocked
+		setState(on ? BLOCKED : NORMAL);
 }
 
 void CButton::onButtonClicked()
@@ -294,11 +295,7 @@ void CButton::showAll()
 {
 	CIntObject::showAll();
 	
-	#ifdef VCMI_SDL1
-	if (borderColor && borderColor->unused == 0)
-	#else	
 	if (borderColor && borderColor->a == 0)
-	#endif // VCMI_SDL1
 		mainScreen->drawBorder(pos.x-1, pos.y-1, pos.w+2, pos.h+2, *borderColor);			
 }
 
@@ -423,7 +420,7 @@ void CToggleGroup::addToggle(int identifier, CToggleBase* bt)
 }
 
 CToggleGroup::CToggleGroup(const CFunctionList<void(int)> &OnChange, bool musicLikeButtons)
-: onChange(OnChange), musicLike(musicLikeButtons)
+: onChange(OnChange), selectedID(-2), musicLike(musicLikeButtons)
 {}
 
 void CToggleGroup::setSelected(int id)

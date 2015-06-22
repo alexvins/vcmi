@@ -14,7 +14,7 @@
 
 namespace GameConstants
 {
-	const std::string VCMI_VERSION = "VCMI 0.97c";
+	const std::string VCMI_VERSION = "VCMI 0.98c";
 
 	const int BFIELD_WIDTH = 17;
 	const int BFIELD_HEIGHT = 11;
@@ -252,6 +252,14 @@ class TeamID : public BaseForID<TeamID, ui8>
 	friend class CNonConstInfoCallback;
 };
 
+class TeleportChannelID : public BaseForID<TeleportChannelID, si32>
+{
+	INSTID_LIKE_CLASS_COMMON(TeleportChannelID, si32)
+
+	friend class CGameInfoCallback;
+	friend class CNonConstInfoCallback;
+};
+
 // #ifndef INSTANTIATE_BASE_FOR_ID_HERE
 // extern template std::ostream & operator << <ArtifactInstanceID>(std::ostream & os, BaseForID<ArtifactInstanceID> id);
 // extern template std::ostream & operator << <ObjectInstanceID>(std::ostream & os, BaseForID<ObjectInstanceID> id);
@@ -463,6 +471,31 @@ namespace ETileType
 		POSSIBLE,
 		BLOCKED,
 		USED
+	};
+}
+
+enum class ETeleportChannelType
+{
+	IMPASSABLE,
+	BIDIRECTIONAL,
+	UNIDIRECTIONAL,
+	MIXED
+};
+
+
+namespace ERiverType
+{
+	enum ERiverType
+	{
+		NO_RIVER, CLEAR_RIVER, ICY_RIVER, MUDDY_RIVER, LAVA_RIVER
+	};
+}
+
+namespace ERoadType
+{
+	enum ERoadType
+	{
+		NO_ROAD, DIRT_ROAD, GRAVEL_ROAD, COBBLESTONE_ROAD
 	};
 }
 
@@ -686,7 +719,7 @@ namespace Battle
 
 std::ostream & operator<<(std::ostream & os, const Battle::ActionType actionType);
 
-class ETerrainType
+class DLL_LINKAGE ETerrainType
 {
 public:
 	enum EETerrainType
@@ -701,7 +734,11 @@ public:
 	ID_LIKE_CLASS_COMMON(ETerrainType, EETerrainType)
 
 	EETerrainType num;
+
+	std::string toString() const;
 };
+
+DLL_LINKAGE std::ostream & operator<<(std::ostream & os, const ETerrainType actionType);
 
 ID_LIKE_OPERATORS_DECLS(ETerrainType, ETerrainType::EETerrainType)
 
@@ -894,6 +931,8 @@ public:
 
 	ESpellID num;
 };
+
+ID_LIKE_OPERATORS_DECLS(SpellID, SpellID::ESpellID)
 
 enum class ESpellSchool: ui8
 {
